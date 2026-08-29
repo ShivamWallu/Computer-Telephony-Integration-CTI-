@@ -1,0 +1,119 @@
+{
+  "timestamp": "20260827_150812",
+  "users": [
+    {
+      "id": 1,
+      "email": "shivam@crm.com",
+      "name": "Shivam",
+      "role": "admin"
+    },
+    {
+      "id": 3,
+      "email": "kogm.sahildogra@gmail.com",
+      "name": "Sahil Dogra",
+      "role": "employee"
+    },
+    {
+      "id": 4,
+      "email": "bmjagga@khandelia.com",
+      "name": "BM Jagga",
+      "role": "employee"
+    },
+    {
+      "id": 5,
+      "email": "sales.kol@khandelia.com",
+      "name": "Utpal Pal",
+      "role": "employee"
+    },
+    {
+      "id": 6,
+      "email": "sales.gm@khandelia.com",
+      "name": "Sunil Jain",
+      "role": "employee"
+    },
+    {
+      "id": 7,
+      "email": "customercare@khandelia.com",
+      "name": "Ravi Kumar",
+      "role": "employee"
+    },
+    {
+      "id": 8,
+      "email": "account.unit6@khandelia.com",
+      "name": "Ankush Dingra",
+      "role": "employee"
+    },
+    {
+      "id": 9,
+      "email": "kogm.sonukumar@gmail.com",
+      "name": "Sonu Kumar",
+      "role": "employee"
+    },
+    {
+      "id": 10,
+      "email": "storepurchase@khandelia.com",
+      "name": "Ankush Kapila",
+      "role": "employee"
+    },
+    {
+      "id": 11,
+      "email": "kogm.pankaj@gmail.com",
+      "name": "Pankaj",
+      "role": "employee"
+    },
+    {
+      "id": 12,
+      "email": "infotech@khandelia.com",
+      "name": "Yogesh Khandelia",
+      "role": "admin"
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "code": "CUST-7814",
+      "name": "Mashal Oil & Foods Ltd",
+      "phone": "+91 78147 49816"
+    },
+    {
+      "id": 2,
+      "code": "CUST-1001",
+      "name": "Apex Global Logistics",
+      "phone": "+91 98765 43210"
+    },
+    {
+      "id": 3,
+      "code": "CUST-1002",
+      "name": "TechVision Software Labs",
+      "phone": "+91 98123 45678"
+    },
+    {
+      "id": 4,
+      "code": "CUST-1003",
+      "name": "Reliable Auto Spares",
+      "phone": "+91 98989 89898"
+    },
+    {
+      "id": 5,
+      "code": "CUST-1004",
+      "name": "Global Pharma Exports",
+      "phone": "+91 97000 11223"
+    },
+    {
+      "id": 6,
+      "code": "CUST-1005",
+      "name": "Malhotra Agro Mills",
+      "phone": "+91 99887 76655"
+    },
+    {
+      "id": 7,
+      "code": "CUST-1006",
+      "name": "Punjab Express Logistics",
+      "phone": "+91 98765 01234"
+    }
+  ],
+  "total_calls": 7,
+  "total_interactions": 14,
+  "total_followups": 7,
+  "total_documents": 1
+}

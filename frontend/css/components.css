@@ -1,0 +1,950 @@
+/* ==========================================================================
+   ENTERPRISE CTI & CRM COMPONENT STYLES - MODERN SAAS SPECIFICATION
+   ========================================================================== */
+
+/* 1. KPI Statistic Cards */
+.kpi-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: var(--transition);
+    box-shadow: var(--shadow-xs);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-sm);
+}
+
+.kpi-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.kpi-title {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-value {
+    font-size: 1.625rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0.1rem 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.kpi-subtitle {
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.kpi-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: var(--transition);
+}
+
+.kpi-icon-box.indigo {
+    background: var(--primary-subtle);
+    color: var(--primary);
+    border: 1px solid rgba(79, 70, 229, 0.2);
+}
+
+.kpi-icon-box.emerald {
+    background: var(--success-subtle);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.kpi-icon-box.amber {
+    background: var(--warning-subtle);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.kpi-icon-box.rose {
+    background: var(--danger-subtle);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.kpi-icon-box.purple {
+    background: var(--purple-subtle);
+    color: var(--purple);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* 2. Surface Cards */
+.card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-xs);
+    margin-bottom: 1.25rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    letter-spacing: -0.01em;
+}
+
+.card-title svg,
+.card-title .icon {
+    color: var(--primary);
+}
+
+/* 3. Tables */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.8125rem;
+}
+
+.table th {
+    background: var(--bg-surface-elevated);
+    padding: 0.65rem 0.85rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.table tbody tr {
+    transition: background-color 0.1s ease;
+}
+
+.table tbody tr:hover td {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+}
+
+/* 4. Status Badges & Pills */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.badge-standard {
+    background: var(--bg-surface-elevated);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.badge-active {
+    background: var(--success-subtle);
+    color: var(--success);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+.badge-vip {
+    background: var(--warning-subtle);
+    color: var(--warning);
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+.badge-lead {
+    background: rgba(249, 115, 22, 0.12);
+    color: #F97316;
+    border-color: rgba(249, 115, 22, 0.25);
+}
+
+.badge-danger,
+.badge-overdue {
+    background: var(--danger-subtle);
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+.badge-today {
+    background: var(--warning-subtle);
+    color: var(--warning);
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* 5. Live CTI Softphone Stack & Floating Multi-Call Cards */
+.cti-calls-stack {
+    position: fixed;
+    bottom: 1.25rem;
+    left: calc(var(--sidebar-width) + 1.25rem);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    pointer-events: none;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px;
+}
+
+.cti-call-card {
+    pointer-events: auto;
+    width: 440px;
+    max-width: calc(100vw - 2.5rem);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-popover);
+    padding: 1rem;
+    backdrop-filter: blur(16px);
+    animation: slideUpIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: var(--transition);
+    cursor: pointer;
+    position: relative;
+}
+
+.cti-call-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-popover), 0 0 0 1px var(--primary);
+}
+
+.cti-call-card.selected {
+    border-color: var(--primary) !important;
+    background: var(--bg-surface) !important;
+    box-shadow: var(--shadow-popover), 0 0 0 2px var(--primary) !important;
+}
+
+@keyframes slideUpIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cti-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.65rem;
+}
+
+.cti-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--danger-subtle);
+    color: var(--danger);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.pulse-ring {
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-full);
+    background: currentColor;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: pulseRing 1.5s infinite;
+}
+
+@keyframes pulseRing {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+.cti-customer-box {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 0.65rem;
+}
+
+.cti-phone-display {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.cti-cust-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.cti-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+}
+
+@media (max-width: 900px) {
+    .cti-calls-stack {
+        left: 0.75rem;
+        right: 0.75rem;
+        width: auto;
+        bottom: 0.75rem;
+    }
+    .cti-call-card {
+        width: auto;
+    }
+}
+
+/* 6. Customer Profile Drawer & Timeline */
+.drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 1200;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.drawer-overlay.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.drawer-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 660px;
+    max-width: 95vw;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-color);
+    box-shadow: var(--shadow-popover);
+    z-index: 1250;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-overlay.open .drawer-panel {
+    transform: translateX(0);
+}
+
+.drawer-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-surface-elevated);
+    gap: 0.75rem;
+}
+
+.drawer-tabs-nav {
+    display: flex;
+    background: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 0.75rem;
+    gap: 0.2rem;
+    overflow-x: auto;
+}
+
+.drawer-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.6rem 0.75rem;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+}
+
+.drawer-tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.drawer-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: var(--primary-subtle);
+    font-weight: 600;
+}
+
+.drawer-tab-pane {
+    display: none;
+}
+
+.drawer-tab-pane.active {
+    display: block;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem;
+}
+
+.profile-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    background: var(--bg-surface-elevated);
+    padding: 0.75rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    margin-bottom: 0.85rem;
+}
+
+.meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.meta-label {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.meta-value {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Compact Timeline */
+.timeline-filters {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.65rem;
+}
+
+.filter-chip {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.filter-chip:hover {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.filter-chip.active {
+    background: var(--primary);
+    color: #FFFFFF;
+    border-color: var(--primary);
+}
+
+.compact-timeline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.compact-tl-item {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.55rem 0.75rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.compact-tl-item:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-surface-hover);
+}
+
+.compact-tl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.compact-tl-left {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow: hidden;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.compact-tl-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compact-tl-time {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.compact-tl-preview {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compact-tl-details {
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--border-color);
+    font-size: 0.8125rem;
+}
+
+.compact-tl-meta-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+    background: var(--bg-surface);
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border-color);
+}
+
+.compact-tl-full-text {
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    line-height: 1.45;
+    background: var(--bg-surface);
+    padding: 0.5rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border-color);
+}
+
+/* 7. Excel Import Dropzone */
+.dropzone-box {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 2.25rem 1.5rem;
+    text-align: center;
+    background: var(--bg-surface-elevated);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.dropzone-box:hover,
+.dropzone-box.dragover {
+    border-color: var(--primary);
+    background: var(--primary-subtle);
+}
+
+.dropzone-icon {
+    width: 42px;
+    height: 42px;
+    margin: 0 auto 0.75rem;
+    color: var(--primary);
+}
+
+/* 8. Modals */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+.modal-content {
+    position: relative;
+    z-index: 100000;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-surface-elevated);
+}
+
+.modal-header h3,
+.modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-body {
+    padding: 1.25rem;
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    background: var(--bg-surface-elevated);
+}
+
+/* 9. Form Controls */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.35rem;
+}
+
+.form-control {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    outline: none;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    background: var(--bg-surface);
+}
+
+textarea.form-control {
+    min-height: 80px;
+    resize: vertical;
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+/* 10. Toasts */
+#toast-container {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 1.25rem;
+    z-index: 2100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.65rem 1rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8125rem;
+    animation: toastSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 380px;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.toast.success {
+    border-left: 3px solid var(--success);
+}
+
+.toast.error {
+    border-left: 3px solid var(--danger);
+}
+
+.toast.info {
+    border-left: 3px solid var(--primary);
+}
+
+.toast.warning {
+    border-left: 3px solid var(--warning);
+}
+
+/* 11. Follow-up items & Stream */
+.followup-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.followup-item:hover {
+    border-color: var(--border-strong);
+}
+
+.followup-item.overdue {
+    border-left: 3px solid var(--danger);
+}
+
+.fu-priority {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.fu-priority.high,
+.fu-priority.urgent {
+    background: var(--danger);
+}
+
+.fu-priority.medium {
+    background: var(--warning);
+}
+
+.fu-priority.low {
+    background: var(--info);
+}
+
+.fu-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.fu-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fu-meta {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+}
+
+.timeline-item {
+    display: flex;
+    gap: 0.75rem;
+    position: relative;
+    padding-bottom: 0.75rem;
+}
+
+.timeline-bullet {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+}
+
+.timeline-bullet.call {
+    background: var(--primary-subtle);
+    color: var(--primary);
+}
+
+.timeline-bullet.email {
+    background: var(--purple-subtle);
+    color: var(--purple);
+}
+
+.timeline-bullet.note {
+    background: var(--warning-subtle);
+    color: var(--warning);
+}
+
+.timeline-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.speed-btn {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.speed-btn.active {
+    background: var(--primary) !important;
+    color: #ffffff !important;
+    border-color: var(--primary) !important;
+    font-weight: 600;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

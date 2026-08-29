@@ -1,0 +1,83 @@
+{
+  "timestamp": "20260829_160753",
+  "users": [
+    {
+      "id": 3,
+      "email": "kogm.sahildogra@gmail.com",
+      "name": "Sahil Dogra",
+      "role": "employee"
+    },
+    {
+      "id": 4,
+      "email": "bmjagga@khandelia.com",
+      "name": "BM Jagga",
+      "role": "employee"
+    },
+    {
+      "id": 5,
+      "email": "sales.kol@khandelia.com",
+      "name": "Utpal Pal",
+      "role": "employee"
+    },
+    {
+      "id": 6,
+      "email": "sales.gm@khandelia.com",
+      "name": "Sunil Jain",
+      "role": "employee"
+    },
+    {
+      "id": 7,
+      "email": "customercare@khandelia.com",
+      "name": "Ravi Kumar",
+      "role": "employee"
+    },
+    {
+      "id": 8,
+      "email": "account.unit6@khandelia.com",
+      "name": "Ankush Dingra",
+      "role": "employee"
+    },
+    {
+      "id": 9,
+      "email": "kogm.sonukumar@gmail.com",
+      "name": "Sonu Kumar",
+      "role": "employee"
+    },
+    {
+      "id": 10,
+      "email": "storepurchase@khandelia.com",
+      "name": "Ankush Kapila",
+      "role": "employee"
+    },
+    {
+      "id": 11,
+      "email": "kogm.pankaj@gmail.com",
+      "name": "Pankaj",
+      "role": "employee"
+    },
+    {
+      "id": 17,
+      "email": "infotech@khandelia.com",
+      "name": "Yogesh Khandelia",
+      "role": "admin"
+    },
+    {
+      "id": 18,
+      "email": "itchd.kogm@gmail.com",
+      "name": "Shivam",
+      "role": "admin"
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "code": "CUST-7814",
+      "name": "Mashal Oil & Foods Ltd",
+      "phone": "+91 78147 49816"
+    }
+  ],
+  "total_calls": 114,
+  "total_interactions": 42,
+  "total_followups": 2,
+  "total_documents": 0
+}
