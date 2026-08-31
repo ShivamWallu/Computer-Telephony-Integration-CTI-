@@ -215,10 +215,16 @@
         <div class="main-wrapper">
             <!-- Sticky Top Header -->
             <header class="top-header">
-                <!-- Mobile Menu Button -->
-                <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Toggle navigation menu">
-                    <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
+                <!-- Mobile Menu Button & Brand -->
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Toggle navigation menu">
+                        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="mobile-header-brand" style="display: none; align-items: center; gap: 0.4rem;">
+                        <img src="/images/KOGM_LOgo.jpg" alt="KOGM" style="height: 22px; max-width: 60px; object-fit: contain; border-radius: 3px; background: #fff; padding: 1px;" />
+                        <span style="font-weight: 700; font-size: 0.875rem; color: var(--text-primary); letter-spacing: -0.01em;">KOGM</span>
+                    </div>
+                </div>
 
                 <!-- Prominent Global Search Command Bar -->
                 <div class="global-search-container">
