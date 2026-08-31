@@ -129,3 +129,11 @@ if os.path.exists(frontend_dir):
     @app.get("/")
     def serve_frontend_index():
         return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def serve_favicon():
+        logo_path = os.path.join(images_dir, "KOGM_LOgo.jpg")
+        if os.path.exists(logo_path):
+            return FileResponse(logo_path)
+        from fastapi.responses import Response
+        return Response(status_code=204)
