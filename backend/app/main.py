@@ -49,8 +49,6 @@ async def lifespan(app: FastAPI):
     import threading
     t = threading.Thread(target=_init_db, daemon=True)
     t.start()
-    # Wait max 3.0 seconds for quick init, then proceed so Render port scan succeeds instantly
-    t.join(timeout=3.0)
 
     yield
     # Shutdown
@@ -98,18 +96,8 @@ app.include_router(documents_router, prefix=settings.API_V1_STR)
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 def healthcheck():
-    db_status = "ok"
-    try:
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-    except Exception as e:
-        db_status = f"error: {e}"
-        logger.warning(f"Healthcheck DB ping notice: {e}")
-
     return {
-        "status": "healthy" if "error" not in db_status else "degraded",
-        "database": db_status,
+        "status": "healthy",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT

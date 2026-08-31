@@ -1383,17 +1383,29 @@ a:hover {
         height: 14px !important;
     }
 
-    /* User Switcher on Mobile */
+    /* User Switcher on Mobile (Compact & Sleek) */
     .user-switcher-trigger {
-        height: 34px !important;
-        padding: 0 0.5rem !important;
+        height: 32px !important;
+        padding: 0 0.4rem !important;
         border-radius: var(--radius-full) !important;
-        gap: 0.25rem !important;
+        gap: 0.2rem !important;
+        background: var(--bg-surface-elevated) !important;
+        border: 1px solid var(--border-color) !important;
+    }
+
+    .user-switcher-icon svg {
+        width: 13px !important;
+        height: 13px !important;
+    }
+
+    .user-switcher-chevron {
+        width: 10px !important;
+        height: 10px !important;
     }
 
     .user-switcher-current-name {
-        max-width: 75px !important;
-        font-size: 0.72rem !important;
+        max-width: 48px !important;
+        font-size: 0.6875rem !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
