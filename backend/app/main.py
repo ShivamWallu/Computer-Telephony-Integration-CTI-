@@ -96,7 +96,7 @@ app.include_router(imports_router, prefix=settings.API_V1_STR)
 app.include_router(audit_router, prefix=settings.API_V1_STR)
 app.include_router(documents_router, prefix=settings.API_V1_STR)
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def healthcheck():
     db_status = "ok"
     try:
@@ -126,11 +126,11 @@ if os.path.exists(images_dir):
 if os.path.exists(frontend_dir):
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
-    @app.get("/")
+    @app.api_route("/", methods=["GET", "HEAD"])
     def serve_frontend_index():
         return FileResponse(os.path.join(frontend_dir, "index.html"))
 
-    @app.get("/favicon.ico", include_in_schema=False)
+    @app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
     def serve_favicon():
         logo_path = os.path.join(images_dir, "KOGM_LOgo.jpg")
         if os.path.exists(logo_path):
