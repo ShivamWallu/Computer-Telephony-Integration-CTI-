@@ -549,6 +549,29 @@ const customer = {
         const tbody = document.getElementById('customers-table-body');
         if (!tbody) return;
 
+        // Render shimmering skeleton rows while loading
+        tbody.innerHTML = Array.from({ length: 8 }).map(() => `
+            <tr class="skeleton-row">
+                <td><div class="skeleton" style="width: 75px; height: 14px;"></div></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="skeleton skeleton-circle" style="width: 26px; height: 26px;"></div>
+                        <div>
+                            <div class="skeleton" style="width: 130px; height: 13px; margin-bottom: 4px;"></div>
+                            <div class="skeleton" style="width: 85px; height: 10px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="skeleton" style="width: 95px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 120px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 85px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 60px; height: 18px; border-radius: 10px;"></div></td>
+                <td><div class="skeleton" style="width: 80px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 80px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 70px; height: 26px; border-radius: 4px;"></div></td>
+            </tr>
+        `).join('');
+
         const search = document.getElementById('customers-filter-search')?.value.trim() || '';
         const status = document.getElementById('customers-filter-status')?.value || '';
 

@@ -625,9 +625,100 @@ const app = {
         return system === 'indian' ? n.toLocaleString('en-IN') : n.toLocaleString('en-US');
     },
 
+    renderDashboardSkeletons() {
+        const kpisContainer = document.getElementById('dashboard-kpis');
+        if (kpisContainer && (!kpisContainer.children.length || kpisContainer.querySelector('.skeleton-kpi-card'))) {
+            kpisContainer.innerHTML = Array.from({ length: 4 }).map(() => `
+                <div class="skeleton-kpi-card">
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="width: 85px; height: 11px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="width: 110px; height: 28px; margin-bottom: 8px; border-radius: 6px;"></div>
+                        <div class="skeleton" style="width: 130px; height: 11px;"></div>
+                    </div>
+                    <div class="skeleton skeleton-circle" style="width: 44px; height: 44px;"></div>
+                </div>
+            `).join('');
+        }
+
+        const highlightsGrid = document.getElementById('calling-perf-highlights-grid');
+        if (highlightsGrid && (!highlightsGrid.children.length || highlightsGrid.querySelector('.skeleton-highlight-card'))) {
+            highlightsGrid.innerHTML = Array.from({ length: 5 }).map(() => `
+                <div class="skeleton-highlight-card">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <div class="skeleton" style="width: 80px; height: 11px;"></div>
+                        <div class="skeleton" style="width: 40px; height: 14px; border-radius: 8px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 90px; height: 22px; margin-bottom: 6px; border-radius: 4px;"></div>
+                    <div class="skeleton" style="width: 120px; height: 11px;"></div>
+                </div>
+            `).join('');
+        }
+
+        const perfTbody = document.getElementById('calling-perf-table-body');
+        if (perfTbody && (!perfTbody.children.length || perfTbody.querySelector('.skeleton'))) {
+            perfTbody.innerHTML = Array.from({ length: 4 }).map(() => `
+                <tr class="skeleton-row">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="skeleton skeleton-circle" style="width: 26px; height: 26px;"></div>
+                            <div>
+                                <div class="skeleton" style="width: 110px; height: 13px; margin-bottom: 4px;"></div>
+                                <div class="skeleton" style="width: 70px; height: 10px;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><div class="skeleton" style="width: 40px; height: 14px;"></div></td>
+                    <td><div class="skeleton" style="width: 35px; height: 14px;"></div></td>
+                    <td><div class="skeleton" style="width: 35px; height: 14px;"></div></td>
+                    <td><div class="skeleton" style="width: 35px; height: 14px;"></div></td>
+                    <td><div class="skeleton" style="width: 35px; height: 14px;"></div></td>
+                    <td><div class="skeleton" style="width: 50px; height: 14px;"></div></td>
+                    <td><div class="skeleton" style="width: 60px; height: 14px;"></div></td>
+                    <td><div class="skeleton" style="width: 60px; height: 14px;"></div></td>
+                </tr>
+            `).join('');
+        }
+
+        const teleTbody = document.getElementById('dashboard-telephony-table-body');
+        if (teleTbody && (!teleTbody.children.length || teleTbody.querySelector('.skeleton'))) {
+            teleTbody.innerHTML = Array.from({ length: 5 }).map(() => `
+                <tr class="skeleton-row">
+                    <td><div class="skeleton" style="width: 90px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 70px; height: 18px; border-radius: 10px;"></div></td>
+                    <td><div class="skeleton" style="width: 100px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 90px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 130px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 65px; height: 18px; border-radius: 10px;"></div></td>
+                    <td><div class="skeleton" style="width: 50px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 75px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 85px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 65px; height: 24px; border-radius: 4px;"></div></td>
+                </tr>
+            `).join('');
+        }
+
+        const fuList = document.getElementById('dashboard-followups-list');
+        if (fuList && (!fuList.children.length || fuList.querySelector('.skeleton'))) {
+            fuList.innerHTML = Array.from({ length: 3 }).map(() => `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="skeleton skeleton-circle" style="width: 20px; height: 20px;"></div>
+                        <div>
+                            <div class="skeleton" style="width: 140px; height: 13px; margin-bottom: 4px;"></div>
+                            <div class="skeleton" style="width: 90px; height: 10px;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton" style="width: 60px; height: 18px; border-radius: 10px;"></div>
+                </div>
+            `).join('');
+        }
+    },
+
     async refreshDashboard() {
         const kpisContainer = document.getElementById('dashboard-kpis');
         if (!kpisContainer) return;
+
+        this.renderDashboardSkeletons();
 
         try {
             const stats = await api.get('/dashboard/stats');
@@ -891,9 +982,22 @@ const app = {
             };
         });
 
-        // Show loading skeleton if no data yet
+        // Show loading skeleton rows
         if (!this.callsData || this.callsData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2.5rem;"><div style="display: inline-flex; align-items: center; gap: 8px;"><span class="spinner-sm"></span> Loading call history logs...</div></td></tr>`;
+            tbody.innerHTML = Array.from({ length: 8 }).map(() => `
+                <tr class="skeleton-row">
+                    <td><div class="skeleton" style="width: 95px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 70px; height: 18px; border-radius: 10px;"></div></td>
+                    <td><div class="skeleton" style="width: 105px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 95px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 140px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 75px; height: 18px; border-radius: 10px;"></div></td>
+                    <td><div class="skeleton" style="width: 45px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 80px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 85px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 70px; height: 26px; border-radius: 4px;"></div></td>
+                </tr>
+            `).join('');
         }
 
         try {

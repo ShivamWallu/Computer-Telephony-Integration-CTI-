@@ -28,7 +28,21 @@ const followups = {
         const container = document.getElementById('followups-container');
         if (!container) return;
 
-        container.innerHTML = `<p class="text-muted" style="padding: 1rem 0;">Loading follow-ups...</p>`;
+        container.innerHTML = Array.from({ length: 4 }).map(() => `
+            <div class="kpi-card" style="align-items: center; padding: 1.15rem 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                    <div class="skeleton skeleton-circle" style="width: 18px; height: 18px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="width: 180px; height: 14px; margin-bottom: 6px;"></div>
+                        <div class="skeleton" style="width: 260px; height: 11px;"></div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <div class="skeleton" style="width: 60px; height: 22px; border-radius: 10px;"></div>
+                    <div class="skeleton" style="width: 70px; height: 22px; border-radius: 10px;"></div>
+                </div>
+            </div>
+        `).join('');
 
         try {
             const data = await api.get(`/followups?filter_type=${this.currentTab}`);

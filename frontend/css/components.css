@@ -948,3 +948,78 @@ select.form-control {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* ==========================================================================
+   MODERN PROFESSIONAL SKELETON LOADERS & SHIMMER EFFECTS
+   ========================================================================== */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.09) 50%,
+        rgba(255, 255, 255, 0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite ease-in-out;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    vertical-align: middle;
+}
+
+[data-theme="light"] .skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.04) 25%,
+        rgba(0, 0, 0, 0.09) 50%,
+        rgba(0, 0, 0, 0.04) 75%
+    );
+    background-size: 200% 100%;
+}
+
+.skeleton-text {
+    height: 0.8125rem;
+    border-radius: 4px;
+    margin-bottom: 0.35rem;
+}
+
+.skeleton-circle {
+    border-radius: 50% !important;
+    flex-shrink: 0;
+}
+
+.skeleton-kpi-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: var(--shadow-xs);
+}
+
+.skeleton-highlight-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 96px;
+}
+
+.skeleton-row td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+}
