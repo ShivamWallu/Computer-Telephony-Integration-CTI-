@@ -135,12 +135,12 @@ class CallBroadcastManager:
 
     def get_all_active_calls(
         self,
-        user_id: Optional[int] = None,
         allowed_caller_id: Optional[str] = None,
+        user_id: Optional[int] = None,
         is_admin: bool = False,
-        max_age_seconds: int = 3600
+        max_age_seconds: int = 180
     ) -> List[Dict[str, Any]]:
-        """Return active calls filtered by user role, allowed caller ID, and age."""
+        """Return active calls filtered by user role, allowed caller ID, and fresh age (< 180s)."""
         now = datetime.now(timezone.utc).timestamp()
         clean_cid = str(allowed_caller_id).strip() if allowed_caller_id else None
         results = []
@@ -761,14 +761,16 @@ class CTIService:
         broadcast_payload["start_time"] = call_start_dt.isoformat()
         broadcast_payload["status"] = "ringing"
         
-        broadcast_manager.add_active_call(call_uuid, broadcast_payload)
-
-        # Fire async broadcast task to SSE subscribers
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(broadcast_manager.broadcast_call(broadcast_payload))
-        except RuntimeError:
-            pass
+        # Only add to active ringing popups if call is fresh (< 180 seconds old)
+        now_ts = datetime.now(timezone.utc).timestamp()
+        call_ts = call_start_dt.timestamp()
+        if abs(now_ts - call_ts) <= 180:
+            broadcast_manager.add_active_call(call_uuid, broadcast_payload)
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(broadcast_manager.broadcast_call(broadcast_payload))
+            except RuntimeError:
+                pass
 
         return response
 

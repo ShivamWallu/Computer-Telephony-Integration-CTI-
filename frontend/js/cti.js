@@ -546,14 +546,33 @@ const cti = {
 
         let startTimeMs = Date.now();
         if (startTimeStr) {
-            const parsed = new Date(startTimeStr).getTime();
+            let str = String(startTimeStr).trim();
+            if (str.includes(' ') && !str.includes('T')) {
+                str = str.replace(' ', 'T');
+            }
+            if (!str.endsWith('Z') && !str.includes('+') && !str.match(/-\d{2}:\d{2}$/)) {
+                // If no timezone suffix provided by Smartflo, parse with Indian Standard Time (+05:30)
+                str += '+05:30';
+            }
+            const parsed = new Date(str).getTime();
             if (!isNaN(parsed) && parsed > 0) {
-                startTimeMs = parsed;
+                const diffSec = (Date.now() - parsed) / 1000;
+                // Only use parsed timestamp if reasonably fresh (< 10 minutes)
+                if (diffSec >= 0 && diffSec < 600) {
+                    startTimeMs = parsed;
+                }
             }
         }
 
         const updateTimerDisplay = () => {
             const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startTimeMs) / 1000));
+            // Auto dismiss ringing calls that have been left unattended for > 3 minutes (180s)
+            const currentCall = this.activeCalls.get(callKey);
+            if (currentCall && !currentCall.isEnded && currentCall.status === 'ringing' && elapsedSeconds > 180) {
+                this.dismissCall(callKey);
+                return;
+            }
+
             const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
             const secs = String(elapsedSeconds % 60).padStart(2, '0');
             const timerEl = document.getElementById(`cti-timer-${callKey}`);
