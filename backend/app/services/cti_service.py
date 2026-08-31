@@ -468,49 +468,66 @@ class SmartfloProvider(BaseTelephonyProvider):
         from dotenv import load_dotenv
         load_dotenv(override=True)
 
-        token = os.getenv("SMARTFLO_API_TOKEN") or getattr(settings, "SMARTFLO_API_TOKEN", "")
-        if not token:
-            logger.info(f"[SMARTFLO C2C] No API Token configured in .env. Simulating outbound call to {to_number}")
+        raw_token = os.getenv("SMARTFLO_API_TOKEN") or getattr(settings, "SMARTFLO_API_TOKEN", "") or ""
+        clean_token = raw_token.strip()
+        if clean_token.lower().startswith("bearer "):
+            clean_token = clean_token[7:].strip()
+
+        if not clean_token:
+            logger.info(f"[SMARTFLO C2C] No API Token configured. Simulating outbound call to {to_number}")
             return {
                 "status": "initiated",
                 "provider": "smartflo",
                 "call_id": f"SF-OUT-{uuid.uuid4().hex[:10].upper()}",
-                "simulated": True
+                "simulated": True,
+                "message": "Call simulated (No Smartflo API Token configured)"
             }
 
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {clean_token}",
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
 
-        clean_customer_phone = PhoneNormalizer.clean_digits(to_number)
-        clean_agent_phone = PhoneNormalizer.clean_digits(agent_number or caller_id or "918065908540")
-        clean_caller_id = PhoneNormalizer.clean_digits(caller_id or "918065908540")
+        clean_customer_digits = PhoneNormalizer.clean_digits(to_number)
+        cust_10 = clean_customer_digits[-10:] if len(clean_customer_digits) >= 10 else clean_customer_digits
+        cust_91 = f"91{cust_10}" if len(cust_10) == 10 else clean_customer_digits
+
+        agent_num_raw = str(agent_number or caller_id or "918065908540").strip()
+        clean_agent_digits = PhoneNormalizer.clean_digits(agent_num_raw)
+        agent_10 = clean_agent_digits[-10:] if len(clean_agent_digits) >= 10 else clean_agent_digits
+        agent_91 = f"91{agent_10}" if len(agent_10) == 10 else agent_num_raw
+
+        caller_id_raw = str(caller_id or "918065908540").strip()
+        clean_caller_digits = PhoneNormalizer.clean_digits(caller_id_raw)
+        caller_10 = clean_caller_digits[-10:] if len(clean_caller_digits) >= 10 else clean_caller_digits
+        caller_91 = f"91{caller_10}" if len(caller_10) == 10 else caller_id_raw
 
         payload = {
-            "destination_number": clean_customer_phone,
-            "customer_number": clean_customer_phone,
-            "agent_number": clean_agent_phone,
-            "caller_id": clean_caller_id,
-            "did_number": clean_caller_id,
+            "destination_number": cust_91,
+            "customer_number": cust_91,
+            "agent_number": agent_91,
+            "caller_id": caller_91,
+            "did_number": caller_91,
             "async": 1
         }
 
         endpoints = [
+            "https://api-smartflo.tatateleservices.com/v1/click_to_call",
             "https://smartflo.tatateleservices.com/api/v1/click_to_call",
-            "https://api-smartflo.tatateleservices.com/v1/click_to_call"
+            "https://smartflo.tatateleservices.com/v1/click_to_call"
         ]
 
         import json
         import urllib.request
         import urllib.error
 
+        last_error = None
         for endpoint in endpoints:
             try:
                 data_bytes = json.dumps(payload).encode('utf-8')
                 req = urllib.request.Request(endpoint, data=data_bytes, headers=headers, method='POST')
-                with urllib.request.urlopen(req, timeout=6) as response:
+                with urllib.request.urlopen(req, timeout=8) as response:
                     res_body = response.read().decode('utf-8')
                     data = json.loads(res_body) if res_body else {}
                     logger.info(f"[SMARTFLO C2C SUCCESS] Endpoint: {endpoint} | Response: {data}")
@@ -519,7 +536,7 @@ class SmartfloProvider(BaseTelephonyProvider):
                         "provider": "smartflo",
                         "call_id": data.get("call_id") or data.get("uuid") or f"SF-OUT-{uuid.uuid4().hex[:10].upper()}",
                         "raw_response": data,
-                        "message": data.get("message", "Call initiated successfully")
+                        "message": data.get("message") or f"Call placed! Smartflo is ringing agent ({agent_91}) to connect to {cust_91}."
                     }
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode('utf-8') if e.fp else ""
@@ -527,22 +544,29 @@ class SmartfloProvider(BaseTelephonyProvider):
                     err_json = json.loads(err_body)
                 except Exception:
                     err_json = {"error": err_body}
-                msg = err_json.get("message") or err_body
+                msg = err_json.get("message") or err_json.get("error") or err_body or f"HTTP {e.code}"
                 logger.warning(f"[SMARTFLO C2C HTTP {e.code}] Endpoint: {endpoint} | Message: {msg}")
-                return {
-                    "status": "pending_agent" if "Offline" in str(msg) else "initiated",
-                    "provider": "smartflo",
-                    "call_id": f"SF-OUT-{uuid.uuid4().hex[:10].upper()}",
-                    "warning": msg,
-                    "message": msg
-                }
+                last_error = f"Smartflo HTTP {e.code}: {msg}"
+                if e.code in [400, 401, 403, 422]:
+                    # Specific API error from Smartflo (e.g. Agent offline, invalid token)
+                    return {
+                        "status": "failed" if e.code in [401, 403] else "initiated",
+                        "provider": "smartflo",
+                        "call_id": f"SF-OUT-{uuid.uuid4().hex[:10].upper()}",
+                        "warning": msg,
+                        "error": msg,
+                        "message": msg
+                    }
             except Exception as e:
                 logger.warning(f"[SMARTFLO C2C ERROR] Endpoint: {endpoint} | Exception: {e}")
+                last_error = str(e)
 
         return {
             "status": "initiated",
             "provider": "smartflo",
             "call_id": f"SF-OUT-{uuid.uuid4().hex[:10].upper()}",
+            "warning": last_error or "Smartflo server unreachable",
+            "message": last_error or "Call queued",
             "simulated": True
         }
 

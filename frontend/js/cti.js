@@ -434,11 +434,12 @@ const cti = {
             this.renderCallCard(callKey, callPayload);
             this.selectCall(callKey);
             
-            const provMsg = res.provider_response?.warning || res.provider_response?.message || '';
-            if (provMsg && provMsg.toLowerCase().includes('offline')) {
-                api.toast(`Smartflo: ${provMsg}. Please ensure Smartflo Connect App is Online`, "warning");
+            const provResp = res.provider_response || {};
+            const provMsg = provResp.warning || provResp.error || provResp.message || '';
+            if (provResp.status === 'failed' || (provMsg && (provMsg.toLowerCase().includes('offline') || provMsg.toLowerCase().includes('error') || provMsg.toLowerCase().includes('failed') || provMsg.toLowerCase().includes('401')))) {
+                api.toast(`Smartflo: ${provMsg || 'Could not connect call. Please check agent status/token.'}`, "warning");
             } else {
-                api.toast(`Outgoing call ringing on ${rawPhone} (via VID ${res.vid})`, "success");
+                api.toast(provResp.message || `Outgoing call placed via VID ${res.vid}! Smartflo is ringing agent phone...`, "success");
             }
         } catch (err) {
             api.toast(`Failed to initiate outgoing call: ${err.message}`, "error");
@@ -1154,7 +1155,13 @@ const cti = {
             });
 
             app.closeModal('modal-direct-dialer');
-            api.toast(`Connecting call to ${phone} via VID ${selectedVid}...`, "success");
+            const provResp = res.provider_response || {};
+            const provMsg = provResp.warning || provResp.error || provResp.message || '';
+            if (provResp.status === 'failed' || (provMsg && (provMsg.toLowerCase().includes('offline') || provMsg.toLowerCase().includes('error') || provMsg.toLowerCase().includes('failed') || provMsg.toLowerCase().includes('401')))) {
+                api.toast(`Smartflo: ${provMsg || 'Could not place call.'}`, "warning");
+            } else {
+                api.toast(provResp.message || `Connecting call to ${phone} via VID ${selectedVid}...`, "success");
+            }
 
             // If immediate broadcast response returned
             if (res && res.call_id) {
