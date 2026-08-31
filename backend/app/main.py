@@ -30,17 +30,28 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create tables and auto-seed demo data if DB is fresh
-    try:
-        logger.info("Initializing database schema...")
-        Base.metadata.create_all(bind=engine)
-        db = SessionLocal()
+    # Startup: Initialize DB schema safely in background thread so Uvicorn port binds immediately
+    def _init_db():
         try:
-            seed_database(db)
-        finally:
-            db.close()
-    except Exception as e:
-        logger.error(f"Database initialization error: {e}")
+            logger.info("Initializing database schema...")
+            Base.metadata.create_all(bind=engine)
+            from backend.app.database import ensure_schema_columns
+            ensure_schema_columns(engine)
+            db = SessionLocal()
+            try:
+                seed_database(db)
+            finally:
+                db.close()
+            logger.info("✅ Database schema initialized successfully.")
+        except Exception as e:
+            logger.error(f"❌ Database initialization error: {e}")
+
+    import threading
+    t = threading.Thread(target=_init_db, daemon=True)
+    t.start()
+    # Wait max 3.0 seconds for quick init, then proceed so Render port scan succeeds instantly
+    t.join(timeout=3.0)
+
     yield
     # Shutdown
     logger.info("Application shutting down...")

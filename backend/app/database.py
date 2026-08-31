@@ -1,3 +1,4 @@
+import re
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from backend.app.config import settings
@@ -6,9 +7,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Normalize DATABASE_URL for SQLAlchemy if needed (e.g., postgres:// -> postgresql://)
-db_url = settings.DATABASE_URL
+db_url = settings.DATABASE_URL.strip()
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+# Remove problematic channel_binding query parameter if present (causes hanging with psycopg2 / serverless poolers)
+if "channel_binding=" in db_url:
+    db_url = re.sub(r'[?&]channel_binding=[^&]+', '', db_url)
+    if '?' not in db_url and '&' in db_url:
+        db_url = db_url.replace('&', '?', 1)
 
 # Connection pooling configurations based on dialect
 if db_url.startswith("sqlite"):
@@ -17,14 +24,18 @@ if db_url.startswith("sqlite"):
         connect_args={"check_same_thread": False, "timeout": 30}
     )
 else:
-    # PostgreSQL configuration with connection pooling and health check
+    # PostgreSQL configuration with connection pooling, timeout, and health check
     engine = create_engine(
         db_url,
         pool_size=settings.DB_POOL_SIZE,
         max_overflow=settings.DB_MAX_OVERFLOW,
         pool_timeout=settings.DB_POOL_TIMEOUT,
         pool_pre_ping=True,
-        pool_recycle=1800,  # recycle connections after 30 mins
+        pool_recycle=300,  # recycle connections after 5 mins for serverless
+        connect_args={
+            "connect_timeout": 10,
+            "application_name": "khandelia_cti_crm"
+        }
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
