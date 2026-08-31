@@ -220,8 +220,8 @@ def get_dashboard_stats(
         for f in overdue_fu_db
     ]
 
-    # 5. Team Performance (Fast aggregate)
-    team_performance = []
+    # 5. Team Activity Performance (Fast aggregate)
+    team_activity = []
     all_users = db.query(User).filter(User.is_active == True).order_by(User.full_name).all() if is_admin else [current_user]
 
     for emp in all_users:
@@ -231,7 +231,7 @@ def get_dashboard_stats(
         fu_done = db.query(FollowUp).filter(FollowUp.assigned_user_id == emp.id, FollowUp.status == "Completed").count()
         desig = emp.designation if (emp.designation and emp.designation != "NA") else ("Admin" if emp.role == "admin" else "Employee")
 
-        team_performance.append(EmployeePerformance(
+        team_activity.append(EmployeePerformance(
             user_id=emp.id,
             full_name=emp.full_name,
             email=emp.email,
