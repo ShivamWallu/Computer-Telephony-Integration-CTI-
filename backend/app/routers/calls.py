@@ -757,6 +757,7 @@ async def smartflo_outbound_cdr(
     return await smartflo_cdr_callback(request, db)
 
 
+@router.get("/events")
 async def call_events_sse(request: Request):
     """
     Server-Sent Events (SSE) stream for live CTI Screen Pop & Multi-Call updates.

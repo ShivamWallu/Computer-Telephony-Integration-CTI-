@@ -98,8 +98,18 @@ app.include_router(documents_router, prefix=settings.API_V1_STR)
 
 @app.get("/api/health")
 def healthcheck():
+    db_status = "ok"
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"error: {e}"
+        logger.warning(f"Healthcheck DB ping notice: {e}")
+
     return {
-        "status": "healthy",
+        "status": "healthy" if "error" not in db_status else "degraded",
+        "database": db_status,
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT
