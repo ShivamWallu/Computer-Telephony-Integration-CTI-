@@ -1286,14 +1286,30 @@ a:hover {
     }
 
     .top-header {
-        padding: 0.5rem 0.75rem;
-        flex-wrap: wrap;
-        min-height: 52px;
-        gap: 0.4rem;
-        background: var(--bg-surface);
-        position: sticky;
-        top: 0;
-        z-index: 100;
+        display: grid !important;
+        grid-template-columns: auto 1fr !important;
+        grid-template-rows: auto auto !important;
+        grid-template-areas:
+            "brand actions"
+            "search search" !important;
+        padding: 0.65rem 0.85rem !important;
+        gap: 0.55rem 0.5rem !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        background: var(--bg-surface) !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        box-sizing: border-box !important;
+    }
+
+    .top-header-left {
+        grid-area: brand !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.45rem !important;
     }
 
     .mobile-header-brand {
@@ -1301,11 +1317,13 @@ a:hover {
     }
 
     .header-actions {
-        margin-left: auto;
-        gap: 0.35rem;
-        display: inline-flex;
-        align-items: center;
-        flex-wrap: nowrap;
+        grid-area: actions !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 0.35rem !important;
+        margin: 0 !important;
+        flex-wrap: nowrap !important;
     }
 
     /* Make top action buttons compact circular/pill icon buttons on mobile */
@@ -1328,12 +1346,17 @@ a:hover {
     .header-actions .btn svg,
     .header-actions .btn .icon {
         margin: 0 !important;
-        width: 16px !important;
-        height: 16px !important;
+        width: 15px !important;
+        height: 15px !important;
         display: block !important;
     }
 
-    /* Simulation button hidden on mobile to prioritize essential telephony controls */
+    /* Hide Logout on phone navbar as requested (available in sidebar) */
+    #btn-logout {
+        display: none !important;
+    }
+
+    /* Simulation button hidden on mobile to prioritize real telephony controls */
     #btn-open-simulate-call {
         display: none !important;
     }
@@ -1356,8 +1379,8 @@ a:hover {
 
     .theme-toggle-btn svg {
         margin: 0 !important;
-        width: 15px !important;
-        height: 15px !important;
+        width: 14px !important;
+        height: 14px !important;
     }
 
     /* User Switcher on Mobile */
@@ -1369,7 +1392,7 @@ a:hover {
     }
 
     .user-switcher-current-name {
-        max-width: 65px !important;
+        max-width: 75px !important;
         font-size: 0.72rem !important;
         white-space: nowrap !important;
         overflow: hidden !important;
@@ -1380,25 +1403,36 @@ a:hover {
         position: fixed !important;
         left: 0.75rem !important;
         right: 0.75rem !important;
-        top: 58px !important;
+        top: 56px !important;
         width: auto !important;
         max-width: calc(100vw - 1.5rem) !important;
         box-shadow: var(--shadow-popover) !important;
         z-index: 1050 !important;
     }
 
-    /* Search Bar spans full width on row 2 */
+    /* Dedicated Full-Width Search Command Bar on Row 2 */
     .global-search-container {
-        order: 3;
+        grid-area: search !important;
         width: 100% !important;
         max-width: 100% !important;
-        margin-top: 0.25rem;
+        margin: 0 !important;
+        position: relative !important;
+    }
+
+    .search-input-wrapper {
+        width: 100% !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
     }
 
     .global-search-input {
-        height: 36px;
-        padding: 0.35rem 2rem 0.35rem 2.2rem;
-        font-size: 0.8125rem;
+        width: 100% !important;
+        height: 38px !important;
+        padding: 0.4rem 2.2rem 0.4rem 2.3rem !important;
+        font-size: 0.8125rem !important;
+        border-radius: var(--radius-full) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
     }
 
     .search-shortcut-hint {
@@ -1406,13 +1440,14 @@ a:hover {
     }
 
     .search-results-dropdown {
-        position: fixed !important;
-        top: 96px !important;
-        left: 0.75rem !important;
-        right: 0.75rem !important;
-        width: auto !important;
-        max-height: 60vh !important;
+        position: absolute !important;
+        top: calc(100% + 4px) !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-height: 55vh !important;
         z-index: 1050 !important;
+        box-shadow: var(--shadow-popover) !important;
     }
 
     .content-body {
