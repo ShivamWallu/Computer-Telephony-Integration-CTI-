@@ -1,10 +1,10 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from backend.app.config import settings
 from backend.app.database import Base, engine, SessionLocal
 from backend.app.routers import (
@@ -22,7 +22,10 @@ from backend.app.routers import (
 )
 from backend.app.utils.seed_data import seed_database
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -48,6 +51,17 @@ app = FastAPI(
     description="Enterprise CTI & Customer Management System for Fast Call Handling and Unified Customer History",
     lifespan=lifespan
 )
+
+# Global Unhandled Exception Handler (Logs full stacktrace directly into Render/Cloud logs)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    error_trace = traceback.format_exc()
+    logger.error(f"🚨 [RENDER LOG ERROR] {request.method} {request.url.path} -> {exc}\n{error_trace}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}", "path": request.url.path}
+    )
 
 # CORS Configuration
 app.add_middleware(
