@@ -168,6 +168,38 @@ const admin = {
         const tbody = document.getElementById('admin-team-table-body');
         if (!tbody) return;
 
+        // Render circular loader bar + shimmering skeleton rows
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 1rem 0; border-bottom: none;">
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--text-secondary); background: var(--bg-surface); padding: 0.4rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border-color); box-shadow: var(--shadow-xs);">
+                        <span class="spinner-sm" style="border-top-color: var(--primary);"></span>
+                        <span>Loading team performance metrics...</span>
+                    </div>
+                </td>
+            </tr>
+        ` + Array.from({ length: 4 }).map(() => `
+            <tr class="skeleton-row">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="skeleton skeleton-circle" style="width: 28px; height: 28px;"></div>
+                        <div>
+                            <div class="skeleton" style="width: 120px; height: 13px; margin-bottom: 4px;"></div>
+                            <div class="skeleton" style="width: 80px; height: 10px;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="skeleton" style="width: 90px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 80px; height: 16px; border-radius: 4px;"></div></td>
+                <td><div class="skeleton" style="width: 70px; height: 16px; border-radius: 4px;"></div></td>
+                <td><div class="skeleton" style="width: 60px; height: 16px; border-radius: 4px;"></div></td>
+                <td><div class="skeleton" style="width: 35px; height: 14px;"></div></td>
+                <td><div class="skeleton" style="width: 35px; height: 14px;"></div></td>
+                <td><div class="skeleton" style="width: 35px; height: 14px;"></div></td>
+                <td><div class="skeleton" style="width: 60px; height: 24px; border-radius: 4px;"></div></td>
+            </tr>
+        `).join('');
+
         try {
             const stats = await api.get('/dashboard/stats');
             const team = stats.team_activity || [];

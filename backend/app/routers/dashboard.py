@@ -220,15 +220,41 @@ def get_dashboard_stats(
         for f in overdue_fu_db
     ]
 
-    # 5. Team Activity Performance (Fast aggregate)
+    # 5. Team Activity Performance (Ultra-Fast 1-Shot Aggregation)
     team_activity = []
     all_users = db.query(User).filter(User.is_active == True).order_by(User.full_name).all() if is_admin else [current_user]
 
+    # Fast 1-shot aggregations across whole database
+    cust_counts = dict(
+        db.query(Customer.assigned_employee_id, func.count(Customer.id))
+        .filter(Customer.is_archived == False, Customer.assigned_employee_id.isnot(None))
+        .group_by(Customer.assigned_employee_id)
+        .all()
+    )
+    call_counts = dict(
+        db.query(Call.user_id, func.count(Call.id))
+        .filter(Call.user_id.isnot(None))
+        .group_by(Call.user_id)
+        .all()
+    )
+    inter_counts = dict(
+        db.query(CustomerInteraction.user_id, func.count(CustomerInteraction.id))
+        .filter(CustomerInteraction.user_id.isnot(None))
+        .group_by(CustomerInteraction.user_id)
+        .all()
+    )
+    fu_counts = dict(
+        db.query(FollowUp.assigned_user_id, func.count(FollowUp.id))
+        .filter(FollowUp.status == "Completed", FollowUp.assigned_user_id.isnot(None))
+        .group_by(FollowUp.assigned_user_id)
+        .all()
+    )
+
     for emp in all_users:
-        assigned_count = db.query(Customer).filter(Customer.assigned_employee_id == emp.id, Customer.is_archived == False).count()
-        calls_count = db.query(Call).filter(Call.user_id == emp.id).count()
-        inter_count = db.query(CustomerInteraction).filter(CustomerInteraction.user_id == emp.id).count()
-        fu_done = db.query(FollowUp).filter(FollowUp.assigned_user_id == emp.id, FollowUp.status == "Completed").count()
+        assigned_count = cust_counts.get(emp.id, 0)
+        calls_count = call_counts.get(emp.id, 0)
+        inter_count = inter_counts.get(emp.id, 0)
+        fu_done = fu_counts.get(emp.id, 0)
         desig = emp.designation if (emp.designation and emp.designation != "NA") else ("Admin" if emp.role == "admin" else "Employee")
 
         team_activity.append(EmployeePerformance(
