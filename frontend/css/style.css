@@ -1196,16 +1196,66 @@ a:hover {
     to { transform: rotate(360deg); }
 }
 
-/* Responsive Styles */
-@media (max-width: 1024px) {
-    .grid-2 {
-        grid-template-columns: 1fr;
+/* ==========================================================================
+   ENTERPRISE RESPONSIVE SYSTEM - ALL DEVICE BREAKPOINTS (320px to 1440px+)
+   ========================================================================== */
+
+/* 1. Large Desktops & Widescreens (1440px+) */
+@media (min-width: 1440px) {
+    .content-body {
+        padding: 1.75rem 2.25rem;
+        max-width: 1920px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    
+    .grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+    }
+    
+    .global-search-container {
+        max-width: 600px;
     }
 }
 
+/* 2. Laptops & Standard Desktops (1024px – 1439px) */
+@media (max-width: 1439px) and (min-width: 1024px) {
+    .grid-4 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    
+    .grid-2 {
+        grid-template-columns: 1.8fr 1.2fr;
+    }
+}
+
+/* 3. Tablets & Small Laptops (768px – 1023px) */
+@media (max-width: 1023px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.85rem;
+    }
+
+    .content-body {
+        padding: 1.25rem;
+    }
+    
+    .drawer-panel {
+        width: 540px;
+        max-width: 85vw;
+    }
+}
+
+/* 4. Medium Tablets & Mobile Transition (max-width: 900px) */
 @media (max-width: 900px) {
     .mobile-menu-btn {
-        display: flex;
+        display: inline-flex;
     }
 
     .sidebar {
@@ -1213,7 +1263,9 @@ a:hover {
         left: 0;
         top: 0;
         bottom: 0;
+        z-index: 2000;
         transform: translateX(-100%);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-popover);
     }
 
@@ -1223,9 +1275,190 @@ a:hover {
 
     .top-header {
         padding: 0 1rem;
+        gap: 0.65rem;
+    }
+}
+
+/* 5. Mobile Phones & Phablets (max-width: 767px) */
+@media (max-width: 767px) {
+    :root {
+        --header-height: auto;
+    }
+
+    .top-header {
+        padding: 0.6rem 0.75rem;
+        flex-wrap: wrap;
+        min-height: 56px;
+        gap: 0.5rem;
+    }
+
+    .global-search-container {
+        order: 3;
+        width: 100%;
+        max-width: 100%;
+        margin-top: 0.25rem;
+    }
+
+    .header-actions {
+        margin-left: auto;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+
+    /* Make top action buttons compact on mobile */
+    .header-actions .btn span,
+    .theme-toggle-btn span:not(#theme-toggle-icon) {
+        display: none;
+    }
+
+    .header-actions .btn {
+        padding: 0 0.55rem;
+        height: 32px;
+    }
+
+    .user-switcher-current-name {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .content-body {
+        padding: 0.75rem;
+    }
+
+    .grid-4 {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    /* Cards & Headers */
+    .card {
+        padding: 0.85rem;
+        border-radius: var(--radius-md);
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+        padding-bottom: 0.6rem;
+    }
+
+    .card-title {
+        font-size: 0.95rem;
+    }
+
+    /* Highlights grid */
+    #calling-perf-highlights-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Full-screen Drawer on Mobile */
+    .drawer-panel {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        left: 0 !important;
+        right: 0 !important;
+        border-left: none !important;
+    }
+
+    .drawer-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .drawer-tabs-nav {
+        padding: 0 0.5rem;
+    }
+
+    .drawer-tab-btn {
+        padding: 0.5rem 0.65rem;
+        font-size: 0.78rem;
+    }
+
+    /* Floating CTI Call Cards on Mobile */
+    #cti-live-calls-container {
+        left: 0.5rem !important;
+        right: 0.5rem !important;
+        bottom: 0.5rem !important;
+        width: auto !important;
+        max-width: 100% !important;
+    }
+
+    .cti-call-card {
+        width: 100% !important;
+        padding: 0.75rem !important;
+    }
+
+    /* Modals Responsive */
+    .modal-content {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        max-height: 90vh !important;
+        margin: 0.75rem auto !important;
+        padding: 1rem !important;
+    }
+
+    /* Form Controls on Mobile (Prevent iOS Auto-zoom) */
+    .form-control,
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    /* Tables Touch Scrolling */
+    .table-container {
+        border-radius: var(--radius-sm);
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.55rem 0.65rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    /* Standalone Login Screen */
+    #view-login {
         padding: 1rem;
+    }
+
+    #view-login .card {
+        padding: 1.5rem 1.15rem !important;
+    }
+}
+
+/* 6. Compact Mobile Phones (320px – 480px) */
+@media (max-width: 480px) {
+    .kpi-card {
+        padding: 0.85rem;
+    }
+
+    .kpi-value {
+        font-size: 1.35rem;
+    }
+
+    .kpi-icon-box {
+        width: 36px;
+        height: 36px;
+    }
+
+    .kpi-icon-box svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .user-switcher-trigger {
+        padding: 0 0.4rem;
+    }
+
+    .user-switcher-menu {
+        width: 280px;
+        max-width: 92vw;
     }
 }

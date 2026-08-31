@@ -546,6 +546,12 @@ const app = {
 
         this.currentView = viewName;
 
+        // Auto-close sidebar on mobile/tablet when switching views
+        const sidebar = document.getElementById('app-sidebar');
+        if (sidebar && window.innerWidth <= 900) {
+            sidebar.classList.remove('open');
+        }
+
         // Update nav links
         document.querySelectorAll('.nav-link').forEach(link => {
             if (link.dataset.view === viewName) {
