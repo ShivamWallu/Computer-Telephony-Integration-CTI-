@@ -30,9 +30,8 @@ const app = {
                 const user = await api.get('/auth/me');
                 api.setSession(token, user);
                 this.hideLoginView();
-                await this.updateUserVisuals(user);
+                this.updateUserVisuals(user);
                 this.switchView('dashboard');
-                await this.refreshDashboard();
                 cti.init();
             } catch (authErr) {
                 console.warn("Session check failed. Opening login modal:", authErr);
@@ -128,7 +127,6 @@ const app = {
             api.toast(`Welcome back, ${data.user.full_name}! (${data.user.role.toUpperCase()})`, "success");
 
             this.switchView('dashboard');
-            await this.refreshDashboard();
             if (typeof customer !== 'undefined' && typeof customer.loadCustomers === 'function') {
                 customer.currentPage = 1;
                 customer.loadCustomers();
@@ -1695,22 +1693,6 @@ const app = {
                     </div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary);">
                         ${missedCalls > 0 ? 'Requires follow-up / redial' : 'Zero missed calls today'}
-                    </div>
-                </div>
-
-                <!-- Average Duration & Total Talk -->
-                <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                        <span style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--purple);">
-                            Avg Duration / Talk
-                        </span>
-                        <span class="badge" style="background: rgba(147, 51, 234, 0.12); color: var(--purple); font-size: 0.68rem; font-weight: 600;">Voice</span>
-                    </div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">
-                        ${avgDur}
-                    </div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
-                        Total Talk Time: <strong style="color: var(--purple);">${totalTalk}</strong>
                     </div>
                 </div>
 

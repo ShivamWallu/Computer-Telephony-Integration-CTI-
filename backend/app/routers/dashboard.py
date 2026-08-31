@@ -96,19 +96,20 @@ def get_dashboard_stats(
         avg_talk_secs = total_talk_secs // answered_calls_today
         connect_rate = round((answered_calls_today / calls_today) * 100, 1)
     else:
-        # Fallback to all-time database calls if today's call count is 0
-        all_completed_calls = call_query.filter(
+        # Fast SQL aggregation fallback
+        agg_res = db.query(
+            func.count(Call.id),
+            func.coalesce(func.sum(Call.duration_seconds), 0),
+            func.coalesce(func.avg(Call.duration_seconds), 0)
+        ).filter(
             (Call.status == "completed") | (Call.duration_seconds > 0)
-        ).all()
-        total_all_calls = call_query.count()
-        if all_completed_calls:
-            total_talk_all = sum(c.duration_seconds or 0 for c in all_completed_calls)
-            avg_talk_secs = total_talk_all // len(all_completed_calls)
-            connect_rate = round((len(all_completed_calls) / max(1, total_all_calls)) * 100, 1)
-            total_talk_secs = total_talk_all
-        else:
-            avg_talk_secs = 0
-            connect_rate = 100.0
+        ).first()
+        
+        comp_count = agg_res[0] if agg_res else 0
+        total_talk_all = int(agg_res[1]) if agg_res else 0
+        avg_talk_secs = int(agg_res[2]) if agg_res else 0
+        connect_rate = round((comp_count / max(1, total_calls_all_time)) * 100, 1) if total_calls_all_time > 0 else 100.0
+        total_talk_secs = total_talk_all
 
     avg_duration_formatted = f"{avg_talk_secs // 60:02d}:{avg_talk_secs % 60:02d} min"
     if total_talk_secs >= 3600:
@@ -141,7 +142,7 @@ def get_dashboard_stats(
         missed_calls_today=missed_calls_today
     )
 
-    # 2. Recent Calls
+    # 2. Recent Calls (fast single query)
     recent_calls_db = call_query.order_by(desc(Call.start_time)).limit(6).all()
     recent_calls = []
     for c in recent_calls_db:
@@ -149,11 +150,11 @@ def get_dashboard_stats(
             "id": c.id,
             "call_id": c.call_id,
             "phone_number": c.phone_number,
-            "customer_name": c.customer.name if c.customer else "Unknown Caller",
+            "customer_name": c.customer.party_name if (c.customer and hasattr(c.customer, 'party_name')) else "Unknown Caller",
             "customer_id": c.customer.id if c.customer else None,
             "direction": c.direction,
             "status": c.status,
-            "duration": f"{c.duration_seconds // 60:02d}:{c.duration_seconds % 60:02d}",
+            "duration": f"{(c.duration_seconds or 0) // 60:02d}:{(c.duration_seconds or 0) % 60:02d}",
             "time": c.start_time.isoformat() if c.start_time else None
         })
 
@@ -165,7 +166,7 @@ def get_dashboard_stats(
             "id": i.id,
             "type": i.interaction_type,
             "subject": i.subject,
-            "customer_name": i.customer.name if i.customer else "Unknown",
+            "customer_name": i.customer.party_name if (i.customer and hasattr(i.customer, 'party_name')) else "Unknown",
             "customer_id": i.customer_id,
             "time": i.interaction_time.isoformat() if i.interaction_time else None,
             "agent": i.user.full_name if i.user else "System"
@@ -186,9 +187,9 @@ def get_dashboard_stats(
         {
             "id": f.id,
             "title": f.title,
-            "customer_name": f.customer.name if f.customer else "N/A",
+            "customer_name": f.customer.party_name if (f.customer and hasattr(f.customer, 'party_name')) else "N/A",
             "customer_id": f.customer_id,
-            "phone": f.customer.mobile if f.customer else "",
+            "phone": f.customer.phone_1 if f.customer else "",
             "due_date": f.due_date.isoformat() if f.due_date else None,
             "priority": f.priority,
             "status": f.status
@@ -209,9 +210,9 @@ def get_dashboard_stats(
         {
             "id": f.id,
             "title": f.title,
-            "customer_name": f.customer.name if f.customer else "N/A",
+            "customer_name": f.customer.party_name if (f.customer and hasattr(f.customer, 'party_name')) else "N/A",
             "customer_id": f.customer_id,
-            "phone": f.customer.mobile if f.customer else "",
+            "phone": f.customer.phone_1 if f.customer else "",
             "due_date": f.due_date.isoformat() if f.due_date else None,
             "priority": f.priority,
             "status": f.status
@@ -219,34 +220,18 @@ def get_dashboard_stats(
         for f in overdue_fu_db
     ]
 
-    # 5. Team & Employee Performance Activity (Lifetime & Today Scoped)
-    team_activity = []
-    if is_admin:
-        employees = db.query(User).filter(User.is_active == True).order_by(User.full_name).all()
-    else:
-        # Normal User / Employee sees ONLY their own performance record
-        employees = [current_user]
+    # 5. Team Performance (Fast aggregate)
+    team_performance = []
+    all_users = db.query(User).filter(User.is_active == True).order_by(User.full_name).all() if is_admin else [current_user]
 
-    for emp in employees:
+    for emp in all_users:
         assigned_count = db.query(Customer).filter(Customer.assigned_employee_id == emp.id, Customer.is_archived == False).count()
-        user_cid = emp.allowed_caller_id or emp.vid
-        if user_cid:
-            norm_cid = user_cid.replace("+", "").lstrip("0")
-            calls_count = db.query(Call).filter(
-                (Call.user_id == emp.id) |
-                (Call.call_to_number == user_cid) |
-                (Call.call_to_number.like(f"%{norm_cid[-10:]}")) |
-                (Call.agent_number == user_cid) |
-                (Call.agent_number.like(f"%{norm_cid[-10:]}"))
-            ).count()
-        else:
-            calls_count = db.query(Call).filter(Call.user_id == emp.id).count()
-
+        calls_count = db.query(Call).filter(Call.user_id == emp.id).count()
         inter_count = db.query(CustomerInteraction).filter(CustomerInteraction.user_id == emp.id).count()
         fu_done = db.query(FollowUp).filter(FollowUp.assigned_user_id == emp.id, FollowUp.status == "Completed").count()
-        desig = emp.designation if (emp.designation and emp.designation != "NA") else "Employee"
+        desig = emp.designation if (emp.designation and emp.designation != "NA") else ("Admin" if emp.role == "admin" else "Employee")
 
-        team_activity.append(EmployeePerformance(
+        team_performance.append(EmployeePerformance(
             user_id=emp.id,
             full_name=emp.full_name,
             email=emp.email,
@@ -260,28 +245,27 @@ def get_dashboard_stats(
             followups_completed=fu_done
         ))
 
-    # 6. TODAY'S EMPLOYEE-WISE CALLING PERFORMANCE BREAKDOWN (Accurate, Non-duplicate)
+    # 6. TODAY'S EMPLOYEE-WISE CALLING PERFORMANCE (In-Memory instant calculation from today_calls_list)
     employee_calling_today = []
-    perf_employees = db.query(User).filter(User.is_active == True, User.role == "employee").order_by(User.full_name).all() if is_admin else [current_user]
+    perf_employees = [u for u in all_users if u.role == "employee"] if is_admin else [current_user]
 
     for emp in perf_employees:
-        user_cid = emp.allowed_caller_id or emp.vid
-        conditions = [Call.user_id == emp.id]
-        if user_cid:
-            norm_cid = user_cid.replace("+", "").lstrip("0")
-            conditions.extend([
-                Call.call_to_number == user_cid,
-                Call.call_to_number.like(f"%{norm_cid[-10:]}"),
-                Call.agent_number == user_cid,
-                Call.agent_number.like(f"%{norm_cid[-10:]}")
-            ])
-        if emp.full_name:
-            conditions.append(Call.agent_name.ilike(f"%{emp.full_name}%"))
+        user_cid = str(emp.allowed_caller_id or emp.vid or "").strip()
+        norm_cid = user_cid.replace("+", "").lstrip("0") if user_cid else ""
+        emp_name_lower = emp.full_name.lower() if emp.full_name else ""
 
-        emp_today_calls = db.query(Call).filter(
-            Call.start_time >= today_start_utc,
-            or_(*conditions)
-        ).all()
+        emp_today_calls = []
+        for c in today_calls_list:
+            matches_user = (c.user_id == emp.id)
+            matches_cid = False
+            if norm_cid:
+                c_to = str(c.call_to_number or "")
+                c_agent = str(c.agent_number or "")
+                if c_to == user_cid or (norm_cid[-10:] in c_to) or c_agent == user_cid or (norm_cid[-10:] in c_agent):
+                    matches_cid = True
+            matches_name = bool(emp_name_lower and c.agent_name and emp_name_lower in c.agent_name.lower())
+            if matches_user or matches_cid or matches_name:
+                emp_today_calls.append(c)
 
         emp_total = len(emp_today_calls)
         emp_outbound = sum(1 for c in emp_today_calls if c.direction == "outgoing")
@@ -320,7 +304,6 @@ def get_dashboard_stats(
             total_talk_time_formatted=emp_talk_formatted
         ))
 
-    # Sort employee performance by total_calls desc, then connected_calls desc
     employee_calling_today.sort(key=lambda x: (x.total_calls, x.connected_calls, x.total_talk_time_seconds), reverse=True)
 
     # 7. Highlights & Leaderboards (Most Calls, Least Calls, Top Performer)
