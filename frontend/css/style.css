@@ -1043,6 +1043,14 @@ a:hover {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.grid-4 > * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .grid-2 {
@@ -1050,6 +1058,14 @@ a:hover {
     grid-template-columns: 2fr 1fr;
     gap: 1.25rem;
     margin-bottom: 1.5rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.grid-2 > * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Direct Laptop Softphone & DTMF Dialpad */
@@ -1233,8 +1249,17 @@ a:hover {
 /* 3. Tablets & Small Laptops (768px – 1023px) */
 @media (max-width: 1023px) {
     .grid-2 {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 1.25rem !important;
+    }
+
+    .grid-2 > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
     }
 
     .grid-4 {
