@@ -220,14 +220,22 @@ class ExcelService:
                     raise ValueError(f"Invalid Email Id 1 format: '{raw_email}'. Must be a valid email like name@domain.com.")
 
                 # Generate Party Code if missing
-                if not raw_party_code:
+                has_orig_party_code = bool(raw_party_code and raw_party_code.strip())
+                if not has_orig_party_code:
                     next_num = 1001 + current_base_count + imported_count
                     raw_party_code = f"CUST-{next_num}"
 
                 code_key = raw_party_code.strip().upper()
 
-                # Fast $O(1)$ in-memory duplicate / match detection
-                existing_customer = by_party_code.get(code_key) or by_phone_norm.get(phone_1_norm)
+                # Accurate Duplicate / Update Matching:
+                # 1. If Party Code is provided (ERP unique code), match strictly by Party Code so distinct parties with shared phones are NOT collapsed.
+                # 2. If Party Code is blank, fallback to matching by normalized phone number.
+                if has_orig_party_code and code_key in by_party_code:
+                    existing_customer = by_party_code[code_key]
+                elif not has_orig_party_code and phone_1_norm in by_phone_norm:
+                    existing_customer = by_phone_norm[phone_1_norm]
+                else:
+                    existing_customer = None
 
                 if existing_customer:
                     if import_mode == "update":
