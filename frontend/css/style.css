@@ -1618,6 +1618,48 @@ a:hover {
         white-space: nowrap;
     }
 
+    /* Pagination Responsive on Mobile */
+    .pagination-container {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.65rem !important;
+        padding: 0.75rem 0.85rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .pagination-info-group {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        font-size: 0.75rem !important;
+    }
+
+    .pagination-controls,
+    #call-logs-pagination-controls {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        gap: 0.2rem !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .btn-pag-nav {
+        min-width: 28px !important;
+        height: 28px !important;
+        padding: 0 5px !important;
+        font-size: 0.75rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .btn-pag-nav .pag-text {
+        display: none !important;
+    }
+
     /* Standalone Login Screen */
     #view-login {
         padding: 1rem;

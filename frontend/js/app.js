@@ -1190,7 +1190,8 @@ const app = {
         const pillsContainer = document.getElementById('calls-page-pills');
         if (pillsContainer) {
             let pillsHtml = '';
-            const maxPills = 5;
+            const isMobile = window.innerWidth <= 767;
+            const maxPills = isMobile ? 3 : 5;
             let startPill = Math.max(1, this.callsCurrentPage - Math.floor(maxPills / 2));
             let endPill = Math.min(totalPages, startPill + maxPills - 1);
             if (endPill - startPill < maxPills - 1) {
@@ -1202,7 +1203,7 @@ const app = {
                 pillsHtml += `
                     <button class="btn btn-xs ${isActive ? 'btn-primary' : 'btn-secondary'}" 
                         onclick="app.navCallsPage(${p})" 
-                        style="min-width: 26px; height: 26px; padding: 0 0.4rem; font-weight: ${isActive ? '700' : '500'};">
+                        style="min-width: 26px; height: 26px; padding: 0 0.35rem; font-weight: ${isActive ? '700' : '500'}; font-size: 0.75rem;">
                         ${p}
                     </button>
                 `;

@@ -694,8 +694,8 @@
                         </div>
 
                         <!-- Professional Call Logs Pagination Footer -->
-                        <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1rem; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.6rem; background: var(--bg-surface-elevated); border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1rem; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.6rem; background: var(--bg-surface-elevated); border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); min-width: 0; max-width: 100%;">
+                            <div class="pagination-info-group" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; min-width: 0;">
                                 <span id="call-logs-pagination-info" class="meta-value" style="font-size: 0.8125rem; color: var(--text-secondary); font-weight: 500;">
                                     Showing 0 to 0 of 0 calls
                                 </span>
@@ -711,21 +711,21 @@
                                     <span>per page</span>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.35rem;" id="call-logs-pagination-controls">
-                                <button class="btn btn-secondary btn-xs" id="btn-calls-first" onclick="app.navCallsPage('first')" title="First Page" disabled>
-                                    ⏮ First
+                            <div class="pagination-controls" style="display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap;" id="call-logs-pagination-controls">
+                                <button class="btn btn-secondary btn-xs btn-pag-nav" id="btn-calls-first" onclick="app.navCallsPage('first')" title="First Page" disabled>
+                                    ⏮<span class="pag-text"> First</span>
                                 </button>
-                                <button class="btn btn-secondary btn-xs" id="btn-calls-prev" onclick="app.navCallsPage('prev')" title="Previous Page" disabled>
-                                    ◀ Prev
+                                <button class="btn btn-secondary btn-xs btn-pag-nav" id="btn-calls-prev" onclick="app.navCallsPage('prev')" title="Previous Page" disabled>
+                                    ◀<span class="pag-text"> Prev</span>
                                 </button>
-                                <div id="calls-page-pills" style="display: flex; gap: 0.25rem; align-items: center;">
+                                <div id="calls-page-pills" style="display: flex; gap: 0.2rem; align-items: center;">
                                     <!-- Dynamic page buttons -->
                                 </div>
-                                <button class="btn btn-secondary btn-xs" id="btn-calls-next" onclick="app.navCallsPage('next')" title="Next Page" disabled>
-                                    Next ▶
+                                <button class="btn btn-secondary btn-xs btn-pag-nav" id="btn-calls-next" onclick="app.navCallsPage('next')" title="Next Page" disabled>
+                                    <span class="pag-text">Next </span>▶
                                 </button>
-                                <button class="btn btn-secondary btn-xs" id="btn-calls-last" onclick="app.navCallsPage('last')" title="Last Page" disabled>
-                                    Last ⏭
+                                <button class="btn btn-secondary btn-xs btn-pag-nav" id="btn-calls-last" onclick="app.navCallsPage('last')" title="Last Page" disabled>
+                                    <span class="pag-text">Last </span>⏭
                                 </button>
                             </div>
                         </div>
