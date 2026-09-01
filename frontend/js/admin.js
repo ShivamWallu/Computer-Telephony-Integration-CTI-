@@ -428,7 +428,7 @@ const admin = {
             const status = l.status || "Success";
 
             return `
-                <tr class="audit-row" data-user="${userName.toLowerCase()}" data-email="${userEmail.toLowerCase()}" data-action="${actionLabel.toLowerCase()}" data-entity="${(l.entity_type || '').toLowerCase()}">
+                <tr class="audit-row" data-user="${userName.toLowerCase()}" data-email="${userEmail.toLowerCase()}" data-action="${actionLabel.toLowerCase()}" data-entity="${(l.entity_type || '').toLowerCase()}" data-details="${detailsText.toLowerCase()}">
                     <td>
                         <span style="font-size: 0.75rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap;">
                             ${app.formatDateTime(l.created_at)}
@@ -465,7 +465,7 @@ const admin = {
                             ${status}
                         </span>
                     </td>
-                    <td style="font-size: 0.72rem; color: var(--text-muted); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${detailsText}">
+                    <td style="font-size: 0.72rem; color: var(--text-muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${detailsText}">
                         ${detailsText}
                     </td>
                 </tr>
@@ -483,7 +483,8 @@ const admin = {
             const email = row.getAttribute('data-email') || '';
             const action = row.getAttribute('data-action') || '';
             const entity = row.getAttribute('data-entity') || '';
-            if (user.includes(query) || email.includes(query) || action.includes(query) || entity.includes(query)) {
+            const details = row.getAttribute('data-details') || '';
+            if (user.includes(query) || email.includes(query) || action.includes(query) || entity.includes(query) || details.includes(query)) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';
