@@ -33,8 +33,8 @@ DEMO_USERS = [
         "full_name": "Shivam",
         "role": "admin",
         "password": "admin",
-        "allowed_caller_id": "918065908531",
-        "vid": "918065908531",
+        "allowed_caller_id": "918065908540",
+        "vid": "918065908540",
         "phone": "+91 78147 49816",
         "agent_id": "ADMIN001",
         "intercom": "1000",
@@ -205,19 +205,7 @@ def seed_database(db: Session, force_reset: bool = False):
         db.delete(du)
     db.commit()
 
-    # 0.1 Explicitly purge sample dummy customers permanently (keep only Shivam)
-    non_shivam_customers = db.query(Customer).filter(
-        (Customer.party_code.in_(PURGED_DUMMY_CUSTOMER_CODES)) |
-        ((Customer.party_code != "CUST-7814") & (Customer.contact_person_1 != "Shivam"))
-    ).all()
-    for dc in non_shivam_customers:
-        db.query(CustomerPhoneNumber).filter(CustomerPhoneNumber.customer_id == dc.id).delete(synchronize_session=False)
-        db.query(CustomerDocument).filter(CustomerDocument.customer_id == dc.id).delete(synchronize_session=False)
-        db.query(CustomerInteraction).filter(CustomerInteraction.customer_id == dc.id).delete(synchronize_session=False)
-        db.query(FollowUp).filter(FollowUp.customer_id == dc.id).delete(synchronize_session=False)
-        db.query(Call).filter(Call.customer_id == dc.id).update({"customer_id": None}, synchronize_session=False)
-        db.delete(dc)
-    db.commit()
+    # 0.1 Customer records are 100% preserved and never purged on seed
 
     if force_reset:
         demo_emails = [u["email"] for u in DEMO_USERS]
