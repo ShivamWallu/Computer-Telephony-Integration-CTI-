@@ -6,6 +6,7 @@ const cti = {
     callTimers: new Map(),
     dismissTimeouts: new Map(),
     processedCallKeys: new Set(),
+    dismissedCallKeys: new Set(),
     selectedCallKey: null,
     eventSource: null,
     pollingInterval: null,
@@ -136,7 +137,7 @@ const cti = {
                     
                     res.active_calls.forEach(call => {
                         const callKey = (call.uuid || call.call_id || '').trim();
-                        if (!callKey) return;
+                        if (!callKey || this.dismissedCallKeys.has(callKey)) return;
                         serverActiveKeys.add(callKey);
                         if (!this.activeCalls.has(callKey)) {
                             this.handleIncomingCallEvent(call);
@@ -225,7 +226,7 @@ const cti = {
      */
     handleIncomingCallEvent(callData) {
         const callKey = (callData.uuid || callData.call_id || '').trim();
-        if (!callKey) return;
+        if (!callKey || this.dismissedCallKeys.has(callKey)) return;
 
         const isNewCall = !this.activeCalls.has(callKey);
         const existing = this.activeCalls.get(callKey) || {};
@@ -477,6 +478,7 @@ const cti = {
      */
     async endCall(callKey, e) {
         if (e) e.stopPropagation();
+        this.dismissedCallKeys.add(callKey);
         const call = this.activeCalls.get(callKey);
         const callId = call?.call_id || callKey;
         const callUuid = call?.uuid || callKey;
@@ -495,6 +497,7 @@ const cti = {
                 duration_seconds: elapsed,
                 notes: 'Call ended from CRM Dashboard Softphone'
             });
+            await api.post('/calls/dismiss', { call_id: callId, uuid: callUuid });
         } catch (err) {
             console.warn("Call status update warning:", err);
         }
@@ -516,23 +519,29 @@ const cti = {
     dismissCard(callKey, e) {
         if (e) e.stopPropagation();
 
-        // 1. Clear interval timer if ticking
+        // 1. Mark as explicitly dismissed so background polling NEVER resurrects it
+        this.dismissedCallKeys.add(callKey);
+
+        // 2. Notify backend to remove from in-memory active calls cache
+        api.post('/calls/dismiss', { call_id: callKey, uuid: callKey }).catch(() => {});
+
+        // 3. Clear interval timer if ticking
         if (this.callTimers.has(callKey)) {
             const timerInfo = this.callTimers.get(callKey);
             clearInterval(timerInfo.intervalId || timerInfo);
             this.callTimers.delete(callKey);
         }
 
-        // 2. Clear 5-minute auto-dismiss timeout
+        // 4. Clear 5-minute auto-dismiss timeout
         if (this.dismissTimeouts.has(callKey)) {
             clearTimeout(this.dismissTimeouts.get(callKey));
             this.dismissTimeouts.delete(callKey);
         }
 
-        // 3. Remove from active calls map
+        // 5. Remove from active calls map
         this.activeCalls.delete(callKey);
 
-        // 4. Smooth animate out and remove from DOM
+        // 6. Smooth animate out and remove from DOM
         const card = document.getElementById(`cti-card-${callKey}`);
         if (card) {
             card.style.opacity = '0';
@@ -862,12 +871,16 @@ const cti = {
                 phone_number: phoneNumber,
                 direction: "incoming",
                 provider: "smartflo",
-                call_to_number: "918065908541",
+                call_to_number: "918065908540",
                 operator: "Reliance",
                 circle: "Punjab",
-                agent_name: "Pankaj"
+                agent_name: "Yogesh Khandelia"
             });
 
+            const callKey = (res.uuid || res.call_id || '').trim();
+            if (callKey) {
+                this.dismissedCallKeys.delete(callKey);
+            }
             this.handleIncomingCallEvent(res);
         } catch (err) {
             api.toast(`CTI simulation error: ${err.message}`, "error");

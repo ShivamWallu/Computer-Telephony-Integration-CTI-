@@ -822,6 +822,23 @@ def get_active_ringing_calls(
         "active_call": active_calls[0] if active_calls else None
     }
 
+class DismissCallRequest(BaseModel):
+    call_id: Optional[str] = None
+    uuid: Optional[str] = None
+
+@router.post("/dismiss")
+@router.post("/active/dismiss")
+def dismiss_active_call_endpoint(req: DismissCallRequest):
+    """Dismiss a call card from the active in-memory cache so it stops popping up."""
+    key = req.uuid or req.call_id
+    if key:
+        broadcast_manager.remove_active_call(key)
+    if req.call_id:
+        broadcast_manager.remove_active_call(req.call_id)
+    if req.uuid:
+        broadcast_manager.remove_active_call(req.uuid)
+    return {"status": "dismissed", "key": key}
+
 @router.post("/incoming", response_model=IncomingCallResponse)
 def incoming_call_webhook(
     payload: IncomingCallWebhook,
