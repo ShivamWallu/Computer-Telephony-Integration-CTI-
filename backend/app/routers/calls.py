@@ -301,8 +301,13 @@ async def smartflo_cdr_callback(
     clean_phone = str(raw_phone).strip()
     norm_phone = PhoneNormalizer.normalize(clean_phone) if clean_phone else ""
 
+    # Guard: If webhook has NO phone number and NO call UUID (e.g. blank test probe, crawler, or healthcheck ping), ignore it without creating dummy 0s call records
+    if not lookup_key and not clean_phone:
+        logger.warning("[SMARTFLO CDR] Ignored empty probe webhook without call identifier or phone number.")
+        return {"status": "ok", "message": "Ignored empty probe webhook without call data"}
+
     if not call and norm_phone:
-        # Fallback search by normalized phone within last 2 hours
+        # Fallback search by normalized phone within recent timeframe
         call = (
             db.query(Call)
             .filter(
@@ -1110,12 +1115,13 @@ def clear_test_call_logs(
     """
     from sqlalchemy import or_
 
-    # Identify test call logs (is_test is True, or ID starts with TEST- or SIM-)
+    # Identify test call logs (is_test is True, starts with TEST-/SIM-, or empty probe logs with Unknown phone and 0s duration)
     test_calls_query = db.query(Call).filter(
         or_(
             Call.is_test == True,
             Call.call_id.like("TEST-%"),
-            Call.call_id.like("SIM-%")
+            Call.call_id.like("SIM-%"),
+            (Call.phone_number == "Unknown") & (Call.duration_seconds == 0)
         )
     )
     deleted_calls_count = test_calls_query.delete(synchronize_session=False)
