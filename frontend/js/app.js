@@ -413,7 +413,7 @@ const app = {
                                         <span class="badge badge-lead" style="font-size: 0.625rem; padding: 0.05rem 0.3rem; margin-left: 3px;">Admin</span>
                                     </div>
                                     <div class="user-switcher-sub">
-                                        <span>VID: <strong>${cid}</strong></span>
+                                        <span>DID: <strong>${cid}</strong></span>
                                         <span>•</span>
                                         <span>${adm.email}</span>
                                     </div>
@@ -447,7 +447,7 @@ const app = {
                                         <span class="badge badge-active" style="font-size: 0.625rem; padding: 0.05rem 0.3rem; margin-left: 3px;">${emp.designation || 'Staff'}</span>
                                     </div>
                                     <div class="user-switcher-sub">
-                                        <span>VID: <strong>${cid}</strong></span>
+                                        <span>DID: <strong>${cid}</strong></span>
                                         <span>•</span>
                                         <span>${emp.email}</span>
                                     </div>
@@ -1859,7 +1859,7 @@ const app = {
                             </div>
                             <div>
                                 <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">${emp.full_name}</div>
-                                <div style="font-size: 0.72rem; color: var(--text-muted);">${emp.designation || 'Staff'} ${emp.allowed_caller_id ? `• VID: ${emp.allowed_caller_id}` : ''}</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">${emp.designation || 'Staff'} ${emp.allowed_caller_id ? `• DID: ${emp.allowed_caller_id}` : ''}</div>
                             </div>
                         </div>
                     </td>

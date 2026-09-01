@@ -263,7 +263,7 @@ const cti = {
         const partyCode = callData.customer?.party_code || callData.customer?.customer_id || null;
         const contactPerson = callData.customer?.contact_person_1 || '';
         const city = callData.customer?.city || '';
-        const vid = isOutgoing ? (callData.caller_id || callData.caller_phone || callData.vid || 'Smartflo VID') : (callData.call_to_number || 'Smartflo VID');
+        const vid = isOutgoing ? (callData.caller_id || callData.caller_phone || callData.vid || 'Smartflo DID') : (callData.call_to_number || 'Smartflo DID');
         const operatorCircle = this.formatOperatorCircle(callData.operator, callData.circle);
         const assignedEmployee = callData.assigned_employee_name || callData.agent_name || 'System';
 
@@ -297,7 +297,7 @@ const cti = {
                         <span class="pulse-ring"></span>
                         <span id="cti-status-label-${callKey}">${isOutgoing ? 'OUTGOING CALL' : 'INCOMING CALL'}</span>
                     </div>
-                    <span class="badge badge-standard" style="font-size: 0.6875rem;" title="${isOutgoing ? 'Calling via Configured VID' : 'Dialed Virtual Number / VID'}">
+                    <span class="badge badge-standard" style="font-size: 0.6875rem;" title="${isOutgoing ? 'Calling via Configured DID' : 'Dialed DID / Virtual Number'}">
                         ${vid}
                     </span>
                 </div>
@@ -439,7 +439,7 @@ const cti = {
             if (provResp.status === 'failed' || (provMsg && (provMsg.toLowerCase().includes('offline') || provMsg.toLowerCase().includes('error') || provMsg.toLowerCase().includes('failed') || provMsg.toLowerCase().includes('401')))) {
                 api.toast(`Smartflo: ${provMsg || 'Could not connect call. Please check agent status/token.'}`, "warning");
             } else {
-                api.toast(provResp.message || `Outgoing call placed via VID ${res.vid}! Smartflo is ringing agent phone...`, "success");
+                api.toast(provResp.message || `Outgoing call placed via DID ${res.vid}! Smartflo is ringing agent phone...`, "success");
             }
         } catch (err) {
             api.toast(`Failed to initiate outgoing call: ${err.message}`, "error");
@@ -1179,7 +1179,7 @@ const cti = {
             if (provResp.status === 'failed' || (provMsg && (provMsg.toLowerCase().includes('offline') || provMsg.toLowerCase().includes('error') || provMsg.toLowerCase().includes('failed') || provMsg.toLowerCase().includes('401')))) {
                 api.toast(`Smartflo: ${provMsg || 'Could not place call.'}`, "warning");
             } else {
-                api.toast(provResp.message || `Connecting call to ${phone} via VID ${selectedVid}...`, "success");
+                api.toast(provResp.message || `Connecting call to ${phone} via DID ${selectedVid}...`, "success");
             }
 
             // If immediate broadcast response returned
