@@ -1115,13 +1115,13 @@ def clear_test_call_logs(
     """
     from sqlalchemy import or_
 
-    # Identify test call logs (is_test is True, starts with TEST-/SIM-, or empty probe logs with Unknown phone and 0s duration)
+    # Identify test call logs (is_test is True, starts with TEST-/SIM-, or synthetic probe logs starting with SF-CDR-)
     test_calls_query = db.query(Call).filter(
         or_(
             Call.is_test == True,
             Call.call_id.like("TEST-%"),
             Call.call_id.like("SIM-%"),
-            (Call.phone_number == "Unknown") & (Call.duration_seconds == 0)
+            Call.call_id.like("SF-CDR-%")
         )
     )
     deleted_calls_count = test_calls_query.delete(synchronize_session=False)
