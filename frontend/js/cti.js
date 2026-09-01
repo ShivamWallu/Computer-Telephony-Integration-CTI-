@@ -45,18 +45,44 @@ const cti = {
      * Parse and clean operator and circle information
      */
     formatOperatorCircle(op, circle) {
-        if (!op && !circle) return 'Tata Smartflo';
-        if (typeof op === 'string' && op.trim().startsWith('{')) {
-            try {
-                const cleanStr = op.replace(/'/g, '"');
-                const parsed = JSON.parse(cleanStr);
-                op = parsed.operator || '';
-                circle = parsed.circle || circle || '';
-            } catch (e) {
-                op = op.replace(/[{}\']/g, '').replace(/operator\s*:\s*/gi, '').replace(/circle\s*:\s*/gi, '').trim();
+        let opName = '';
+        let circleName = '';
+
+        const parseVal = (val) => {
+            if (!val) return;
+            if (typeof val === 'object') {
+                if (val.operator) opName = String(val.operator).trim();
+                if (val.circle) circleName = String(val.circle).trim();
+                return;
             }
-        }
-        return [op, circle].filter(Boolean).join(' • ') || 'Tata Smartflo';
+            const str = String(val).trim();
+            if (str.startsWith('{') && str.endsWith('}')) {
+                try {
+                    const cleanJson = str.replace(/'/g, '"');
+                    const parsed = JSON.parse(cleanJson);
+                    if (parsed.operator) opName = String(parsed.operator).trim();
+                    if (parsed.circle) circleName = String(parsed.circle).trim();
+                    return;
+                } catch (e) {
+                    const opMatch = str.match(/operator['"]?\s*:\s*['"]?([^,'"}]+)/i);
+                    const cirMatch = str.match(/circle['"]?\s*:\s*['"]?([^,'"}]+)/i);
+                    if (opMatch) opName = opMatch[1].trim();
+                    if (cirMatch) circleName = cirMatch[1].trim();
+                    return;
+                }
+            }
+            if (!opName) opName = str;
+            else if (!circleName && str !== opName) circleName = str;
+        };
+
+        parseVal(op);
+        parseVal(circle);
+
+        const parts = [];
+        if (opName) parts.push(opName);
+        if (circleName && circleName !== opName) parts.push(circleName);
+
+        return parts.length > 0 ? parts.join(' • ') : 'Tata Smartflo';
     },
 
     /**
@@ -292,10 +318,10 @@ const cti = {
 
         card.innerHTML = `
             <div class="cti-header">
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; min-width: 0;">
                     <div class="cti-status-pill" id="cti-status-pill-${callKey}" style="${isOutgoing ? 'background: var(--primary-subtle); color: var(--primary); border-color: rgba(79, 70, 229, 0.3);' : ''}">
                         <span class="pulse-ring"></span>
-                        <span id="cti-status-label-${callKey}">${isOutgoing ? 'OUTGOING CALL' : 'INCOMING CALL'}</span>
+                        <span id="cti-status-label-${callKey}">${isOutgoing ? 'LIVE OUTBOUND' : 'LIVE INCOMING'}</span>
                     </div>
                     <span class="badge badge-standard" style="font-size: 0.6875rem;" title="${isOutgoing ? 'Calling via Configured DID' : 'Dialed DID / Virtual Number'}">
                         ${vid}
@@ -306,13 +332,14 @@ const cti = {
                     <div id="cti-timer-${callKey}" style="font-size: 0.875rem; font-weight: 700; color: var(--warning); font-variant-numeric: tabular-nums; background: var(--warning-subtle); padding: 0.1rem 0.4rem; border-radius: var(--radius-xs); border: 1px solid rgba(245, 158, 11, 0.25);">
                         ${currentTimerText}
                     </div>
+                    <button type="button" class="cti-card-close-btn" onclick="cti.dismissCard('${callKey}', event)" title="Dismiss Pop-up (Keeps live call running)">✕</button>
                 </div>
             </div>
 
-            <!-- VID / Routing Metadata Banner -->
+            <!-- DID / Routing Metadata Banner -->
             <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface-elevated); padding: 0.3rem 0.55rem; border-radius: var(--radius-xs); font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.65rem; border: 1px solid var(--border-color);">
-                <span>${operatorCircle}</span>
-                <span style="font-weight: 600; color: var(--primary);">Agent: ${assignedEmployee}</span>
+                <span style="display: inline-flex; align-items: center; gap: 4px;">📡 ${operatorCircle}</span>
+                <span style="font-weight: 600; color: var(--primary);">👤 Agent: ${assignedEmployee}</span>
             </div>
 
             <!-- Customer & Caller Info Box -->
@@ -322,12 +349,12 @@ const cti = {
                 </div>
                 ${isCustomerFound ? `
                     <div>
-                        <div class="cti-cust-name" style="cursor: pointer;">${partyName}</div>
-                        <div class="meta-value" style="font-size: 0.75rem; color: var(--text-muted);">
+                        <div class="cti-cust-name" onclick="cti.openProfile('${callKey}', event)" style="cursor: pointer;" title="Click to view 360° profile">${partyName}</div>
+                        <div class="meta-value" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem;">
                             ${contactPerson ? `Contact: ${contactPerson} | ` : ''}${city} (${partyCode})
                         </div>
                         ${callData.recent_interactions?.[0]?.content ? `
-                            <div class="meta-value" style="margin-top: 0.25rem; font-style: italic; color: var(--text-secondary); font-size: 0.72rem;">
+                            <div class="meta-value" style="margin-top: 0.25rem; font-style: italic; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.3;">
                                 "${callData.recent_interactions[0].content.substring(0, 60)}..."
                             </div>
                         ` : ''}
@@ -370,9 +397,8 @@ const cti = {
                         <span>Inquiry Note</span>
                     </button>
                 `}
-                <button class="btn btn-danger btn-xs" onclick="cti.endCall('${callKey}', event)" title="End Active Call & Record CDR">
-                    ${Icons.get('phone-off', { size: 12 })}
-                    <span>End Call</span>
+                <button class="btn btn-secondary btn-xs" onclick="cti.dismissCard('${callKey}', event)" style="color: var(--text-secondary); border-color: var(--border-color);" title="Hide/Close pop-up from your screen without affecting the live phone call">
+                    <span>✕ Dismiss</span>
                 </button>
             </div>
         `;
