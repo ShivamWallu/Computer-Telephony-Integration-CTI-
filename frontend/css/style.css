@@ -1477,15 +1477,44 @@ a:hover {
         border-radius: var(--radius-md);
     }
 
+    .grid-2 {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
     .card-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.6rem;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 0.6rem !important;
         padding-bottom: 0.6rem;
     }
 
     .card-title {
         font-size: 0.95rem;
+    }
+
+    /* Team and Administration Table Responsive Enhancements */
+    #admin-team-table-body td,
+    #admin-audit-table-body td,
+    #smartflo-token-table-body td {
+        font-size: 0.78rem;
+    }
+
+    #reassign-customer-checklist {
+        max-height: 160px !important;
+        padding: 0.65rem !important;
+    }
+
+    #reassign-customer-checklist label {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        padding: 0.25rem 0.15rem !important;
+        font-size: 0.8125rem !important;
+        cursor: pointer;
     }
 
     /* Highlights grid */
@@ -1553,12 +1582,14 @@ a:hover {
         -webkit-overflow-scrolling: touch;
         max-width: 100%;
         overflow-x: auto;
+        border: 1px solid var(--border-color);
+        background: var(--bg-surface);
     }
 
     .table th,
     .table td {
-        padding: 0.55rem 0.65rem;
-        font-size: 0.75rem;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.78rem;
         white-space: nowrap;
     }
 

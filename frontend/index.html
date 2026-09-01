@@ -919,35 +919,35 @@
 
                     <div class="grid-2">
                         <!-- Employee Management -->
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">
+                        <div class="card" style="width: 100%; display: flex; flex-direction: column;">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                                <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
                                     <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
                                         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                                         <circle cx="9" cy="7" r="4"></circle>
                                         <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
                                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                                     </svg>
-                                    <span>Team & Employee Performance</span>
+                                    <span style="font-weight: 700;">Team & Employee Performance</span>
                                 </div>
-                                <button class="btn btn-primary btn-sm" id="btn-open-add-employee">
+                                <button class="btn btn-primary btn-sm" id="btn-open-add-employee" style="display: inline-flex; align-items: center; gap: 4px;">
                                     <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                     <span>Add Employee</span>
                                 </button>
                             </div>
-                            <div class="table-container">
-                                <table class="table">
+                            <div class="table-container" style="max-height: 420px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                                <table class="table" style="width: 100%;">
                                     <thead>
                                         <tr>
-                                            <th>Employee Name</th>
-                                            <th>Number</th>
-                                            <th>Allowed Caller ID</th>
-                                            <th>Designation</th>
-                                            <th>Role</th>
-                                            <th>Assigned Customers</th>
-                                            <th>Calls Handled</th>
-                                            <th>Follow-ups</th>
-                                            <th>Actions</th>
+                                            <th style="min-width: 150px;">Employee Name</th>
+                                            <th style="min-width: 110px;">Phone</th>
+                                            <th style="min-width: 120px;">Caller ID / DID</th>
+                                            <th style="min-width: 95px;">Designation</th>
+                                            <th style="min-width: 80px;">Role</th>
+                                            <th style="min-width: 75px; text-align: center;">Customers</th>
+                                            <th style="min-width: 65px; text-align: center;">Calls</th>
+                                            <th style="min-width: 75px; text-align: center;">Follow-ups</th>
+                                            <th style="min-width: 75px; text-align: center;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="admin-team-table-body"></tbody>
@@ -956,61 +956,61 @@
                         </div>
 
                         <!-- Customer Reassignment Tool & Clear Logs -->
-                        <div class="card">
-                            <div class="card-header">
+                        <div class="card" style="width: 100%;">
+                            <div class="card-header" style="display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
                                 <div class="card-title">
                                     <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
                                         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline>
                                     </svg>
-                                    <span>Customer Reassignment</span>
+                                    <span style="font-weight: 700;">Customer Reassignment</span>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Reassignment Mode:</label>
-                                <select id="reassign-scope" class="form-control" style="margin-bottom: 0.65rem;">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label class="form-label" style="font-size: 0.8125rem; font-weight: 600;">Reassignment Mode:</label>
+                                <select id="reassign-scope" class="form-control" style="margin-bottom: 0.5rem; font-size: 0.8125rem;">
                                     <option value="all">All Active Customers</option>
                                     <option value="unassigned">Only Unassigned Customers</option>
                                     <option value="selected">Select Specific Customer(s) (Multi-Select)</option>
                                 </select>
                             </div>
                             <div class="form-group" id="container-reassign-individual" style="display: none; margin-bottom: 0.75rem;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                                    <label class="form-label" style="margin: 0;">Choose Customers to Assign:</label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.35rem;">
+                                    <label class="form-label" style="margin: 0; font-size: 0.8125rem; font-weight: 600;">Choose Customers to Assign:</label>
                                     <div style="display: flex; gap: 0.3rem;">
                                         <button type="button" class="btn btn-secondary btn-xs" id="btn-reassign-select-all">Select All</button>
                                         <button type="button" class="btn btn-secondary btn-xs" id="btn-reassign-clear-all">Clear</button>
                                     </div>
                                 </div>
                                 <div id="reassign-customer-checklist"
-                                    style="max-height: 140px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem; background: var(--bg-surface-elevated); display: flex; flex-direction: column; gap: 0.35rem;">
+                                    style="max-height: 140px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem; background: var(--bg-surface-elevated); display: flex; flex-direction: column; gap: 0.35rem; -webkit-overflow-scrolling: touch;">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Assign Selected to Employee:</label>
-                                <select id="reassign-target-employee" class="form-control"></select>
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label class="form-label" style="font-size: 0.8125rem; font-weight: 600;">Assign Selected to Employee:</label>
+                                <select id="reassign-target-employee" class="form-control" style="font-size: 0.8125rem;"></select>
                             </div>
-                            <button class="btn btn-primary btn-sm" id="btn-trigger-reassign" style="margin-bottom: 1.25rem; width: 100%;">
+                            <button class="btn btn-primary btn-sm" id="btn-trigger-reassign" style="margin-bottom: 1.25rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                                 <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
                                 <span>Reassign & Notify Employee via Email</span>
                             </button>
 
                             <div style="border-top: 1px solid var(--border-color); padding-top: 0.85rem;">
-                                <div class="meta-label" style="color: var(--danger); margin-bottom: 0.25rem;">System Call Logs Maintenance</div>
-                                <p class="meta-value" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.65rem;">
+                                <div class="meta-label" style="color: var(--danger); margin-bottom: 0.25rem; font-weight: 700; font-size: 0.8125rem;">System Call Logs Maintenance</div>
+                                <p class="meta-value" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.65rem; line-height: 1.35;">
                                     Safely clear test/simulated call logs. Customer accounts, notes, and records remain 100% untouched.
                                 </p>
-                                <button class="btn btn-danger btn-sm" id="btn-admin-clear-call-logs">
+                                <button class="btn btn-danger btn-sm" id="btn-admin-clear-call-logs" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                                     <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                     <span>Clear Test Call Logs</span>
                                 </button>
                             </div>
 
                             <div style="border-top: 1px solid var(--border-color); padding-top: 0.85rem; margin-top: 0.85rem;">
-                                <div class="meta-label" style="color: var(--danger); margin-bottom: 0.25rem;">Production Data Cleanup & Reset</div>
-                                <p class="meta-value" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.65rem;">
+                                <div class="meta-label" style="color: var(--danger); margin-bottom: 0.25rem; font-weight: 700; font-size: 0.8125rem;">Production Data Cleanup & Reset</div>
+                                <p class="meta-value" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.65rem; line-height: 1.35;">
                                     Safely wipe development records before uploading the real master Excel file. Customer <strong>7814749816</strong> and Primary Admin <strong>Shivam</strong> will be 100% preserved.
                                 </p>
-                                <button class="btn btn-danger btn-sm" id="btn-admin-clean-prod-data">
+                                <button class="btn btn-danger btn-sm" id="btn-admin-clean-prod-data" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                                     <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                     <span>Clean Test Data (Preserve 7814749816)</span>
                                 </button>
