@@ -123,7 +123,7 @@
                 <div class="nav-group-title">Core Operations</div>
                 <ul class="nav-items">
                     <li>
-                        <a class="nav-link active" data-view="dashboard" onclick="app.switchView('dashboard')">
+                        <a class="nav-link active" data-view="dashboard">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="3" width="7" height="7" rx="1"></rect>
                                 <rect x="14" y="3" width="7" height="7" rx="1"></rect>
@@ -134,7 +134,7 @@
                         </a>
                     </li>
                     <li>
-                        <a class="nav-link" data-view="customers" onclick="app.switchView('customers')">
+                        <a class="nav-link" data-view="customers">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="9" cy="7" r="4"></circle>
@@ -146,7 +146,7 @@
                         </a>
                     </li>
                     <li>
-                        <a class="nav-link" data-view="followups" onclick="app.switchView('followups')">
+                        <a class="nav-link" data-view="followups">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
@@ -156,7 +156,7 @@
                         </a>
                     </li>
                     <li>
-                        <a class="nav-link" data-view="calls" onclick="app.switchView('calls')">
+                        <a class="nav-link" data-view="calls">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path
                                     d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
@@ -170,7 +170,7 @@
                 <div class="nav-group-title">Data & Administration</div>
                 <ul class="nav-items">
                     <li>
-                        <a class="nav-link" data-view="import" onclick="app.switchView('import')">
+                        <a class="nav-link" data-view="import">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
@@ -182,7 +182,7 @@
                         </a>
                     </li>
                     <li id="nav-item-admin">
-                        <a class="nav-link" data-view="admin" onclick="app.switchView('admin')">
+                        <a class="nav-link" data-view="admin">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="3"></circle>
                                 <path
@@ -254,7 +254,7 @@
                 <!-- Header Actions -->
                 <div class="header-actions">
                     <!-- Light / Dark Theme Toggle Button -->
-                    <button class="theme-toggle-btn" id="btn-theme-toggle" onclick="app.toggleTheme()" title="Switch Theme">
+                    <button class="theme-toggle-btn" id="btn-theme-toggle" title="Switch Theme">
                         <span id="theme-toggle-icon">
                             <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                         </span>
@@ -271,7 +271,7 @@
                     </button>
 
                     <!-- Live Incoming Call Simulator Button -->
-                    <button class="btn btn-secondary btn-sm" id="btn-open-simulate-call" onclick="app.openModal('modal-simulate-call')"
+                    <button class="btn btn-secondary btn-sm" id="btn-open-simulate-call"
                         title="Simulate Incoming Telephony Call">
                         <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
@@ -280,7 +280,7 @@
                     </button>
 
                     <!-- Add Customer Button -->
-                    <button class="btn btn-primary btn-sm" id="btn-open-add-customer" onclick="customer.openAddModal()">
+                    <button class="btn btn-primary btn-sm" id="btn-open-add-customer">
                         <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1151,57 +1151,45 @@
 
                 <!-- 1. KNOWN CUSTOMER 360° PROFILE VIEW -->
                 <div id="drawer-view-known" style="display: flex; flex-direction: column; height: 100%;">
-                    <div class="drawer-header">
-                        <div style="min-width: 0; flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                <span id="drawer-cust-id" class="badge badge-vip" style="font-weight: 700;">CUST-000</span>
-                                <span id="drawer-cust-status" class="badge badge-active">Active</span>
-                            </div>
-                            <h2 id="drawer-cust-name" style="font-size: 1.25rem; font-weight: 800; margin-top: 0.25rem; color: var(--text-primary); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Customer Profile</h2>
+                    <div class="drawer-header" style="padding: 1.15rem 1.4rem;">
+                        <div>
+                            <span id="drawer-cust-id" class="badge badge-lead" style="font-size: 0.8125rem; font-weight: 700; padding: 0.2rem 0.6rem;">CUST-000</span>
+                            <h2 id="drawer-cust-name" style="font-size: 1.35rem; font-weight: 800; margin-top: 0.25rem; color: var(--text-primary); letter-spacing: -0.01em;">Customer Profile</h2>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                            <!-- Dedicated TCS iON ERP Portal Button -->
-                            <button class="btn-tcsion" id="btn-drawer-tcsion-portal" onclick="customer.launchTcsIonPortal()" title="Quick Launch TCS iON ERP Portal for this Customer in a New Tab">
-                                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                    <polyline points="15 3 21 3 21 9"></polyline>
-                                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                                </svg>
-                                <span>TCS iON Portal</span>
-                            </button>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
                             <button class="btn btn-danger btn-sm admin-only" id="btn-drawer-delete-customer" style="display: none;" title="Delete Customer (Admin Only)">
                                 <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 <span>Delete</span>
                             </button>
-                            <button class="btn-icon" id="btn-close-drawer" aria-label="Close drawer" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
-                                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            <button class="btn-icon" id="btn-close-drawer" aria-label="Close drawer">
+                                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
                     </div>
 
                     <!-- Drawer Sub-Tabs Bar -->
                     <div class="drawer-tabs-nav">
-                        <button class="drawer-tab-btn active" data-drawer-tab="profile" onclick="customer.switchDrawerTab('profile')">
+                        <button class="drawer-tab-btn active" data-drawer-tab="profile">
                             <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            <span>Profile 360°</span>
+                            <span>Profile</span>
                         </button>
-                        <button class="drawer-tab-btn" data-drawer-tab="docs" onclick="customer.switchDrawerTab('docs')">
+                        <button class="drawer-tab-btn" data-drawer-tab="docs">
                             <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                             <span>Docs (<span id="drawer-docs-count">0</span>)</span>
                         </button>
-                        <button class="drawer-tab-btn" data-drawer-tab="edit" onclick="customer.switchDrawerTab('edit')">
+                        <button class="drawer-tab-btn" data-drawer-tab="edit">
                             <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            <span>Edit Profile</span>
+                            <span>Edit</span>
                         </button>
-                        <button class="drawer-tab-btn" data-drawer-tab="note" onclick="customer.switchDrawerTab('note')">
+                        <button class="drawer-tab-btn" data-drawer-tab="note">
                             <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                             <span>Add Note</span>
                         </button>
-                        <button class="drawer-tab-btn" data-drawer-tab="email" onclick="customer.switchDrawerTab('email')">
+                        <button class="drawer-tab-btn" data-drawer-tab="email">
                             <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                             <span>Send Email</span>
                         </button>
-                        <button class="drawer-tab-btn" data-drawer-tab="followup" onclick="customer.switchDrawerTab('followup')">
+                        <button class="drawer-tab-btn" data-drawer-tab="followup">
                             <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                             <span>Follow-up</span>
                         </button>
@@ -1210,131 +1198,83 @@
                     <div class="drawer-body">
                         <!-- TAB 1: Profile 360 & Timeline -->
                         <div id="dtab-profile" class="drawer-tab-pane active">
-                            <!-- Quick Overview Strip -->
-                            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.85rem 1.15rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
-                                <div style="display: flex; align-items: center; gap: 0.85rem;">
-                                    <div class="user-avatar" id="drawer-cust-avatar" style="width: 44px; height: 44px; font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--purple)); color: #fff;">
-                                        CU
-                                    </div>
-                                    <div>
-                                        <div class="meta-value" id="drawer-cust-contact" style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Contact: —</div>
-                                        <div class="meta-value" id="drawer-cust-location" style="font-size: 0.8125rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-top: 2px;">
-                                            <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                            <span>Location N/A</span>
-                                        </div>
-                                    </div>
+                            <!-- Profile Information Top Status -->
+                            <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; background: var(--bg-surface-elevated); padding: 0.85rem 1.1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <div>
+                                    <div class="meta-value" id="drawer-cust-contact" style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Contact: —</div>
+                                    <div class="meta-value" id="drawer-cust-location" style="font-size: 0.9375rem; color: var(--text-muted); margin-top: 0.15rem;">Location N/A</div>
                                 </div>
-                                <div style="display: flex; gap: 0.4rem; align-items: center;">
-                                    <button class="btn btn-secondary btn-sm" id="btn-drawer-quick-call" onclick="customer.callPrimaryPhone()" style="display: inline-flex; align-items: center; gap: 4px;">
-                                        <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                                        <span>Call</span>
-                                    </button>
-                                    <button class="btn btn-secondary btn-sm" onclick="customer.switchDrawerTab('email')" style="display: inline-flex; align-items: center; gap: 4px;">
-                                        <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                        <span>Email</span>
-                                    </button>
+                                <div>
+                                    <span id="drawer-cust-status" class="badge badge-active" style="font-size: 0.8125rem; font-weight: 700; padding: 0.25rem 0.65rem;">Active</span>
                                 </div>
                             </div>
 
-                            <!-- CARD 1: Core ERP & Party Identity -->
-                            <div class="profile-section-card">
-                                <div class="profile-section-header">
-                                    <div class="profile-section-title">
-                                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-                                        <span>1. Party & ERP Identity</span>
-                                    </div>
-                                    <span class="badge badge-standard" style="font-size: 0.6875rem;">15 Columns Schema</span>
+                            <!-- 15 Column Customer Grid -->
+                            <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+                                <span>📋 Customer Profile Data (15 Columns Master Schema)</span>
+                            </div>
+                            <div class="profile-meta-grid">
+                                <div class="meta-field">
+                                    <span class="meta-label">1. Party Code</span>
+                                    <span class="meta-value" id="drawer-cust-party-code" style="font-size: 1.05rem; font-weight: 800; color: var(--primary);">—</span>
                                 </div>
-                                <div class="profile-meta-grid">
-                                    <div class="meta-field">
-                                        <span class="meta-label">1. Party Code</span>
-                                        <span class="meta-value" id="drawer-cust-party-code" style="font-weight: 700; color: var(--primary); font-size: 0.9375rem;">—</span>
-                                    </div>
-                                    <div class="meta-field" style="grid-column: span 2;">
-                                        <span class="meta-label">2. Party Name</span>
-                                        <span class="meta-value" id="drawer-cust-party-name" style="font-weight: 700; font-size: 0.9375rem;">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">3. Address Date</span>
-                                        <span class="meta-value" id="drawer-cust-address-date">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">15. Status</span>
-                                        <span class="meta-value" id="drawer-cust-status-badge">Active</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">Assigned Account Manager</span>
-                                        <span class="meta-value" id="drawer-cust-assigned-agent" style="font-weight: 600; color: var(--text-secondary);">—</span>
-                                    </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">2. Party Name</span>
+                                    <span class="meta-value" id="drawer-cust-party-name" style="font-size: 1.05rem; font-weight: 800; color: var(--text-primary);">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">3. Address Date</span>
+                                    <span class="meta-value" id="drawer-cust-address-date">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">4. Address Line 1</span>
+                                    <span class="meta-value" id="drawer-cust-addr1">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">5. Address Line 2</span>
+                                    <span class="meta-value" id="drawer-cust-addr2">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">6. Address Line 3</span>
+                                    <span class="meta-value" id="drawer-cust-addr3">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">7. Contact Person 1</span>
+                                    <span class="meta-value" id="drawer-cust-contact-person" style="font-weight: 700; font-size: 0.95rem;">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">8. Email Id 1</span>
+                                    <span class="meta-value" id="drawer-cust-email-id" style="font-weight: 600;">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">9. Country</span>
+                                    <span class="meta-value" id="drawer-cust-country">India</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">10. State</span>
+                                    <span class="meta-value" id="drawer-cust-state">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">11. City</span>
+                                    <span class="meta-value" id="drawer-cust-city">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">12. Pincode</span>
+                                    <span class="meta-value" id="drawer-cust-pincode">—</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">13. Phone Type 1</span>
+                                    <span class="meta-value" id="drawer-cust-phone-type">Mobile</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="meta-label">14. Phone 1</span>
+                                    <span class="meta-value" id="drawer-cust-phone-1" style="font-size: 1.05rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums;">—</span>
+                                </div>
+                                <div class="meta-field" style="grid-column: span 2;">
+                                    <span class="meta-label">15. Status</span>
+                                    <span class="meta-value" id="drawer-cust-status-badge">Active</span>
                                 </div>
                             </div>
-
-                            <!-- CARD 2: Geographical & Postal Address -->
-                            <div class="profile-section-card">
-                                <div class="profile-section-header">
-                                    <div class="profile-section-title">
-                                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                        <span>2. Postal Address & Geographic Location</span>
-                                    </div>
-                                </div>
-                                <div class="profile-meta-grid">
-                                    <div class="meta-field" style="grid-column: span 3;">
-                                        <span class="meta-label">4. Address Line 1</span>
-                                        <span class="meta-value" id="drawer-cust-addr1">—</span>
-                                    </div>
-                                    <div class="meta-field" style="grid-column: span 3;">
-                                        <span class="meta-label">5. Address Line 2</span>
-                                        <span class="meta-value" id="drawer-cust-addr2">—</span>
-                                    </div>
-                                    <div class="meta-field" style="grid-column: span 3;">
-                                        <span class="meta-label">6. Address Line 3</span>
-                                        <span class="meta-value" id="drawer-cust-addr3">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">11. City</span>
-                                        <span class="meta-value" id="drawer-cust-city" style="font-weight: 600;">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">12. Pincode</span>
-                                        <span class="meta-value" id="drawer-cust-pincode" style="font-weight: 600;">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">10. State</span>
-                                        <span class="meta-value" id="drawer-cust-state">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">9. Country</span>
-                                        <span class="meta-value" id="drawer-cust-country">India</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- CARD 3: Contact Details & Telephony Routing -->
-                            <div class="profile-section-card">
-                                <div class="profile-section-header">
-                                    <div class="profile-section-title">
-                                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                                        <span>3. Contact Persons & Telephony Directory</span>
-                                    </div>
-                                </div>
-                                <div class="profile-meta-grid" style="margin-bottom: 0.85rem;">
-                                    <div class="meta-field">
-                                        <span class="meta-label">7. Contact Person 1</span>
-                                        <span class="meta-value" id="drawer-cust-contact-person" style="font-weight: 600;">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">8. Email Id 1</span>
-                                        <span class="meta-value" id="drawer-cust-email-id">—</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">13. Phone Type 1</span>
-                                        <span class="meta-value" id="drawer-cust-phone-type">Mobile</span>
-                                    </div>
-                                    <div class="meta-field">
-                                        <span class="meta-label">14. Primary Phone 1</span>
-                                        <span class="meta-value" id="drawer-cust-phone-1" style="font-weight: 700; color: var(--primary); font-size: 0.9375rem;">—</span>
-                                    </div>
-                                </div>
 
                             <!-- Multiple Phone Numbers Directory & Routing Card -->
                             <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem 0.85rem; margin-bottom: 0.85rem;">
@@ -1407,61 +1347,7 @@
                             </div>
                         </div>
 
-                        <!-- TAB 2: Customer Documents & Attachments -->
-                        <div id="dtab-docs" class="drawer-tab-pane">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem;">
-                                <div class="card-title" style="font-size: 0.875rem; margin: 0; color: var(--primary);">
-                                    Customer Attachments & Files
-                                </div>
-                                <span id="drawer-docs-badge-count" class="badge badge-standard">0 Files</span>
-                            </div>
-
-                            <!-- Upload Box -->
-                            <div style="background: var(--bg-surface-elevated); border: 1px dashed var(--primary); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1rem;">
-                                <form id="form-drawer-upload-doc" onsubmit="event.preventDefault(); customer.submitDocumentUpload();">
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                        <div class="form-group" style="margin: 0;">
-                                            <label class="form-label" style="font-size: 0.72rem;">Select File *</label>
-                                            <input type="file" id="dinp-doc-file" class="form-control" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; height: 32px;" required />
-                                        </div>
-                                        <div class="form-group" style="margin: 0;">
-                                            <label class="form-label" style="font-size: 0.72rem;">Category</label>
-                                            <select id="dinp-doc-category" class="form-control" style="font-size: 0.75rem; height: 32px;">
-                                                <option value="General" selected>General Document</option>
-                                                <option value="GST">GST Certificate</option>
-                                                <option value="PAN">PAN Card</option>
-                                                <option value="Contract">Agreement / Contract</option>
-                                                <option value="Invoice">Invoice / PO</option>
-                                                <option value="KYC">KYC Document</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                        <input type="text" id="dinp-doc-desc" class="form-control" placeholder="Description / Note (Optional)" style="font-size: 0.78rem; height: 32px; flex: 1;" />
-                                        <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-doc-upload" style="height: 32px; padding: 0 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
-                                            <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                            <span>Upload</span>
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <!-- Filter Chips -->
-                            <div class="timeline-filters" style="margin-bottom: 0.75rem;">
-                                <button class="filter-chip active" data-doc-filter="all" onclick="customer.filterDocuments('all', this)">All Files</button>
-                                <button class="filter-chip" data-doc-filter="GST" onclick="customer.filterDocuments('GST', this)">GST</button>
-                                <button class="filter-chip" data-doc-filter="PAN" onclick="customer.filterDocuments('PAN', this)">PAN</button>
-                                <button class="filter-chip" data-doc-filter="Contract" onclick="customer.filterDocuments('Contract', this)">Contracts</button>
-                                <button class="filter-chip" data-doc-filter="Invoice" onclick="customer.filterDocuments('Invoice', this)">Invoices</button>
-                            </div>
-
-                            <!-- Dynamic List -->
-                            <div id="drawer-documents-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                <!-- Injected by customer.loadDocuments() -->
-                            </div>
-                        </div>
-
-                        <!-- TAB 3: Inline Edit Customer Details -->
+                        <!-- TAB 2: Inline Edit Customer Details -->
                         <div id="dtab-edit" class="drawer-tab-pane">
                             <div class="card-title" style="font-size: 0.875rem; margin-bottom: 0.75rem; color: var(--primary);">
                                 Edit Customer Profile (15 Columns Schema)

@@ -350,13 +350,13 @@ const cti = {
                 </div>
                 ${isCustomerFound ? `
                     <div>
-                        <div class="cti-cust-name" onclick="cti.openProfile('${callKey}', event)" style="cursor: pointer;" title="Click to view 360° profile">${partyName}</div>
-                        <div class="meta-value" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem;">
-                            ${contactPerson ? `Contact: ${contactPerson} | ` : ''}${city} (${partyCode})
+                        <div class="cti-cust-name" onclick="cti.openProfile('${callKey}', event)" style="cursor: pointer; font-size: 1.15rem; font-weight: 700;" title="Click to view 360° profile">${partyName}</div>
+                        <div class="meta-value" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem; font-weight: 500;">
+                            ${contactPerson ? `Contact: <strong style="color: var(--text-primary);">${contactPerson}</strong> | ` : ''}${city} (${partyCode})
                         </div>
                         ${callData.recent_interactions?.[0]?.content ? `
-                            <div class="meta-value" style="margin-top: 0.25rem; font-style: italic; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.3;">
-                                "${callData.recent_interactions[0].content.substring(0, 60)}..."
+                            <div class="meta-value" style="margin-top: 0.35rem; font-style: italic; color: var(--text-muted); font-size: 0.8rem; line-height: 1.35; background: var(--bg-surface); padding: 0.3rem 0.5rem; border-radius: var(--radius-xs); border: 1px solid var(--border-color);">
+                                "${callData.recent_interactions[0].content.substring(0, 80)}..."
                             </div>
                         ` : ''}
                     </div>
