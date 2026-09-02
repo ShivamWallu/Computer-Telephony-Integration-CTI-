@@ -1349,89 +1349,93 @@
 
                         <!-- TAB 2: Inline Edit Customer Details -->
                         <div id="dtab-edit" class="drawer-tab-pane">
-                            <div class="card-title" style="font-size: 0.875rem; margin-bottom: 0.75rem; color: var(--primary);">
-                                Edit Customer Profile (15 Columns Schema)
+                            <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+                                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                <span>Edit Customer Profile (15 Columns Schema)</span>
                             </div>
                             <form id="form-drawer-inline-edit" onsubmit="event.preventDefault(); customer.submitDrawerEditForm();">
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
-                                    <div class="form-group">
-                                        <label class="form-label">1. Party Code</label>
-                                        <input type="text" id="dinp-party-code" class="form-control" placeholder="e.g. CUST-101" />
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.85rem 1.25rem; background: var(--bg-surface-elevated); padding: 1.25rem 1.4rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">1. Party Code</label>
+                                        <input type="text" id="dinp-party-code" class="form-control" placeholder="e.g. CUST-101" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">2. Party Name *</label>
-                                        <input type="text" id="dinp-party-name" class="form-control" required />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">2. Party Name *</label>
+                                        <input type="text" id="dinp-party-name" class="form-control" required style="height: 38px; font-size: 0.875rem; font-weight: 600;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">3. Address Date</label>
-                                        <input type="date" id="dinp-address-date" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">3. Address Date</label>
+                                        <input type="date" id="dinp-address-date" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">4. Address Line 1</label>
-                                        <input type="text" id="dinp-addr1" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">4. Address Line 1</label>
+                                        <input type="text" id="dinp-addr1" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">5. Address Line 2</label>
-                                        <input type="text" id="dinp-addr2" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">5. Address Line 2</label>
+                                        <input type="text" id="dinp-addr2" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">6. Address Line 3</label>
-                                        <input type="text" id="dinp-addr3" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">6. Address Line 3</label>
+                                        <input type="text" id="dinp-addr3" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">7. Contact Person 1</label>
-                                        <input type="text" id="dinp-contact-person" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">7. Contact Person 1</label>
+                                        <input type="text" id="dinp-contact-person" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">8. Email Id 1</label>
-                                        <input type="email" id="dinp-email" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">8. Email Id 1</label>
+                                        <input type="email" id="dinp-email" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">9. Country</label>
-                                        <input type="text" id="dinp-country" class="form-control" value="India" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">9. Country</label>
+                                        <input type="text" id="dinp-country" class="form-control" value="India" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">10. State</label>
-                                        <input type="text" id="dinp-state" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">10. State</label>
+                                        <input type="text" id="dinp-state" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">11. City</label>
-                                        <input type="text" id="dinp-city" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">11. City</label>
+                                        <input type="text" id="dinp-city" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">12. Pincode</label>
-                                        <input type="text" id="dinp-pincode" class="form-control" />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">12. Pincode</label>
+                                        <input type="text" id="dinp-pincode" class="form-control" style="height: 38px; font-size: 0.875rem;" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">13. Phone Type 1</label>
-                                        <select id="dinp-phone-type" class="form-control">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">13. Phone Type 1</label>
+                                        <select id="dinp-phone-type" class="form-control" style="height: 38px; font-size: 0.875rem;">
                                             <option value="Mobile">Mobile</option>
                                             <option value="Landline">Landline</option>
                                             <option value="Work">Work</option>
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">14. Phone 1 *</label>
-                                        <input type="text" id="dinp-phone1" class="form-control" required />
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">14. Phone 1 *</label>
+                                        <input type="text" id="dinp-phone1" class="form-control" required style="height: 38px; font-size: 0.9375rem; font-weight: 700; color: var(--primary);" />
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">15. Status</label>
-                                        <select id="dinp-status" class="form-control">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">15. Status</label>
+                                        <select id="dinp-status" class="form-control" style="height: 38px; font-size: 0.875rem; font-weight: 600;">
                                             <option value="Active">Active</option>
                                             <option value="Lead">Lead</option>
                                             <option value="Inactive">Inactive</option>
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Assigned Account Manager</label>
-                                        <select id="dinp-assigned-agent" class="form-control">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" style="font-weight: 700; font-size: 0.8125rem;">Assigned Account Manager</label>
+                                        <select id="dinp-assigned-agent" class="form-control" style="height: 38px; font-size: 0.875rem;">
                                             <option value="">Unassigned</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="customer.switchDrawerTab('profile')">Cancel</button>
-                                    <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+                                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+                                    <button type="button" class="btn btn-secondary btn-md" onclick="customer.switchDrawerTab('profile')" style="padding: 0.5rem 1.25rem;">Cancel</button>
+                                    <button type="submit" class="btn btn-primary btn-md" style="padding: 0.5rem 1.5rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                        <span>Save Changes</span>
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -1659,129 +1663,164 @@
 
         <!-- Modal: Add / Edit Customer Profile (15 Fields) -->
         <div id="modal-add-customer" class="modal-overlay">
-            <div class="modal-content" style="max-width: 680px;">
-                <div class="modal-header">
-                    <h3 id="modal-cust-title">Create New Customer (15 Columns Schema)</h3>
-                    <button class="btn-icon btn-icon-sm" onclick="app.closeModal('modal-add-customer')">
-                        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <div class="modal-content" style="max-width: 880px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1.15rem 1.5rem; border-bottom: 1px solid var(--border-color); background: var(--bg-surface-elevated);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--primary-subtle); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                            <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </div>
+                        <div>
+                            <h3 id="modal-cust-title" style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0;">Create New Customer (15 Columns Schema)</h3>
+                            <p style="margin: 0.15rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">Unified Telephony & 360° Customer Relationship Management Record</p>
+                        </div>
+                    </div>
+                    <button class="btn-icon btn-icon-sm" onclick="app.closeModal('modal-add-customer')" aria-label="Close modal">
+                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
-                <div class="modal-body">
+                
+                <div class="modal-body" style="padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1;">
                     <form id="form-add-customer">
                         <input type="hidden" id="inp-cust-edit-id" />
 
-                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 0.65rem;">
-                            <div class="form-group">
-                                <label class="form-label">1. Party Code</label>
-                                <input type="text" id="inp-cust-party-code" class="form-control" placeholder="e.g. CUST-7814" />
+                        <!-- Section 1: 🏢 Party Identity & Account -->
+                        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem 1.15rem; margin-bottom: 1.15rem;">
+                            <div style="font-size: 0.78125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="21" width="18" height="2"></rect><rect x="6" y="4" width="12" height="15" rx="1"></rect></svg>
+                                <span>1. Party & Account Identity</span>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">2. Party Name *</label>
-                                <input type="text" id="inp-cust-party-name" class="form-control" required placeholder="e.g. Mashal Oil & Foods Ltd" />
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 0.65rem;">
-                            <div class="form-group">
-                                <label class="form-label">3. Address Date</label>
-                                <input type="date" id="inp-cust-address-date" class="form-control" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">4. Address Line 1</label>
-                                <input type="text" id="inp-cust-addr1" class="form-control" placeholder="Plot No. 12, Industrial Area" />
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
-                            <div class="form-group">
-                                <label class="form-label">5. Address Line 2</label>
-                                <input type="text" id="inp-cust-addr2" class="form-control" placeholder="Phase 2, Focal Point" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">6. Address Line 3</label>
-                                <input type="text" id="inp-cust-addr3" class="form-control" placeholder="Near Metro Depot" />
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
-                            <div class="form-group">
-                                <label class="form-label">7. Contact Person 1</label>
-                                <input type="text" id="inp-cust-contact-person" class="form-control" placeholder="e.g. Shivam" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">8. Email Id 1</label>
-                                <input type="email" id="inp-cust-email-id" class="form-control" placeholder="shivam@mashaloil.com" />
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.65rem;">
-                            <div class="form-group">
-                                <label class="form-label">9. Country</label>
-                                <input type="text" id="inp-cust-country" class="form-control" value="India" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">10. State</label>
-                                <input type="text" id="inp-cust-state" class="form-control" placeholder="Punjab" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">11. City</label>
-                                <input type="text" id="inp-cust-city" class="form-control" placeholder="Ludhiana" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">12. Pincode</label>
-                                <input type="text" id="inp-cust-pincode" class="form-control" placeholder="141001" />
-                            </div>
-                        </div>
-
-                        <!-- Phone Type 1 and Phone 1 -->
-                        <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 0.65rem;">
-                            <div class="form-group">
-                                <label class="form-label">13. Phone Type 1</label>
-                                <select id="inp-cust-phone-type" class="form-control">
-                                    <option value="Mobile" selected>Mobile</option>
-                                    <option value="Work">Work</option>
-                                    <option value="Direct">Direct</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">14. Phone 1 *</label>
-                                <div style="display: flex; gap: 0.35rem;">
-                                    <select id="inp-cust-country-code" class="form-control" style="width: 95px; flex-shrink: 0; padding: 0 0.35rem; font-size: 0.75rem;">
-                                        <option value="+91" selected>+91 (IN)</option>
-                                        <option value="+1">+1 (US)</option>
-                                        <option value="+44">+44 (UK)</option>
-                                        <option value="+971">+971 (UAE)</option>
-                                        <option value="+65">+65 (SG)</option>
-                                        <option value="">Other</option>
+                            <div style="display: grid; grid-template-columns: 1fr 2fr 1.2fr 1.2fr; gap: 0.75rem;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">1. Party Code</label>
+                                    <input type="text" id="inp-cust-party-code" class="form-control" placeholder="e.g. CUST-7814" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">2. Party / Company Name *</label>
+                                    <input type="text" id="inp-cust-party-name" class="form-control" required placeholder="e.g. Mashal Oil & Foods Ltd" style="height: 38px; font-size: 0.875rem; font-weight: 600;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">15. Status</label>
+                                    <select id="inp-cust-status" class="form-control" style="height: 38px; font-size: 0.875rem; font-weight: 600;">
+                                        <option value="Active" selected>Active</option>
+                                        <option value="Lead">Lead</option>
+                                        <option value="Inactive">Inactive</option>
                                     </select>
-                                    <input type="text" id="inp-cust-phone1" class="form-control" required placeholder="7814749816" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">Assigned Manager</label>
+                                    <select id="inp-cust-agent" class="form-control" style="height: 38px; font-size: 0.875rem;"></select>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">15. Status</label>
-                                <select id="inp-cust-status" class="form-control">
-                                    <option value="Active" selected>Active</option>
-                                    <option value="Lead">Lead</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
+                        </div>
+
+                        <!-- Section 2: 📞 Contact & Telephony Routing -->
+                        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem 1.15rem; margin-bottom: 1.15rem;">
+                            <div style="font-size: 0.78125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                <span>2. Primary Contact & Telephony Lines</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1.2fr 1.5fr 1fr 2fr; gap: 0.75rem;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">7. Contact Person 1</label>
+                                    <input type="text" id="inp-cust-contact-person" class="form-control" placeholder="e.g. Shivam" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">8. Email Id 1</label>
+                                    <input type="email" id="inp-cust-email-id" class="form-control" placeholder="shivam@mashaloil.com" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">13. Phone Type</label>
+                                    <select id="inp-cust-phone-type" class="form-control" style="height: 38px; font-size: 0.875rem;">
+                                        <option value="Mobile" selected>Mobile</option>
+                                        <option value="Work">Work</option>
+                                        <option value="Direct">Direct</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">14. Primary Phone 1 *</label>
+                                    <div style="display: flex; gap: 0.4rem;">
+                                        <select id="inp-cust-country-code" class="form-control" style="width: 105px; flex-shrink: 0; padding: 0 0.4rem; font-size: 0.8125rem; height: 38px; font-weight: 600;">
+                                            <option value="+91" selected>+91 (IN)</option>
+                                            <option value="+1">+1 (US)</option>
+                                            <option value="+44">+44 (UK)</option>
+                                            <option value="+971">+971 (UAE)</option>
+                                            <option value="+65">+65 (SG)</option>
+                                            <option value="">Other</option>
+                                        </select>
+                                        <input type="text" id="inp-cust-phone1" class="form-control" required placeholder="7814749816" style="height: 38px; font-size: 0.9375rem; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums;" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
-                            <div class="form-group">
-                                <label class="form-label">Assigned Representative</label>
-                                <select id="inp-cust-agent" class="form-control"></select>
+                        <!-- Section 3: 📍 Registered Office & Postal Address -->
+                        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem 1.15rem; margin-bottom: 1.15rem;">
+                            <div style="font-size: 0.78125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                <span>3. Registered Office & Billing Address</span>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Notes & Remarks</label>
-                                <input type="text" id="inp-cust-notes" class="form-control" placeholder="Optional context..." />
+                            
+                            <div style="display: grid; grid-template-columns: 1.2fr 2.8fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">3. Address Date</label>
+                                    <input type="date" id="inp-cust-address-date" class="form-control" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">4. Address Line 1 (Plot / Street / Building)</label>
+                                    <input type="text" id="inp-cust-addr1" class="form-control" placeholder="e.g. Plot No. 12, Industrial Area" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">5. Address Line 2 (Area / Phase)</label>
+                                    <input type="text" id="inp-cust-addr2" class="form-control" placeholder="e.g. Phase 2, Focal Point" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">6. Address Line 3 (Landmark / Location)</label>
+                                    <input type="text" id="inp-cust-addr3" class="form-control" placeholder="e.g. Near Metro Depot" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">11. City</label>
+                                    <input type="text" id="inp-cust-city" class="form-control" placeholder="Ludhiana" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">10. State</label>
+                                    <input type="text" id="inp-cust-state" class="form-control" placeholder="Punjab" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">12. Pincode</label>
+                                    <input type="text" id="inp-cust-pincode" class="form-control" placeholder="141001" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" style="font-weight: 600; font-size: 0.8125rem;">9. Country</label>
+                                    <input type="text" id="inp-cust-country" class="form-control" value="India" style="height: 38px; font-size: 0.875rem;" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 4: 📝 Internal Notes & Context -->
+                        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem 1.15rem;">
+                            <div style="font-size: 0.78125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 0.65rem; display: flex; align-items: center; gap: 6px;">
+                                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <span>4. Internal CRM Notes & Telephony Remarks</span>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <input type="text" id="inp-cust-notes" class="form-control" placeholder="Add optional account notes, commercial preferences, or key interaction history..." style="height: 38px; font-size: 0.875rem;" />
                             </div>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary btn-sm" onclick="app.closeModal('modal-add-customer')">Cancel</button>
-                    <button class="btn btn-primary btn-sm" id="btn-submit-add-customer">Save Customer</button>
+                
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background: var(--bg-surface-elevated);">
+                    <button class="btn btn-secondary btn-md" onclick="app.closeModal('modal-add-customer')" style="padding: 0.5rem 1.25rem; font-weight: 600;">Cancel</button>
+                    <button class="btn btn-primary btn-md" id="btn-submit-add-customer" style="padding: 0.5rem 1.5rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        <span>Save Customer Record</span>
+                    </button>
                 </div>
             </div>
         </div>
