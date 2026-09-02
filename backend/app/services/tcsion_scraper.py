@@ -175,35 +175,134 @@ class TcsIonScraperService:
                 # -----------------------------------------------------------
                 _last_scrape_status["progress_step"] = "Accessing Finance and Accounting Module"
                 logger.info("Looking for Finance and Accounting application tile...")
-                finance_tile = page.locator('text="Finance and Accounting", div:has-text("Finance and Accounting"), a:has-text("Finance and Accounting")').first
+                finance_tile = page.locator('text="Finance and Accounting", div:has-text("Finance and Accounting"), a:has-text("Finance and Accounting"), span:has-text("Finance and Accounting")').first
                 if finance_tile.is_visible(timeout=10000):
                     finance_tile.click()
-                    self._human_delay_sync(2.0, 3.5)
+                    self._human_delay_sync(3.0, 5.0)
+
+                # Check if a new tab / window opened for Finance module
+                if len(context.pages) > 1:
+                    logger.info(f"Detected {len(context.pages)} tabs, switching to active Finance tab...")
+                    page = context.pages[-1]
+                    page.bring_to_front()
+                    self._human_delay_sync(1.5, 2.5)
 
                 # -----------------------------------------------------------
                 # Step 3: Top Nav -> "Accounts Receivable" -> "Drill Down Reports"
                 # -----------------------------------------------------------
                 _last_scrape_status["progress_step"] = "Opening Accounts Receivable Drill Down Reports"
                 logger.info("Navigating to Accounts Receivable -> Drill Down Reports...")
-                ar_dropdown = page.locator('text="Accounts Receivable", a:has-text("Accounts Receivable"), button:has-text("Accounts Receivable")').first
-                ar_dropdown.wait_for(state="visible", timeout=15000)
-                ar_dropdown.click()
-                self._human_delay_sync(1.0, 1.8)
+                
+                # Locate Accounts Receivable across current page, tabs, and iframes
+                ar_clicked = False
+                ar_selectors = [
+                    'text="Accounts Receivable"',
+                    'span:has-text("Accounts Receivable")',
+                    'a:has-text("Accounts Receivable")',
+                    'li:has-text("Accounts Receivable")',
+                    'div:has-text("Accounts Receivable")',
+                    '[title*="Accounts Receivable" i]',
+                    'button:has-text("Accounts Receivable")'
+                ]
 
-                drill_down_btn = page.locator('text="Drill Down Reports", a:has-text("Drill Down Reports")').first
-                drill_down_btn.wait_for(state="visible", timeout=10000)
-                drill_down_btn.click()
+                # 1. Search across context pages and frames
+                for p in context.pages:
+                    if ar_clicked:
+                        break
+                    for sel in ar_selectors:
+                        try:
+                            loc = p.locator(sel).first
+                            if loc.is_visible(timeout=1500):
+                                loc.click()
+                                page = p
+                                ar_clicked = True
+                                logger.info(f"Clicked Accounts Receivable using selector: {sel}")
+                                break
+                        except Exception:
+                            pass
+                    
+                    if not ar_clicked:
+                        for frame in p.frames:
+                            for sel in ar_selectors:
+                                try:
+                                    loc = frame.locator(sel).first
+                                    if loc.is_visible(timeout=1500):
+                                        loc.click()
+                                        page = p
+                                        ar_clicked = True
+                                        logger.info(f"Clicked Accounts Receivable in iframe {frame.name}")
+                                        break
+                                except Exception:
+                                    pass
+                            if ar_clicked:
+                                break
+
+                if not ar_clicked:
+                    ar_dropdown = page.locator('text="Accounts Receivable", span:has-text("Accounts Receivable"), a:has-text("Accounts Receivable")').first
+                    ar_dropdown.wait_for(state="visible", timeout=20000)
+                    ar_dropdown.click()
+
                 self._human_delay_sync(1.5, 2.5)
+
+                # Click "Drill Down Reports"
+                drill_clicked = False
+                drill_selectors = [
+                    'text="Drill Down Reports"',
+                    'span:has-text("Drill Down Reports")',
+                    'a:has-text("Drill Down Reports")',
+                    'li:has-text("Drill Down Reports")',
+                    'div:has-text("Drill Down Reports")',
+                    '[title*="Drill Down" i]'
+                ]
+
+                for p in context.pages:
+                    if drill_clicked:
+                        break
+                    for sel in drill_selectors:
+                        try:
+                            loc = p.locator(sel).first
+                            if loc.is_visible(timeout=1500):
+                                loc.click()
+                                page = p
+                                drill_clicked = True
+                                logger.info(f"Clicked Drill Down Reports using selector: {sel}")
+                                break
+                        except Exception:
+                            pass
+                    if not drill_clicked:
+                        for frame in p.frames:
+                            for sel in drill_selectors:
+                                try:
+                                    loc = frame.locator(sel).first
+                                    if loc.is_visible(timeout=1500):
+                                        loc.click()
+                                        page = p
+                                        drill_clicked = True
+                                        break
+                                except Exception:
+                                    pass
+
+                if not drill_clicked:
+                    drill_down_btn = page.locator('text="Drill Down Reports", a:has-text("Drill Down Reports")').first
+                    drill_down_btn.wait_for(state="visible", timeout=15000)
+                    drill_down_btn.click()
+
+                self._human_delay_sync(2.0, 3.5)
 
                 # -----------------------------------------------------------
                 # Step 4: Click Report Tile "PL - Party Ledger Detail" (ARSC0010)
                 # -----------------------------------------------------------
                 _last_scrape_status["progress_step"] = "Selecting Party Ledger Detail Report"
                 logger.info("Selecting Party Ledger Detail report tile...")
-                party_ledger_tile = page.locator('text="Party Ledger Detail", [data-report-id="ARSC0010"], div:has-text("Party Ledger Detail")').first
-                party_ledger_tile.wait_for(state="visible", timeout=15000)
+                party_ledger_tile = page.locator('text="Party Ledger Detail", [data-report-id="ARSC0010"], div:has-text("Party Ledger Detail"), text="PL - Party Ledger Detail", text="ARSC0010"').first
+                party_ledger_tile.wait_for(state="visible", timeout=20000)
                 party_ledger_tile.click()
-                self._human_delay_sync(2.0, 3.5)
+                self._human_delay_sync(2.5, 4.0)
+
+                # Check if report opened in a new tab
+                if len(context.pages) > 1:
+                    page = context.pages[-1]
+                    page.bring_to_front()
 
                 # -----------------------------------------------------------
                 # Step 5: Fill Party Ledger Filters & Date Range
