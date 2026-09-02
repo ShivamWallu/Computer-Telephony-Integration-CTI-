@@ -1294,6 +1294,24 @@ const customer = {
         }
     },
 
+    copyCurrentPartyName() {
+        const cust = this.currentCustomerData;
+        const partyName = (cust?.party_name || cust?.name || '').trim();
+        if (!partyName || partyName === '—') {
+            api.toast("No Party Name available to copy.", "warning");
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(partyName).then(() => {
+                api.toast(`📋 Party Name "${partyName}" copied! Paste directly into TCS iON search box.`, "success", 5000);
+            }).catch(() => {
+                prompt("Copy Party Name:", partyName);
+            });
+        } else {
+            prompt("Copy Party Name:", partyName);
+        }
+    },
+
     currentTcsLedgerData: null,
     isTcsSyncing: false,
 

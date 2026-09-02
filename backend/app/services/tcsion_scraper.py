@@ -498,108 +498,177 @@ class TcsIonScraperService:
         from_date_num = from_date_dt.strftime("%d/%m/%Y")
         to_date_num = to_date_dt.strftime("%d/%m/%Y")
 
+        profile_dir = os.path.abspath("backend/cache/tcs_browser_profile")
+        os.makedirs(profile_dir, exist_ok=True)
+
         p = sync_playwright().start()
-        # Launch visible Chrome window
-        browser = p.chromium.launch(
+        # Launch persistent browser context (retains active login cookies across requests!)
+        context = p.chromium.launch_persistent_context(
+            user_data_dir=profile_dir,
             headless=False,
             args=[
                 "--start-maximized",
                 "--no-sandbox",
+                "--disable-dev-shm-usage",
                 "--disable-blink-features=AutomationControlled"
-            ]
-        )
-
-        context = browser.new_context(
+            ],
             no_viewport=True,
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
 
-        page = context.new_page()
+        page = context.pages[0] if context.pages else context.new_page()
         page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-        logger.info(f"Visual Auto-Launcher: Opening TCS iON Login for '{party_name}'...")
-        page.goto(self.login_url, wait_until="networkidle", timeout=45000)
-        self._human_delay_sync(1.0, 1.8)
+        logger.info(f"Visual Auto-Launcher: Navigating to TCS iON for '{party_name}'...")
+        page.goto("https://training.tcsion.com/TCSiONHome/Home", wait_until="domcontentloaded", timeout=45000)
+        self._human_delay_sync(1.5, 2.5)
 
-        # 1. Fill credentials
-        user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
-        pass_input = page.locator('#floatingPassword, input#password, input[name="password"], input[type="password"]').first
+        # 1. Check if login is needed or if existing persistent session is active
+        if "Login" in page.url:
+            logger.info("Session not logged in, performing automated credentials entry...")
+            user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
+            pass_input = page.locator('#floatingPassword, input#password, input[name="password"], input[type="password"]').first
 
-        user_input.wait_for(state="visible", timeout=15000)
-        user_input.click()
-        user_input.fill("")
-        user_input.type(self.username, delay=random.randint(40, 70))
-        self._human_delay_sync(0.4, 0.8)
+            user_input.wait_for(state="visible", timeout=15000)
+            user_input.click()
+            user_input.fill("")
+            user_input.type(self.username, delay=random.randint(35, 65))
+            self._human_delay_sync(0.3, 0.7)
 
-        pass_input.click()
-        pass_input.fill("")
-        pass_input.type(self.password, delay=random.randint(40, 70))
-        self._human_delay_sync(0.5, 1.0)
+            pass_input.click()
+            pass_input.fill("")
+            pass_input.type(self.password, delay=random.randint(35, 65))
+            self._human_delay_sync(0.4, 0.8)
 
-        login_btn = page.locator('button[type="submit"], input[type="submit"], button:has-text("Log In"), button:has-text("Login")').first
-        login_btn.click()
-        self._human_delay_sync(4.0, 6.0)
+            login_btn = page.locator('button[type="submit"], input[type="submit"], button:has-text("Log In"), button:has-text("Login")').first
+            login_btn.click()
+            self._human_delay_sync(4.0, 6.0)
 
-        # Check session alert
-        if "loginfailure" in page.url or "already logged" in page.content():
-            logger.warning("Visual Launcher: Already logged in notice.")
-            return {
-                "success": False,
-                "message": "TCS iON session cooldown active: User is already logged into another session. Please wait 2 minutes.",
-                "cooldown": True
-            }
+            # Check if TCS single-session alert occurs
+            if "loginfailure" in page.url or "already logged" in page.content():
+                logger.warning("Visual Launcher: Already logged into TCS iON in another window.")
+                return {
+                    "success": False,
+                    "message": "TCS iON Session Notice: Account is already active in another browser tab. Please use that tab or wait 2 minutes.",
+                    "cooldown": True
+                }
+        else:
+            logger.info("Visual Launcher: Reused active persistent session! Zero login wait required.")
 
-        # 2. Click Finance and Accounting
-        finance_tile = page.locator('text="Finance and Accounting", div:has-text("Finance and Accounting"), a:has-text("Finance and Accounting"), span:has-text("Finance and Accounting")').first
-        if finance_tile.is_visible(timeout=10000):
-            finance_tile.click()
-            self._human_delay_sync(3.0, 5.0)
+        # 2. Click "Finance and Accounting" (or "Finance & Accounting")
+        logger.info("Visual Launcher: Finding and clicking Finance and Accounting tile...")
+        finance_selectors = [
+            'text="Finance and Accounting"',
+            'text="Finance & Accounting"',
+            'div:has-text("Finance and Accounting")',
+            'div:has-text("Finance & Accounting")',
+            'span:has-text("Finance and Accounting")',
+            'span:has-text("Finance & Accounting")',
+            'a:has-text("Finance and Accounting")',
+            'a:has-text("Finance & Accounting")',
+            '[title*="Finance" i]',
+            '.app-tile:has-text("Finance")'
+        ]
 
+        finance_found = False
+        for sel in finance_selectors:
+            try:
+                elem = page.locator(sel).first
+                if elem.is_visible(timeout=2000):
+                    elem.scroll_into_view_if_needed()
+                    elem.click(force=True)
+                    finance_found = True
+                    logger.info(f"Visual Launcher: Clicked Finance tile using: {sel}")
+                    break
+            except Exception:
+                pass
+
+        self._human_delay_sync(3.0, 5.0)
+
+        # Switch to latest active tab if opened in new window
         if len(context.pages) > 1:
             page = context.pages[-1]
             page.bring_to_front()
+            self._human_delay_sync(1.5, 2.5)
 
-        # 3. Click Accounts Receivable -> Drill Down Reports
+        # 3. Top Nav -> Accounts Receivable -> Drill Down Reports
+        logger.info("Visual Launcher: Opening Accounts Receivable dropdown...")
         ar_selectors = [
             'text="Accounts Receivable"',
             'span:has-text("Accounts Receivable")',
             'a:has-text("Accounts Receivable")',
             'li:has-text("Accounts Receivable")',
-            'div:has-text("Accounts Receivable")'
+            'div:has-text("Accounts Receivable")',
+            '[title*="Accounts Receivable" i]'
         ]
-        for sel in ar_selectors:
-            try:
-                loc = page.locator(sel).first
-                if loc.is_visible(timeout=2000):
-                    loc.click()
-                    break
-            except Exception:
-                pass
+
+        ar_clicked = False
+        for p in context.pages:
+            if ar_clicked:
+                break
+            for sel in ar_selectors:
+                try:
+                    loc = p.locator(sel).first
+                    if loc.is_visible(timeout=1500):
+                        loc.scroll_into_view_if_needed()
+                        loc.click(force=True)
+                        page = p
+                        ar_clicked = True
+                        logger.info(f"Visual Launcher: Clicked Accounts Receivable via {sel}")
+                        break
+                except Exception:
+                    pass
 
         self._human_delay_sync(1.5, 2.5)
 
+        # Click Drill Down Reports
         drill_selectors = [
             'text="Drill Down Reports"',
             'span:has-text("Drill Down Reports")',
             'a:has-text("Drill Down Reports")',
-            'li:has-text("Drill Down Reports")'
+            'li:has-text("Drill Down Reports")',
+            'div:has-text("Drill Down Reports")',
+            '[title*="Drill Down" i]'
         ]
-        for sel in drill_selectors:
-            try:
-                loc = page.locator(sel).first
-                if loc.is_visible(timeout=2000):
-                    loc.click()
-                    break
-            except Exception:
-                pass
+
+        for p in context.pages:
+            for sel in drill_selectors:
+                try:
+                    loc = p.locator(sel).first
+                    if loc.is_visible(timeout=1500):
+                        loc.scroll_into_view_if_needed()
+                        loc.click(force=True)
+                        page = p
+                        logger.info(f"Visual Launcher: Clicked Drill Down Reports via {sel}")
+                        break
+                except Exception:
+                    pass
 
         self._human_delay_sync(2.0, 3.5)
 
         # 4. Click PL - Party Ledger Detail Report (ARSC0010)
-        party_ledger_tile = page.locator('text="Party Ledger Detail", [data-report-id="ARSC0010"], div:has-text("Party Ledger Detail"), text="PL - Party Ledger Detail", text="ARSC0010"').first
-        if party_ledger_tile.is_visible(timeout=15000):
-            party_ledger_tile.click()
-            self._human_delay_sync(2.5, 4.0)
+        report_selectors = [
+            'text="Party Ledger Detail"',
+            '[data-report-id="ARSC0010"]',
+            'div:has-text("Party Ledger Detail")',
+            'text="PL - Party Ledger Detail"',
+            'text="ARSC0010"'
+        ]
+
+        for p in context.pages:
+            for sel in report_selectors:
+                try:
+                    loc = p.locator(sel).first
+                    if loc.is_visible(timeout=2000):
+                        loc.scroll_into_view_if_needed()
+                        loc.click(force=True)
+                        page = p
+                        logger.info(f"Visual Launcher: Clicked Party Ledger Report tile via {sel}")
+                        break
+                except Exception:
+                    pass
+
+        self._human_delay_sync(2.5, 4.0)
 
         if len(context.pages) > 1:
             page = context.pages[-1]
@@ -608,18 +677,23 @@ class TcsIonScraperService:
         # 5. Fill Party Name in search box
         try:
             party_input = page.locator('input[placeholder*="Party" i], input[name*="party" i], #txtParty').first
-            if party_input.is_visible(timeout=4000):
+            if party_input.is_visible(timeout=5000):
+                party_input.scroll_into_view_if_needed()
                 party_input.click()
                 party_input.fill("")
                 party_input.type(party_name, delay=random.randint(50, 90))
-        except Exception:
-            pass
+                self._human_delay_sync(1.0, 1.8)
+                suggestion = page.locator(f'.suggestion-item:has-text("{party_name}"), .dropdown-item, li:has-text("{party_name}")').first
+                if suggestion.is_visible(timeout=3000):
+                    suggestion.click()
+        except Exception as p_err:
+            logger.warning(f"Note on filling Party Name in Visual Launcher: {p_err}")
 
-        logger.info(f"Visual Launcher: Successfully landed on Party Ledger Detail Report screen for '{party_name}'!")
+        logger.info(f"Visual Launcher: Landed on Party Ledger screen for '{party_name}'.")
         return {
             "success": True,
             "party_name": party_name,
-            "message": f"TCS iON Party Ledger Detail Report screen opened on your desktop for '{party_name}'!",
+            "message": f"TCS iON Party Ledger Detail Report screen is now open on your desktop for '{party_name}'!",
             "portal_url": page.url
         }
 
