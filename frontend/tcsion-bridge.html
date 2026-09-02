@@ -309,6 +309,21 @@
             </div>
         </div>
 
+        <!-- 1-Click Auto-Login Quick Helper -->
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; text-align: left;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: #38BDF8; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 6px;">
+                <span>⚡ 1-Click Auto-Fill & Login (Bookmarklet):</span>
+            </div>
+            <div style="font-size: 0.75rem; color: #94A3B8; line-height: 1.4;">
+                Drag this button to your Bookmarks bar: 
+                <a href="javascript:(function(){const u=document.querySelector('#userId,#username,input[name*=\'user\'],input[type=\'text\']');const p=document.querySelector('#password,input[name*=\'pass\'],input[type=\'password\']');if(u){u.value='trng_infotech@khandelia.com';u.dispatchEvent(new Event('input',{bubbles:true}));u.dispatchEvent(new Event('change',{bubbles:true}));}if(p){p.value='Pass!@#32132';p.dispatchEvent(new Event('input',{bubbles:true}));p.dispatchEvent(new Event('change',{bubbles:true}));}const btn=document.querySelector('#submit,#loginBtn,#login-button,button[type=\'submit\'],input[type=\'submit\'],.btn-login');if(btn){setTimeout(()=>btn.click(),100);}})();"
+                   onclick="event.preventDefault(); showToast('Drag this button to your Bookmarks bar for 1-click login!');"
+                   style="display: inline-block; background: #0284C7; color: #FFF; font-weight: 700; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 6px; text-decoration: none; margin-left: 4px; cursor: move;">
+                   🚀 Auto-Login TCS iON
+                </a>
+            </div>
+        </div>
+
         <div class="actions-group">
             <a href="https://training.tcsion.com/Login/Login.html" id="direct-launch-link" class="btn-launch" target="_self">
                 <span>Continue to TCS iON Portal</span>
