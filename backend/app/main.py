@@ -120,10 +120,6 @@ if os.path.exists(frontend_dir):
     def serve_frontend_index():
         return FileResponse(os.path.join(frontend_dir, "index.html"))
 
-    @app.api_route("/tcsion-bridge.html", methods=["GET", "HEAD"])
-    def serve_tcsion_bridge():
-        return FileResponse(os.path.join(frontend_dir, "tcsion-bridge.html"))
-
     @app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
     def serve_favicon():
         logo_path = os.path.join(images_dir, "KOGM_LOgo.jpg")

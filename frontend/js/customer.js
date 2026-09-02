@@ -710,6 +710,9 @@ const customer = {
         if (delBtn) {
             delBtn.style.display = (user && user.role === 'admin') ? 'inline-flex' : 'none';
         }
+
+        // Update TCS iON Sync Button State (Enabled if party_name exists, disabled if missing)
+        this.updateTcsSyncState(cust);
     },
 
     toggleAddPhoneForm(show = null) {
@@ -1287,6 +1290,244 @@ const customer = {
         } else {
             prompt(`Copy ${label}:`, text);
         }
+    },
+
+    currentTcsLedgerData: null,
+    isTcsSyncing: false,
+
+    updateTcsSyncState(cust) {
+        this.currentCustomerData = cust;
+        const partyName = (cust?.party_name || cust?.name || '').trim();
+        const syncBtn = document.getElementById('btn-drawer-sync-tcs');
+        const tabSyncBtn = document.getElementById('btn-tab-sync-tcs');
+        const noPartyAlert = document.getElementById('tcs-ledger-no-party-alert');
+        const partyBadge = document.getElementById('tcs-ledger-party-badge');
+
+        if (partyBadge) {
+            partyBadge.textContent = partyName ? `${partyName} (ARSC0010)` : 'Party Ledger Detail (ARSC0010)';
+        }
+
+        if (!partyName || partyName === '—') {
+            // Disabled state when Party Name is missing
+            if (syncBtn) {
+                syncBtn.disabled = true;
+                syncBtn.style.opacity = '0.55';
+                syncBtn.style.cursor = 'not-allowed';
+                syncBtn.title = "⚠️ Party Name is missing. Please edit customer profile to add a Party Name.";
+            }
+            if (tabSyncBtn) {
+                tabSyncBtn.disabled = true;
+                tabSyncBtn.style.opacity = '0.55';
+                tabSyncBtn.style.cursor = 'not-allowed';
+            }
+            if (noPartyAlert) noPartyAlert.style.display = 'block';
+        } else {
+            // Enabled state
+            if (syncBtn && !this.isTcsSyncing) {
+                syncBtn.disabled = false;
+                syncBtn.style.opacity = '1';
+                syncBtn.style.cursor = 'pointer';
+                syncBtn.title = `Scrape Party Ledger Detail Report for "${partyName}" directly from TCS iON`;
+            }
+            if (tabSyncBtn && !this.isTcsSyncing) {
+                tabSyncBtn.disabled = false;
+                tabSyncBtn.style.opacity = '1';
+                tabSyncBtn.style.cursor = 'pointer';
+            }
+            if (noPartyAlert) noPartyAlert.style.display = 'none';
+        }
+    },
+
+    async syncTcsIonLedger() {
+        if (this.isTcsSyncing) return; // Prevent multiple simultaneous clicks
+
+        const cust = this.currentCustomerData;
+        const partyName = (cust?.party_name || cust?.name || document.getElementById('drawer-cust-party-name')?.textContent || '').trim();
+
+        if (!partyName || partyName === '—' || partyName === 'Location N/A') {
+            api.toast("Party Name is required to sync TCS iON Ledger. Please update Customer Profile first.", "warning");
+            return;
+        }
+
+        const monthsSelect = document.getElementById('sel-tcs-months-back');
+        const monthsBack = monthsSelect ? parseInt(monthsSelect.value) || 3 : 3;
+
+        // Switch to TCS Ledger tab automatically
+        this.switchDrawerTab('ledger');
+
+        // Set Loading UI States
+        this.isTcsSyncing = true;
+        const syncBtn = document.getElementById('btn-drawer-sync-tcs');
+        const tabSyncBtn = document.getElementById('btn-tab-sync-tcs');
+        const idleIcon = document.getElementById('icon-sync-tcs-idle');
+        const spinIcon = document.getElementById('icon-sync-tcs-spinning');
+        const btnText = document.getElementById('text-sync-tcs-btn');
+        const progressBox = document.getElementById('tcs-ledger-progress-box');
+        const stepText = document.getElementById('tcs-progress-step-text');
+
+        if (syncBtn) {
+            syncBtn.disabled = true;
+            syncBtn.style.opacity = '0.75';
+            syncBtn.style.cursor = 'wait';
+        }
+        if (tabSyncBtn) {
+            tabSyncBtn.disabled = true;
+            tabSyncBtn.style.opacity = '0.75';
+            tabSyncBtn.style.cursor = 'wait';
+        }
+        if (idleIcon) idleIcon.style.display = 'none';
+        if (spinIcon) spinIcon.style.display = 'inline-block';
+        if (btnText) btnText.textContent = "Scraping TCS...";
+        if (progressBox) progressBox.style.display = 'block';
+
+        const updateStep = (msg) => {
+            if (stepText) stepText.textContent = msg;
+        };
+
+        updateStep("1/4: Initializing Browser & Authenticating with TCS iON...");
+        const stepTimer1 = setTimeout(() => updateStep("2/4: Accessing Finance & Accounting -> Accounts Receivable..."), 3500);
+        const stepTimer2 = setTimeout(() => updateStep(`3/4: Opening Party Ledger Report (ARSC0010) & Searching "${partyName}"...`), 8000);
+        const stepTimer3 = setTimeout(() => updateStep("4/4: Applying Site Filters & Extracting Ledger Vouchers..."), 13000);
+
+        try {
+            const res = await api.post('/integrations/tcsion/ledger', {
+                customer_id: this.currentCustomerId || null,
+                party_name: partyName,
+                months_back: monthsBack
+            });
+
+            clearTimeout(stepTimer1);
+            clearTimeout(stepTimer2);
+            clearTimeout(stepTimer3);
+
+            this.currentTcsLedgerData = res;
+            this.renderTcsLedgerTable(res);
+            api.toast(`✅ TCS iON Ledger for "${partyName}" synced successfully! (${res.total_records || 0} vouchers)`, "success");
+
+        } catch (err) {
+            clearTimeout(stepTimer1);
+            clearTimeout(stepTimer2);
+            clearTimeout(stepTimer3);
+            console.error("TCS iON Sync Error:", err);
+            
+            const errMsg = err.message || "Failed to sync TCS iON ledger";
+            if (errMsg.includes("already logged") || errMsg.includes("cooldown") || errMsg.includes("2 minutes")) {
+                api.toast("⏳ TCS iON Active Session Cooldown: Another session is active. Please retry in 2 minutes.", "warning", 8000);
+            } else {
+                api.toast(`TCS iON Sync: ${errMsg}`, "error");
+            }
+        } finally {
+            this.isTcsSyncing = false;
+            if (syncBtn) {
+                syncBtn.disabled = false;
+                syncBtn.style.opacity = '1';
+                syncBtn.style.cursor = 'pointer';
+            }
+            if (tabSyncBtn) {
+                tabSyncBtn.disabled = false;
+                tabSyncBtn.style.opacity = '1';
+                tabSyncBtn.style.cursor = 'pointer';
+            }
+            if (idleIcon) idleIcon.style.display = 'inline-block';
+            if (spinIcon) spinIcon.style.display = 'none';
+            if (btnText) btnText.textContent = "📥 Scrape from TCS";
+            if (progressBox) progressBox.style.display = 'none';
+        }
+    },
+
+    renderTcsLedgerTable(data) {
+        const tbody = document.getElementById('tbody-tcs-ledger');
+        const countEl = document.getElementById('tcs-ledger-count');
+        const subtitleEl = document.getElementById('tcs-ledger-subtitle');
+        const kpiOpening = document.getElementById('kpi-tcs-opening');
+        const kpiDebit = document.getElementById('kpi-tcs-debit');
+        const kpiCredit = document.getElementById('kpi-tcs-credit');
+        const kpiClosing = document.getElementById('kpi-tcs-closing');
+
+        if (!data || !tbody) return;
+
+        const summary = data.summary || {};
+        const records = data.records || [];
+
+        if (countEl) countEl.textContent = records.length;
+        if (subtitleEl && data.from_date && data.to_date) {
+            subtitleEl.textContent = `Period: ${data.from_date} to ${data.to_date} | Synced: ${new Date().toLocaleTimeString()} (${data.source || 'TCS iON'})`;
+        }
+
+        // Format currency numbers with Indian commas
+        const fmtCur = (val) => {
+            const num = parseFloat(val) || 0;
+            return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        if (kpiOpening) kpiOpening.textContent = fmtCur(summary.opening_balance || 0);
+        if (kpiDebit) kpiDebit.textContent = fmtCur(summary.total_debit || 0);
+        if (kpiCredit) kpiCredit.textContent = fmtCur(summary.total_credit || 0);
+        if (kpiClosing) {
+            kpiClosing.textContent = fmtCur(summary.closing_balance || 0);
+            kpiClosing.style.color = (summary.closing_balance || 0) > 0 ? 'var(--danger)' : 'var(--success)';
+        }
+
+        if (records.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                        No voucher records found in TCS iON for party <strong>"${data.party_name}"</strong> in the selected period.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="font-weight: 700; font-family: monospace; color: var(--primary);">${this.escapeHtml(r.voucher_number || '—')}</td>
+                <td style="white-space: nowrap; font-size: 0.8125rem;">${this.escapeHtml(r.voucher_date || '—')}</td>
+                <td><span class="badge badge-standard" style="font-size: 0.75rem;">${this.escapeHtml(r.voucher_sub_type || 'General')}</span></td>
+                <td style="font-size: 0.8125rem; max-width: 240px; word-break: break-word;">${this.escapeHtml(r.particulars || '—')}</td>
+                <td style="text-align: right; font-weight: 600; color: ${r.debit_amount > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${r.debit_amount > 0 ? fmtCur(r.debit_amount) : '—'}</td>
+                <td style="text-align: right; font-weight: 600; color: ${r.credit_amount > 0 ? 'var(--success)' : 'var(--text-muted)'};">${r.credit_amount > 0 ? fmtCur(r.credit_amount) : '—'}</td>
+                <td style="text-align: right; font-weight: 700; color: var(--text-primary);">${fmtCur(r.balance_amount || 0)}</td>
+            </tr>
+        `).join('');
+    },
+
+    exportTcsLedgerCSV() {
+        if (!this.currentTcsLedgerData || !this.currentTcsLedgerData.records || this.currentTcsLedgerData.records.length === 0) {
+            api.toast("No ledger records available to export", "warning");
+            return;
+        }
+
+        const data = this.currentTcsLedgerData;
+        const rows = [
+            ["Voucher No", "Voucher Date", "Voucher Type", "Particulars", "Debit (INR)", "Credit (INR)", "Balance (INR)"]
+        ];
+
+        data.records.forEach(r => {
+            rows.push([
+                `"${r.voucher_number || ''}"`,
+                `"${r.voucher_date || ''}"`,
+                `"${r.voucher_sub_type || ''}"`,
+                `"${(r.particulars || '').replace(/"/g, '""')}"`,
+                r.debit_amount || 0,
+                r.credit_amount || 0,
+                r.balance_amount || 0
+            ]);
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `TCS_Ledger_${(data.party_name || 'Customer').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        api.toast("✅ TCS Ledger CSV downloaded successfully!", "success");
+    },
+
+    exportTcsLedgerExcel() {
+        this.exportTcsLedgerCSV();
     }
 };
 
