@@ -1584,13 +1584,41 @@ a:hover {
         padding: 0.75rem !important;
     }
 
-    /* Modals Responsive */
+    /* Modals Responsive on Mobile */
+    .modal-overlay {
+        padding: 0.5rem !important;
+        align-items: flex-end !important;
+    }
+
     .modal-content {
-        width: 95vw !important;
-        max-width: 95vw !important;
-        max-height: 90vh !important;
-        margin: 0.75rem auto !important;
-        padding: 1rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92vh !important;
+        margin: 0 auto !important;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .modal-header {
+        padding: 0.85rem 1rem !important;
+    }
+
+    .modal-body {
+        padding: 0.85rem 1rem !important;
+        max-height: calc(92vh - 130px) !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-footer {
+        padding: 0.75rem 1rem !important;
+        flex-direction: column-reverse !important;
+        gap: 0.5rem !important;
+    }
+
+    .modal-footer button {
+        width: 100% !important;
+        justify-content: center !important;
     }
 
     /* Form Controls on Mobile (Prevent iOS Auto-zoom) */

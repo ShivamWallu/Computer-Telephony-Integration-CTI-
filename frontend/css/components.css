@@ -811,6 +811,72 @@ select.form-control {
     cursor: pointer;
 }
 
+/* Multi-column Form Grid Utilities with Responsive Auto-collapse */
+.form-grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1.2fr 1.2fr;
+    gap: 0.75rem;
+}
+
+.form-grid-contact {
+    display: grid;
+    grid-template-columns: 1.2fr 1.5fr 1fr 2fr;
+    gap: 0.75rem;
+}
+
+.form-grid-addr1 {
+    display: grid;
+    grid-template-columns: 1.2fr 2.8fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.form-grid-geo {
+    display: grid;
+    grid-template-columns: 1.2fr 1.2fr 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.form-section-box {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.15rem;
+}
+
+@media (max-width: 900px) {
+    .form-grid-4,
+    .form-grid-contact,
+    .form-grid-geo {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.65rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .form-grid-4,
+    .form-grid-contact,
+    .form-grid-addr1,
+    .form-grid-2,
+    .form-grid-geo {
+        grid-template-columns: 1fr !important;
+        gap: 0.65rem !important;
+    }
+
+    .form-section-box {
+        padding: 0.85rem !important;
+        margin-bottom: 0.85rem !important;
+    }
+}
+
 /* 10. Toasts */
 #toast-container {
     position: fixed;
