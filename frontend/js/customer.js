@@ -1262,13 +1262,15 @@ const customer = {
         const email = "trng_infotech@khandelia.com";
         const password = "Pass!@#32132";
         const url = "https://training.tcsion.com/Login/Login.html";
+        const cust = this.currentCustomerData;
+        const partyName = (cust?.party_name || cust?.name || '').trim();
 
-        // Auto copy username to clipboard
+        // Auto copy credentials to clipboard
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(email).then(() => {
-                api.toast(`🚀 Opening TCS iON... User (${email}) copied! Pass: ${password}`, "info", 6000);
+                api.toast(`🚀 Opening TCS iON... User: ${email} | Pass: ${password}${partyName ? ` | Party: "${partyName}"` : ''}`, "info", 7000);
             }).catch(() => {
-                api.toast(`🚀 Opening TCS iON Portal... User: ${email}`, "info", 5000);
+                api.toast(`🚀 Opening TCS iON Portal... User: ${email} | Pass: ${password}`, "info", 5000);
             });
         } else {
             api.toast(`🚀 Opening TCS iON Portal... User: ${email} | Pass: ${password}`, "info", 5000);
