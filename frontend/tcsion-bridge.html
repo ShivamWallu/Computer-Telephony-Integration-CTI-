@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCS iON Enterprise Portal — Quick Launch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/variables.css">
+    <style>
+        :root {
+            --tcs-primary: #004B87;
+            --tcs-secondary: #0072CE;
+            --tcs-accent: #E31837;
+            --tcs-dark: #0A192F;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0B132B 0%, #1C2541 50%, #0F172A 100%);
+            color: #F8FAFC;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .bridge-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 560px;
+            padding: 2.25rem 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 114, 206, 0.2);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bridge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #004B87, #0072CE);
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 114, 206, 0.4);
+            margin-bottom: 1.25rem;
+        }
+
+        .bridge-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 0.35rem;
+            letter-spacing: -0.02em;
+        }
+
+        .bridge-subtitle {
+            font-size: 0.875rem;
+            color: #94A3B8;
+            margin-bottom: 1.5rem;
+        }
+
+        .customer-pill {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .customer-label {
+            font-size: 0.75rem;
+            color: #64748B;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .customer-name {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #F1F5F9;
+        }
+
+        .customer-code {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818CF8;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0072CE, #6366F1, #38BDF8);
+            width: 0%;
+            border-radius: 999px;
+            transition: width 1.2s ease-in-out;
+        }
+
+        .credentials-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .cred-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .cred-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .cred-label {
+            font-size: 0.78125rem;
+            color: #94A3B8;
+            font-weight: 500;
+        }
+
+        .cred-val-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cred-val {
+            font-size: 0.8125rem;
+            font-family: monospace;
+            color: #E2E8F0;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .btn-copy {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #F8FAFC;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-copy:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-copy.copied {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #10B981;
+            color: #34D399;
+        }
+
+        .actions-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn-launch {
+            background: linear-gradient(135deg, #0072CE 0%, #004B87 100%);
+            color: #FFFFFF;
+            border: none;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            padding: 0.85rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 8px 16px rgba(0, 114, 206, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-launch:hover {
+            background: linear-gradient(135deg, #0284C7 0%, #005A9E 100%);
+            box-shadow: 0 12px 24px rgba(0, 114, 206, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .status-msg {
+            font-size: 0.8125rem;
+            color: #38BDF8;
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .toast-banner {
+            position: fixed;
+            bottom: 2rem;
+            background: #10B981;
+            color: #FFFFFF;
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bridge-card">
+        <div class="bridge-logo">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h6v6"></path>
+                <path d="M10 14L21 3"></path>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            </svg>
+        </div>
+
+        <h1 class="bridge-title">TCS iON Enterprise Portal</h1>
+        <p class="bridge-subtitle">Connecting to Enterprise ERP Application...</p>
+
+        <!-- Customer Identity Banner -->
+        <div class="customer-pill" id="cust-pill" style="display: none;">
+            <div>
+                <div class="customer-label">Party Profile</div>
+                <div class="customer-name" id="cust-name-text">Customer Profile</div>
+            </div>
+            <div class="customer-code" id="cust-code-text">PARTY-CODE</div>
+        </div>
+
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+
+        <!-- Pre-Configured Credentials Assistant -->
+        <div class="credentials-card">
+            <div class="cred-row">
+                <span class="cred-label">TCS iON Username:</span>
+                <div class="cred-val-group">
+                    <span class="cred-val" id="val-username">trng_infotech@khandelia.com</span>
+                    <button class="btn-copy" onclick="copyCred('username', this)">
+                        <span>Copy</span>
+                    </button>
+                </div>
+            </div>
+            <div class="cred-row">
+                <span class="cred-label">TCS iON Password:</span>
+                <div class="cred-val-group">
+                    <span class="cred-val" id="val-password">Pass!@#32132</span>
+                    <button class="btn-copy" onclick="copyCred('password', this)">
+                        <span>Copy</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions-group">
+            <a href="https://training.tcsion.com/Login/Login.html" id="direct-launch-link" class="btn-launch" target="_self">
+                <span>Continue to TCS iON Portal</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+        </div>
+
+        <div class="status-msg" id="status-text">
+            <span>⚡ Username copied to clipboard! Redirecting to TCS iON...</span>
+        </div>
+    </div>
+
+    <div class="toast-banner" id="toast-banner">Copied to clipboard!</div>
+
+    <script>
+        // Parse Query Params
+        const params = new URLSearchParams(window.location.search);
+        const customerId = params.get('customer_id');
+        const partyCode = params.get('party_code');
+        const partyName = params.get('party_name');
+
+        if (partyName || partyCode) {
+            document.getElementById('cust-pill').style.display = 'flex';
+            if (partyName) document.getElementById('cust-name-text').textContent = decodeURIComponent(partyName);
+            if (partyCode) document.getElementById('cust-code-text').textContent = decodeURIComponent(partyCode);
+        }
+
+        let configuredUsername = "trng_infotech@khandelia.com";
+        let configuredPassword = "Pass!@#32132";
+        let targetUrl = "https://training.tcsion.com/Login/Login.html";
+
+        // Fetch live configured credentials from API
+        async function initBridge() {
+            const token = localStorage.getItem('crm_access_token') || localStorage.getItem('access_token');
+            try {
+                const res = await fetch(`/api/integrations/tcsion/credentials${customerId ? `?customer_id=${customerId}` : ''}`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.username) configuredUsername = data.username;
+                    if (data.password) configuredPassword = data.password;
+                    if (data.login_url) targetUrl = data.login_url;
+                    
+                    document.getElementById('val-username').textContent = configuredUsername;
+                    document.getElementById('direct-launch-link').href = targetUrl;
+                }
+            } catch (e) {
+                console.warn("Using default bridge credentials:", e);
+            }
+
+            // Animate progress bar
+            const bar = document.getElementById('progress-bar');
+            setTimeout(() => { bar.style.width = '100%'; }, 50);
+
+            // Auto copy username to clipboard
+            try {
+                await navigator.clipboard.writeText(configuredUsername);
+                showToast("Username copied to clipboard!");
+            } catch (err) {
+                console.log("Clipboard write requires user gesture");
+            }
+
+            // Automatic redirection in 1.4s
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 1400);
+        }
+
+        function copyCred(type, btn) {
+            const val = type === 'username' ? configuredUsername : configuredPassword;
+            navigator.clipboard.writeText(val).then(() => {
+                btn.classList.add('copied');
+                btn.querySelector('span').textContent = '✓ Copied';
+                showToast(`${type === 'username' ? 'Username' : 'Password'} copied to clipboard!`);
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.querySelector('span').textContent = 'Copy';
+                }, 2500);
+            }).catch(() => {
+                showToast("Press Ctrl+C to copy");
+            });
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast-banner');
+            t.textContent = msg;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 2200);
+        }
+
+        window.addEventListener('DOMContentLoaded', initBridge);
+    </script>
+</body>
+</html>

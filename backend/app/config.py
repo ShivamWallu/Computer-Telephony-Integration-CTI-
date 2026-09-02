@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "otiuncukbgbskxfk")
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "true").lower() == "true"
 
+    # TCS iON Enterprise Portal Configuration
+    TCSION_LOGIN_URL: str = os.getenv("TCSION_LOGIN_URL", "https://training.tcsion.com/Login/Login.html")
+    TCSION_USERNAME: str = os.getenv("TCSION_USERNAME", "trng_infotech@khandelia.com")
+    TCSION_PASSWORD: str = os.getenv("TCSION_PASSWORD", "Pass!@#32132")
+
     # CORS
     CORS_ORIGINS: List[str] = ["*"]
 

@@ -18,7 +18,8 @@ from backend.app.routers import (
     employees_router,
     imports_router,
     audit_router,
-    documents_router
+    documents_router,
+    integrations_router
 )
 from backend.app.utils.seed_data import seed_database
 
@@ -93,6 +94,7 @@ app.include_router(employees_router, prefix=settings.API_V1_STR)
 app.include_router(imports_router, prefix=settings.API_V1_STR)
 app.include_router(audit_router, prefix=settings.API_V1_STR)
 app.include_router(documents_router, prefix=settings.API_V1_STR)
+app.include_router(integrations_router, prefix=settings.API_V1_STR)
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 def healthcheck():
@@ -117,6 +119,10 @@ if os.path.exists(frontend_dir):
     @app.api_route("/", methods=["GET", "HEAD"])
     def serve_frontend_index():
         return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    @app.api_route("/tcsion-bridge.html", methods=["GET", "HEAD"])
+    def serve_tcsion_bridge():
+        return FileResponse(os.path.join(frontend_dir, "tcsion-bridge.html"))
 
     @app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
     def serve_favicon():

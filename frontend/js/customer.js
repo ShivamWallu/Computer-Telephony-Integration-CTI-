@@ -650,6 +650,34 @@ const customer = {
         }
     },
 
+    launchTcsIonPortal() {
+        if (!this.currentCustomerId && !this.currentCustomerData) {
+            api.toast("No customer selected", "error");
+            return;
+        }
+
+        const c = this.currentCustomerData || {};
+        const custId = this.currentCustomerId || c.id || '';
+        const partyCode = c.party_code || c.customer_id || '';
+        const partyName = c.party_name || c.name || 'Customer';
+
+        api.toast(`Launching TCS iON Enterprise Portal for '${partyName}' in new tab...`, "info");
+
+        // Open TCS iON bridge in completely new browser tab
+        const url = `/static/tcsion-bridge.html?customer_id=${encodeURIComponent(custId)}&party_code=${encodeURIComponent(partyCode)}&party_name=${encodeURIComponent(partyName)}`;
+        window.open(url, '_blank');
+    },
+
+    callPrimaryPhone() {
+        if (!this.currentCustomerData) return;
+        const phone = this.currentCustomerData.phone_1 || this.currentCustomerData.mobile;
+        if (!phone) {
+            api.toast("No primary phone number available", "error");
+            return;
+        }
+        app.triggerClickToCall(phone, this.currentCustomerId);
+    },
+
     populateDrawerFields(cust) {
         if (!cust) return;
         this.currentCustomerData = cust;
@@ -669,6 +697,13 @@ const customer = {
         setVal('drawer-cust-name', partyName);
         setVal('drawer-cust-contact', `Contact: ${contactPerson}`);
         setVal('drawer-cust-location', location);
+
+        const initials = (partyName || 'C').split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CU';
+        const avatarEl = document.getElementById('drawer-cust-avatar');
+        if (avatarEl) avatarEl.textContent = initials;
+
+        const assignedName = cust.assigned_employee ? (cust.assigned_employee.full_name || cust.assigned_employee.email) : 'Unassigned';
+        setVal('drawer-cust-assigned-agent', assignedName);
         
         // 15 Standardized Fields
         setVal('drawer-cust-party-code', partyCode);

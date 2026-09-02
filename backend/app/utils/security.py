@@ -78,8 +78,11 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user_id = payload.get("sub")
-    user = db.query(User).filter(User.id == int(user_id), User.is_active == True).first()
+    user_sub = str(payload.get("sub", ""))
+    if user_sub.isdigit():
+        user = db.query(User).filter(User.id == int(user_sub), User.is_active == True).first()
+    else:
+        user = db.query(User).filter(User.email == user_sub, User.is_active == True).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
