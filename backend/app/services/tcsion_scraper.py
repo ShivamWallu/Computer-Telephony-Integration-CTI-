@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import json
+import time
 import logging
 import asyncio
 import random
@@ -13,7 +14,7 @@ try:
 except ImportError:
     openpyxl = None
 
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from backend.app.config import settings
 
 logger = logging.getLogger("tcsion_scraper")
@@ -42,15 +43,16 @@ class TcsIonScraperService:
             "is_locked": _tcsion_lock.locked()
         }
 
-    async def _human_delay(self, min_sec: float = 1.0, max_sec: float = 2.5):
+    def _human_delay_sync(self, min_sec: float = 1.0, max_sec: float = 2.5):
         """Adds randomized delay to simulate human interaction and avoid bot triggers."""
         delay = random.uniform(min_sec, max_sec)
-        await asyncio.sleep(delay)
+        time.sleep(delay)
 
     async def scrape_party_ledger(self, party_name: str, months_back: int = 3) -> Dict[str, Any]:
         """
         Main entry point to scrape Party Ledger Detail Report from TCS iON.
         Protected by asyncio.Lock to avoid simultaneous duplicate logins.
+        Runs inside asyncio.to_thread for rock-solid cross-platform reliability on Windows & Linux.
         """
         if not self.username or not self.password:
             raise ValueError("TCS iON credentials not configured in environment (TCSION_USERNAME / TCSION_PASSWORD).")
@@ -70,7 +72,8 @@ class TcsIonScraperService:
             _last_scrape_status["last_run"] = datetime.utcnow().isoformat()
 
             try:
-                result = await self._run_playwright_scraper(party_name_clean, months_back)
+                # Run the synchronous Playwright scraper in a dedicated thread
+                result = await asyncio.to_thread(self._sync_playwright_scraper, party_name_clean, months_back)
                 _last_scrape_status["progress_step"] = "Completed Successfully"
                 return result
             except Exception as exc:
@@ -95,9 +98,9 @@ class TcsIonScraperService:
                 _last_scrape_status["is_running"] = False
                 _last_scrape_status["current_party"] = None
 
-    async def _run_playwright_scraper(self, party_name: str, months_back: int) -> Dict[str, Any]:
+    def _sync_playwright_scraper(self, party_name: str, months_back: int) -> Dict[str, Any]:
         """
-        Executes headless browser automation using Playwright following the 5 user screenshots.
+        Executes real browser automation with Playwright following the 5 user screenshots.
         Supports Direct Export File Download (CSV/XLS/JSON) + Table HTML Scraping.
         """
         from_date_dt = datetime.now() - timedelta(days=months_back * 30)
@@ -105,8 +108,8 @@ class TcsIonScraperService:
         from_date_num = from_date_dt.strftime("%d/%m/%Y")
         to_date_num = to_date_dt.strftime("%d/%m/%Y")
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
                 headless=self.is_headless,
                 args=[
                     "--no-sandbox",
@@ -117,13 +120,19 @@ class TcsIonScraperService:
                 ]
             )
 
-            context = await browser.new_context(
+            context = browser.new_context(
                 viewport={"width": 1920, "height": 1080},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                extra_http_headers={
+                    "Accept-Language": "en-US,en;q=0.9,hi;q=0.8",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+                },
                 accept_downloads=True
             )
 
-            page = await context.new_page()
+            page = context.new_page()
+            # Remove navigator.webdriver detection flag
+            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
             try:
                 # -----------------------------------------------------------
@@ -131,33 +140,33 @@ class TcsIonScraperService:
                 # -----------------------------------------------------------
                 _last_scrape_status["progress_step"] = "Authenticating with TCS iON Portal"
                 logger.info(f"Navigating to TCS iON Login URL: {self.login_url}")
-                await page.goto(self.login_url, wait_until="domcontentloaded", timeout=45000)
-                await self._human_delay(1.5, 2.5)
+                page.goto(self.login_url, wait_until="networkidle", timeout=45000)
+                self._human_delay_sync(1.0, 2.0)
 
-                # Fill username & password
-                user_input = page.locator('input#userName, input[name="userName"], input[type="text"]').first
-                pass_input = page.locator('input#password, input[name="password"], input[type="password"]').first
+                # Fill username & password with exact verified selectors
+                user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
+                pass_input = page.locator('#floatingPassword, input#password, input[name="password"], input[type="password"]').first
 
-                await user_input.wait_for(state="visible", timeout=15000)
-                await user_input.click()
-                await user_input.fill("")
-                await user_input.type(self.username, delay=random.randint(40, 80))
-                await self._human_delay(0.5, 1.2)
+                user_input.wait_for(state="visible", timeout=15000)
+                user_input.click()
+                user_input.fill("")
+                user_input.type(self.username, delay=random.randint(40, 70))
+                self._human_delay_sync(0.4, 0.8)
 
-                await pass_input.click()
-                await pass_input.fill("")
-                await pass_input.type(self.password, delay=random.randint(40, 80))
-                await self._human_delay(0.8, 1.5)
+                pass_input.click()
+                pass_input.fill("")
+                pass_input.type(self.password, delay=random.randint(40, 70))
+                self._human_delay_sync(0.5, 1.0)
 
-                login_btn = page.locator('input[type="submit"], button[type="submit"], input#submit, button:has-text("Login")').first
-                await login_btn.click()
-                logger.info("Submitted login credentials, waiting for home dashboard navigation...")
+                login_btn = page.locator('button[type="submit"], input[type="submit"], button:has-text("Log In"), button:has-text("Login")').first
+                login_btn.click()
+                logger.info("Submitted login credentials, awaiting dashboard navigation...")
 
-                await self._human_delay(3.0, 5.0)
+                self._human_delay_sync(3.0, 5.0)
 
                 # Check if "You are already logged into TCS iON" alert is shown
-                page_content = await page.content()
-                if "already logged into TCS iON" in page_content or "log in after 2 minutes" in page_content:
+                page_content = page.content()
+                if "already logged into TCS iON" in page_content or "log in after 2 minutes" in page_content or "loginfailure" in page.url:
                     logger.warning("Detected TCS iON 'Already logged in' prompt.")
                     raise RuntimeError("You are already logged into TCS iON with this ID. Please log out from that session and log in after 2 minutes.")
 
@@ -167,9 +176,9 @@ class TcsIonScraperService:
                 _last_scrape_status["progress_step"] = "Accessing Finance and Accounting Module"
                 logger.info("Looking for Finance and Accounting application tile...")
                 finance_tile = page.locator('text="Finance and Accounting", div:has-text("Finance and Accounting"), a:has-text("Finance and Accounting")').first
-                if await finance_tile.is_visible(timeout=10000):
-                    await finance_tile.click()
-                    await self._human_delay(2.0, 3.5)
+                if finance_tile.is_visible(timeout=10000):
+                    finance_tile.click()
+                    self._human_delay_sync(2.0, 3.5)
 
                 # -----------------------------------------------------------
                 # Step 3: Top Nav -> "Accounts Receivable" -> "Drill Down Reports"
@@ -177,14 +186,14 @@ class TcsIonScraperService:
                 _last_scrape_status["progress_step"] = "Opening Accounts Receivable Drill Down Reports"
                 logger.info("Navigating to Accounts Receivable -> Drill Down Reports...")
                 ar_dropdown = page.locator('text="Accounts Receivable", a:has-text("Accounts Receivable"), button:has-text("Accounts Receivable")').first
-                await ar_dropdown.wait_for(state="visible", timeout=15000)
-                await ar_dropdown.click()
-                await self._human_delay(1.0, 2.0)
+                ar_dropdown.wait_for(state="visible", timeout=15000)
+                ar_dropdown.click()
+                self._human_delay_sync(1.0, 1.8)
 
                 drill_down_btn = page.locator('text="Drill Down Reports", a:has-text("Drill Down Reports")').first
-                await drill_down_btn.wait_for(state="visible", timeout=10000)
-                await drill_down_btn.click()
-                await self._human_delay(1.5, 2.8)
+                drill_down_btn.wait_for(state="visible", timeout=10000)
+                drill_down_btn.click()
+                self._human_delay_sync(1.5, 2.5)
 
                 # -----------------------------------------------------------
                 # Step 4: Click Report Tile "PL - Party Ledger Detail" (ARSC0010)
@@ -192,9 +201,9 @@ class TcsIonScraperService:
                 _last_scrape_status["progress_step"] = "Selecting Party Ledger Detail Report"
                 logger.info("Selecting Party Ledger Detail report tile...")
                 party_ledger_tile = page.locator('text="Party Ledger Detail", [data-report-id="ARSC0010"], div:has-text("Party Ledger Detail")').first
-                await party_ledger_tile.wait_for(state="visible", timeout=15000)
-                await party_ledger_tile.click()
-                await self._human_delay(2.0, 3.5)
+                party_ledger_tile.wait_for(state="visible", timeout=15000)
+                party_ledger_tile.click()
+                self._human_delay_sync(2.0, 3.5)
 
                 # -----------------------------------------------------------
                 # Step 5: Fill Party Ledger Filters & Date Range
@@ -205,62 +214,62 @@ class TcsIonScraperService:
                 # 1. Accounting Site - Select All
                 try:
                     acct_site = page.locator('input[placeholder*="Accounting Site" i], text="Accounting Site"').first
-                    if await acct_site.is_visible(timeout=3000):
-                        await acct_site.click()
-                        await self._human_delay(0.5, 1.0)
+                    if acct_site.is_visible(timeout=3000):
+                        acct_site.click()
+                        self._human_delay_sync(0.5, 1.0)
                         all_cbs = page.locator('.dropdown-menu input[type="checkbox"], input[type="checkbox"]').all()
-                        for cb in await all_cbs:
-                            if not await cb.is_checked():
-                                await cb.check()
+                        for cb in all_cbs:
+                            if not cb.is_checked():
+                                cb.check()
                 except Exception as e:
                     logger.warning(f"Note on Accounting Site selector: {e}")
 
                 # 2. Transaction Site - Select All
                 try:
                     tx_site = page.locator('input[placeholder*="Transaction Site" i], text="Transaction Site"').first
-                    if await tx_site.is_visible(timeout=3000):
-                        await tx_site.click()
-                        await self._human_delay(0.5, 1.0)
+                    if tx_site.is_visible(timeout=3000):
+                        tx_site.click()
+                        self._human_delay_sync(0.5, 1.0)
                         all_tx_cbs = page.locator('.dropdown-menu input[type="checkbox"], input[type="checkbox"]').all()
-                        for cb in await all_tx_cbs:
-                            if not await cb.is_checked():
-                                await cb.check()
+                        for cb in all_tx_cbs:
+                            if not cb.is_checked():
+                                cb.check()
                 except Exception as e:
                     logger.warning(f"Note on Transaction Site selector: {e}")
 
                 # 3. Party * Search Input
                 party_input = page.locator('input[placeholder*="Party" i], input[name*="party" i], #txtParty').first
-                if await party_input.is_visible(timeout=5000):
-                    await party_input.click()
-                    await party_input.fill("")
-                    await party_input.type(party_name, delay=random.randint(50, 100))
-                    await self._human_delay(1.0, 1.8)
+                if party_input.is_visible(timeout=5000):
+                    party_input.click()
+                    party_input.fill("")
+                    party_input.type(party_name, delay=random.randint(50, 100))
+                    self._human_delay_sync(1.0, 1.8)
                     suggestion = page.locator(f'.suggestion-item:has-text("{party_name}"), .dropdown-item, li:has-text("{party_name}")').first
-                    if await suggestion.is_visible(timeout=4000):
-                        await suggestion.click()
-                        await self._human_delay(0.5, 1.0)
+                    if suggestion.is_visible(timeout=4000):
+                        suggestion.click()
+                        self._human_delay_sync(0.5, 1.0)
 
                 # 4. From Date & To Date
                 try:
                     from_inp = page.locator('input[placeholder*="From Date" i], input[name*="fromDate" i], #txtFromDate').first
-                    if await from_inp.is_visible(timeout=3000):
-                        await from_inp.click()
-                        await from_inp.fill(from_date_num)
+                    if from_inp.is_visible(timeout=3000):
+                        from_inp.click()
+                        from_inp.fill(from_date_num)
 
                     to_inp = page.locator('input[placeholder*="To Date" i], input[name*="toDate" i], #txtToDate').first
-                    if await to_inp.is_visible(timeout=3000):
-                        await to_inp.click()
-                        await to_inp.fill(to_date_num)
+                    if to_inp.is_visible(timeout=3000):
+                        to_inp.click()
+                        to_inp.fill(to_date_num)
                 except Exception as e:
                     logger.warning(f"Date input selector note: {e}")
 
                 # 5. Click "Apply" Button
                 _last_scrape_status["progress_step"] = "Generating & Extracting Report Data"
                 apply_btn = page.locator('button:has-text("Apply"), input[value="Apply"], #btnApply').first
-                await apply_btn.wait_for(state="visible", timeout=5000)
-                await apply_btn.click()
+                apply_btn.wait_for(state="visible", timeout=5000)
+                apply_btn.click()
                 logger.info("Clicked Apply, awaiting report calculation...")
-                await self._human_delay(3.5, 6.0)
+                self._human_delay_sync(3.5, 6.0)
 
                 # -----------------------------------------------------------
                 # Step 6: Direct Export Download via TCS iON Export Menu (Image 2)
@@ -268,18 +277,18 @@ class TcsIonScraperService:
                 _last_scrape_status["progress_step"] = "Exporting Full CSV/Excel Ledger Dataset"
                 try:
                     export_trigger = page.locator('button[title*="Export" i], .export-btn, [title*="Download" i], i.fa-download, [data-original-title*="Export"], div.export-icon, a:has-text("Export"), [title="Export"]').first
-                    if await export_trigger.is_visible(timeout=5000):
+                    if export_trigger.is_visible(timeout=5000):
                         logger.info("Found TCS iON Export icon, opening download options...")
-                        await export_trigger.click()
-                        await self._human_delay(0.8, 1.5)
+                        export_trigger.click()
+                        self._human_delay_sync(0.8, 1.5)
 
                         csv_or_xls = page.locator('text="CSV", a:has-text("CSV"), [data-format="csv"], text="JSON", a:has-text("JSON"), text="XLS", a:has-text("XLS")').first
-                        if await csv_or_xls.is_visible(timeout=4000):
+                        if csv_or_xls.is_visible(timeout=4000):
                             logger.info("Triggering direct CSV/XLS download from TCS iON...")
-                            async with page.expect_download(timeout=15000) as download_info:
-                                await csv_or_xls.click()
-                            download = await download_info.value
-                            download_path = await download.path()
+                            with page.expect_download(timeout=15000) as download_info:
+                                csv_or_xls.click()
+                            download = download_info.value
+                            download_path = download.path()
                             
                             with open(download_path, "rb") as f:
                                 file_bytes = f.read()
@@ -299,24 +308,24 @@ class TcsIonScraperService:
 
                 try:
                     debit_card = page.locator('text="Total Debit Amount", div:has-text("Total Debit Amount")').first
-                    if await debit_card.is_visible(timeout=2000):
-                        card_text = await debit_card.inner_text()
+                    if debit_card.is_visible(timeout=2000):
+                        card_text = debit_card.inner_text()
                         summary_debit = self._clean_number(card_text)
 
                     credit_card = page.locator('text="Total Credit Amount", div:has-text("Total Credit Amount")').first
-                    if await credit_card.is_visible(timeout=2000):
-                        card_text = await credit_card.inner_text()
+                    if credit_card.is_visible(timeout=2000):
+                        card_text = credit_card.inner_text()
                         summary_credit = self._clean_number(card_text)
                 except Exception:
                     pass
 
-                table_rows = await page.locator('table.report-table tbody tr, table tbody tr, .grid-row').all()
+                table_rows = page.locator('table.report-table tbody tr, table tbody tr, .grid-row').all()
                 ledger_records = []
                 total_debit = 0.0
                 total_credit = 0.0
 
                 for row in table_rows:
-                    cols = await row.locator('td').all_inner_texts()
+                    cols = row.locator('td').all_inner_texts()
                     if cols and len(cols) >= 5:
                         party_code = cols[0].strip() if len(cols) > 0 else "CUST-TCS"
                         voucher_no = cols[1].strip() if len(cols) > 1 else ""
@@ -365,8 +374,8 @@ class TcsIonScraperService:
                 }
 
             finally:
-                await context.close()
-                await browser.close()
+                context.close()
+                browser.close()
 
     def _clean_number(self, val_str: Any) -> float:
         if val_str is None:
@@ -593,7 +602,7 @@ class TcsIonScraperService:
             {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271890", "voucher_date": "02/09/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 4736904.13, "credit_amount": 0.0, "balance_amount": 250126.00, "particulars": "Tax Invoice #KOGMU1271890 - Pure Kachi Ghani Bulk Dispatch"}
         ]
 
-        # Total Exact Financial Totals matching TCS iON Image 2
+        # Exact Financial Totals matching TCS iON Image 2
         total_debit = 28848983.00
         total_credit = 28598857.00
         closing_balance = 250126.00
