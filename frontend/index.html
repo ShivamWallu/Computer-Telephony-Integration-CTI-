@@ -1654,6 +1654,11 @@
                                     </p>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <input type="file" id="inp-upload-tcs-file" accept=".xlsx,.xls,.csv,.json" style="display: none;" onchange="customer.handleTcsFileUpload(this)" />
+                                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('inp-upload-tcs-file').click()" style="display: inline-flex; align-items: center; gap: 5px; font-weight: 600;" title="Upload TCS iON Excel (.xls/.xlsx), CSV or JSON file to parse automatically">
+                                        <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                        <span>📂 Upload TCS Export</span>
+                                    </button>
                                     <select id="sel-tcs-months-back" class="form-control" style="font-size: 0.8125rem; height: 34px; width: 140px; padding: 0 0.5rem;" onchange="customer.syncTcsIonLedger()">
                                         <option value="1">Last 1 Month</option>
                                         <option value="3" selected>Last 3 Months</option>

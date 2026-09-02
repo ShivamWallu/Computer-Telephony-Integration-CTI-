@@ -1528,6 +1528,33 @@ const customer = {
 
     exportTcsLedgerExcel() {
         this.exportTcsLedgerCSV();
+    },
+
+    async handleTcsFileUpload(inputEl) {
+        if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
+        const file = inputEl.files[0];
+
+        const cust = this.currentCustomerData;
+        const partyName = (cust?.party_name || cust?.name || document.getElementById('drawer-cust-party-name')?.textContent || '').trim();
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (this.currentCustomerId) formData.append('customer_id', this.currentCustomerId);
+        if (partyName) formData.append('party_name', partyName);
+
+        try {
+            api.toast(`⏳ Parsing TCS iON export (${file.name})...`, "info");
+            const res = await api.post('/integrations/tcsion/upload-ledger', formData);
+            
+            this.currentTcsLedgerData = res;
+            this.renderTcsLedgerTable(res);
+            api.toast(`✅ Successfully imported ${res.total_records || 0} vouchers from ${file.name}!`, "success");
+        } catch (err) {
+            console.error("TCS File Upload Error:", err);
+            api.toast(`Failed to parse TCS iON file: ${err.message}`, "error");
+        } finally {
+            inputEl.value = "";
+        }
     }
 };
 
