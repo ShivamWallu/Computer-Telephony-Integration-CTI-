@@ -265,13 +265,13 @@
 
 .cti-call-card {
     pointer-events: auto;
-    width: 440px;
-    max-width: calc(100vw - 2.5rem);
+    width: 490px;
+    max-width: calc(100vw - 2rem);
     background: var(--bg-surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-popover);
-    padding: 1rem;
+    padding: 1.15rem;
     backdrop-filter: blur(16px);
     animation: slideUpIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     transition: var(--transition);
@@ -435,7 +435,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 660px;
+    width: 840px;
     max-width: 95vw;
     background: var(--bg-surface);
     border-left: 1px solid var(--border-color);
@@ -512,12 +512,12 @@
 .profile-meta-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.85rem 1.15rem;
+    gap: 1rem 1.75rem;
     background: var(--bg-surface-elevated);
-    padding: 1.1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .meta-field {
