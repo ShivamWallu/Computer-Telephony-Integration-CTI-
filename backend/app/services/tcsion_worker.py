@@ -64,16 +64,24 @@ def run_tcsion_worker(party_name: str, months_back: int, mode: str, username: st
         page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
         try:
-            # Step 1: Navigate to Home / Login
-            page.goto("https://training.tcsion.com/TCSiONHome/Home", wait_until="domcontentloaded", timeout=45000)
-            human_delay(1.5, 2.5)
+            # Step 1: Navigate directly to Login URL
+            page.goto("https://training.tcsion.com/Login/Login.html", wait_until="networkidle", timeout=45000)
+            human_delay(1.0, 2.0)
 
-            # Check if login needed
-            if "Login" in page.url:
-                user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
+            # If session expired page is shown, redirect to login
+            if "sessionExpired" in page.url:
+                login_again_link = page.locator('a:has-text("log in"), a:has-text("Login"), text="log in"').first
+                if login_again_link.is_visible(timeout=3000):
+                    login_again_link.click()
+                else:
+                    page.goto("https://training.tcsion.com/Login/Login.html", wait_until="networkidle")
+                human_delay(1.0, 2.0)
+
+            # Check if login form inputs are present
+            user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
+            if user_input.is_visible(timeout=6000):
                 pass_input = page.locator('#floatingPassword, input#password, input[name="password"], input[type="password"]').first
 
-                user_input.wait_for(state="visible", timeout=15000)
                 user_input.click()
                 user_input.fill("")
                 user_input.type(username, delay=random.randint(35, 65))
