@@ -1090,19 +1090,35 @@ const customer = {
         const form = document.getElementById('form-add-customer');
         if (form) form.reset();
 
-        document.getElementById('modal-cust-title').textContent = "Create New Customer (15 Columns Schema)";
-        document.getElementById('btn-submit-add-customer').textContent = "Save Customer";
-        document.getElementById('inp-cust-edit-id').value = "";
-        document.getElementById('inp-cust-country').value = "India";
-        document.getElementById('inp-cust-phone-type').value = "Mobile";
-        document.getElementById('inp-cust-status').value = "Active";
+        const titleEl = document.getElementById('modal-cust-title');
+        if (titleEl) titleEl.textContent = "Create New Customer (15 Columns Schema)";
+
+        const submitBtn = document.getElementById('btn-submit-add-customer');
+        if (submitBtn) {
+            submitBtn.innerHTML = `
+                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span>Save Customer Record</span>
+            `;
+        }
+
+        const editIdEl = document.getElementById('inp-cust-edit-id');
+        if (editIdEl) editIdEl.value = "";
+
+        const countryEl = document.getElementById('inp-cust-country');
+        if (countryEl) countryEl.value = "India";
+
+        const ptypeEl = document.getElementById('inp-cust-phone-type');
+        if (ptypeEl) ptypeEl.value = "Mobile";
+
+        const statusEl = document.getElementById('inp-cust-status');
+        if (statusEl) statusEl.value = "Active";
 
         if (prefilledPhone) {
             const phoneInput = document.getElementById('inp-cust-phone1');
             if (phoneInput) phoneInput.value = prefilledPhone;
         }
 
-        // Populate agents dropdown
+        // Populate agents dropdown safely
         await this.populateAgentDropdown();
 
         // Close right-side drawer if open so modal is 100% unobstructed
