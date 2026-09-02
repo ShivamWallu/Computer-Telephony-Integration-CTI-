@@ -1301,6 +1301,7 @@ const customer = {
         this.currentCustomerData = cust;
         const partyName = (cust?.party_name || cust?.name || '').trim();
         const syncBtn = document.getElementById('btn-drawer-sync-tcs');
+        const visualBtn = document.getElementById('btn-drawer-launch-visual');
         const tabSyncBtn = document.getElementById('btn-tab-sync-tcs');
         const noPartyAlert = document.getElementById('tcs-ledger-no-party-alert');
         const partyBadge = document.getElementById('tcs-ledger-party-badge');
@@ -1317,6 +1318,11 @@ const customer = {
                 syncBtn.style.cursor = 'not-allowed';
                 syncBtn.title = "⚠️ Party Name is missing. Please edit customer profile to add a Party Name.";
             }
+            if (visualBtn) {
+                visualBtn.disabled = true;
+                visualBtn.style.opacity = '0.55';
+                visualBtn.style.cursor = 'not-allowed';
+            }
             if (tabSyncBtn) {
                 tabSyncBtn.disabled = true;
                 tabSyncBtn.style.opacity = '0.55';
@@ -1331,12 +1337,66 @@ const customer = {
                 syncBtn.style.cursor = 'pointer';
                 syncBtn.title = `Scrape Party Ledger Detail Report for "${partyName}" directly from TCS iON`;
             }
+            if (visualBtn) {
+                visualBtn.disabled = false;
+                visualBtn.style.opacity = '1';
+                visualBtn.style.cursor = 'pointer';
+            }
             if (tabSyncBtn && !this.isTcsSyncing) {
                 tabSyncBtn.disabled = false;
                 tabSyncBtn.style.opacity = '1';
                 tabSyncBtn.style.cursor = 'pointer';
             }
             if (noPartyAlert) noPartyAlert.style.display = 'none';
+        }
+    },
+
+    async launchVisualTcsLedger() {
+        const cust = this.currentCustomerData;
+        const partyName = (cust?.party_name || cust?.name || document.getElementById('drawer-cust-party-name')?.textContent || '').trim();
+
+        if (!partyName || partyName === '—') {
+            api.toast("Party Name is required to open TCS iON Party Ledger screen.", "warning");
+            return;
+        }
+
+        const monthsSelect = document.getElementById('sel-tcs-months-back');
+        const monthsBack = monthsSelect ? parseInt(monthsSelect.value) || 3 : 3;
+
+        const launchBtn = document.getElementById('btn-drawer-launch-visual');
+        const textSpan = document.getElementById('text-launch-visual-btn');
+
+        if (launchBtn) {
+            launchBtn.disabled = true;
+            launchBtn.style.opacity = '0.75';
+        }
+        if (textSpan) textSpan.textContent = "Launching Screen...";
+
+        api.toast(`🖥️ Opening real Chrome browser to navigate to Party Ledger for "${partyName}"...`, "info", 6000);
+
+        try {
+            const res = await api.post('/integrations/tcsion/launch-visual', {
+                customer_id: this.currentCustomerId || null,
+                party_name: partyName,
+                months_back: monthsBack
+            });
+
+            if (res.cooldown) {
+                api.toast("⏳ TCS iON Active Session Cooldown: Another session is active. Please wait 2 minutes.", "warning", 8000);
+            } else if (res.success) {
+                api.toast(`🚀 Live Party Ledger Detail Report screen opened on your desktop!`, "success", 7000);
+            } else {
+                api.toast(res.message || "Visual Launcher completed.", "info");
+            }
+        } catch (err) {
+            console.error("Visual Launcher Error:", err);
+            api.toast(`Visual Launcher Error: ${err.message}`, "error");
+        } finally {
+            if (launchBtn) {
+                launchBtn.disabled = false;
+                launchBtn.style.opacity = '1';
+            }
+            if (textSpan) textSpan.textContent = "🖥️ Auto-Open TCS Screen";
         }
     },
 

@@ -96,6 +96,46 @@ async def sync_tcsion_party_ledger(
             detail=f"TCS iON Automation encountered an unexpected error: {str(e)}"
         )
 
+@router.post("/tcsion/launch-visual", response_model=Dict[str, Any])
+async def launch_visual_tcsion_screen(
+    payload: TcsIonLedgerRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Visual Auto-Launcher (New Plan):
+    Launches a real visible Chrome browser window on the desktop, auto-logs into TCS iON,
+    navigates through the 4 menus, and leaves the Party Ledger Detail Report open for the user!
+    """
+    party_name = payload.party_name.strip()
+    if not party_name:
+        raise HTTPException(status_code=400, detail="Party Name cannot be empty.")
+
+    logger.info(f"User {current_user.email} triggered Visual Auto-Launcher for '{party_name}'")
+
+    try:
+        res = await tcsion_scraper.launch_visual_party_ledger(
+            party_name=party_name,
+            months_back=payload.months_back
+        )
+
+        try:
+            AuditService.log(
+                db=db,
+                action="TCSION_VISUAL_LAUNCH",
+                entity_type="CUSTOMER",
+                entity_id=str(payload.customer_id or 0),
+                changes={"party_name": party_name, "mode": "visual_browser_assist"},
+                user=current_user
+            )
+        except Exception:
+            pass
+
+        return res
+    except Exception as exc:
+        logger.error(f"Error launching visual TCS iON browser: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Visual Launcher error: {str(exc)}")
+
 @router.post("/tcsion/upload-ledger", response_model=Dict[str, Any])
 async def upload_tcsion_ledger_file(
     file: UploadFile = File(...),

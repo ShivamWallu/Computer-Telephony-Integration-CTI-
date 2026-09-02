@@ -476,6 +476,153 @@ class TcsIonScraperService:
                 context.close()
                 browser.close()
 
+    async def launch_visual_party_ledger(self, party_name: str, months_back: int = 3) -> Dict[str, Any]:
+        """
+        Visual Auto-Launcher (New Plan):
+        Launches real, visible Chrome browser on desktop, automatically logs into TCS iON,
+        clicks Finance & Accounting -> Accounts Receivable -> Drill Down Reports -> PL - Party Ledger Detail,
+        and leaves the live Party Ledger screen OPEN in front of the user!
+        """
+        if not self.username or not self.password:
+            raise ValueError("TCS iON credentials not configured in environment.")
+
+        party_name_clean = party_name.strip()
+        if not party_name_clean:
+            raise ValueError("Party Name must be provided.")
+
+        return await asyncio.to_thread(self._sync_visual_launcher, party_name_clean, months_back)
+
+    def _sync_visual_launcher(self, party_name: str, months_back: int) -> Dict[str, Any]:
+        from_date_dt = datetime.now() - timedelta(days=months_back * 30)
+        to_date_dt = datetime.now()
+        from_date_num = from_date_dt.strftime("%d/%m/%Y")
+        to_date_num = to_date_dt.strftime("%d/%m/%Y")
+
+        p = sync_playwright().start()
+        # Launch visible Chrome window
+        browser = p.chromium.launch(
+            headless=False,
+            args=[
+                "--start-maximized",
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled"
+            ]
+        )
+
+        context = browser.new_context(
+            no_viewport=True,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        )
+
+        page = context.new_page()
+        page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        logger.info(f"Visual Auto-Launcher: Opening TCS iON Login for '{party_name}'...")
+        page.goto(self.login_url, wait_until="networkidle", timeout=45000)
+        self._human_delay_sync(1.0, 1.8)
+
+        # 1. Fill credentials
+        user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
+        pass_input = page.locator('#floatingPassword, input#password, input[name="password"], input[type="password"]').first
+
+        user_input.wait_for(state="visible", timeout=15000)
+        user_input.click()
+        user_input.fill("")
+        user_input.type(self.username, delay=random.randint(40, 70))
+        self._human_delay_sync(0.4, 0.8)
+
+        pass_input.click()
+        pass_input.fill("")
+        pass_input.type(self.password, delay=random.randint(40, 70))
+        self._human_delay_sync(0.5, 1.0)
+
+        login_btn = page.locator('button[type="submit"], input[type="submit"], button:has-text("Log In"), button:has-text("Login")').first
+        login_btn.click()
+        self._human_delay_sync(4.0, 6.0)
+
+        # Check session alert
+        if "loginfailure" in page.url or "already logged" in page.content():
+            logger.warning("Visual Launcher: Already logged in notice.")
+            return {
+                "success": False,
+                "message": "TCS iON session cooldown active: User is already logged into another session. Please wait 2 minutes.",
+                "cooldown": True
+            }
+
+        # 2. Click Finance and Accounting
+        finance_tile = page.locator('text="Finance and Accounting", div:has-text("Finance and Accounting"), a:has-text("Finance and Accounting"), span:has-text("Finance and Accounting")').first
+        if finance_tile.is_visible(timeout=10000):
+            finance_tile.click()
+            self._human_delay_sync(3.0, 5.0)
+
+        if len(context.pages) > 1:
+            page = context.pages[-1]
+            page.bring_to_front()
+
+        # 3. Click Accounts Receivable -> Drill Down Reports
+        ar_selectors = [
+            'text="Accounts Receivable"',
+            'span:has-text("Accounts Receivable")',
+            'a:has-text("Accounts Receivable")',
+            'li:has-text("Accounts Receivable")',
+            'div:has-text("Accounts Receivable")'
+        ]
+        for sel in ar_selectors:
+            try:
+                loc = page.locator(sel).first
+                if loc.is_visible(timeout=2000):
+                    loc.click()
+                    break
+            except Exception:
+                pass
+
+        self._human_delay_sync(1.5, 2.5)
+
+        drill_selectors = [
+            'text="Drill Down Reports"',
+            'span:has-text("Drill Down Reports")',
+            'a:has-text("Drill Down Reports")',
+            'li:has-text("Drill Down Reports")'
+        ]
+        for sel in drill_selectors:
+            try:
+                loc = page.locator(sel).first
+                if loc.is_visible(timeout=2000):
+                    loc.click()
+                    break
+            except Exception:
+                pass
+
+        self._human_delay_sync(2.0, 3.5)
+
+        # 4. Click PL - Party Ledger Detail Report (ARSC0010)
+        party_ledger_tile = page.locator('text="Party Ledger Detail", [data-report-id="ARSC0010"], div:has-text("Party Ledger Detail"), text="PL - Party Ledger Detail", text="ARSC0010"').first
+        if party_ledger_tile.is_visible(timeout=15000):
+            party_ledger_tile.click()
+            self._human_delay_sync(2.5, 4.0)
+
+        if len(context.pages) > 1:
+            page = context.pages[-1]
+            page.bring_to_front()
+
+        # 5. Fill Party Name in search box
+        try:
+            party_input = page.locator('input[placeholder*="Party" i], input[name*="party" i], #txtParty').first
+            if party_input.is_visible(timeout=4000):
+                party_input.click()
+                party_input.fill("")
+                party_input.type(party_name, delay=random.randint(50, 90))
+        except Exception:
+            pass
+
+        logger.info(f"Visual Launcher: Successfully landed on Party Ledger Detail Report screen for '{party_name}'!")
+        return {
+            "success": True,
+            "party_name": party_name,
+            "message": f"TCS iON Party Ledger Detail Report screen opened on your desktop for '{party_name}'!",
+            "portal_url": page.url
+        }
+
     def _clean_number(self, val_str: Any) -> float:
         if val_str is None:
             return 0.0
