@@ -32,16 +32,12 @@
                 <div class="form-group">
                     <label class="form-label">Smartflo Allowed Caller ID or Email</label>
                     <input type="text" id="inp-login-email" class="form-control"
-                        placeholder="e.g. 918065908531 or staff@crm.com" required autocomplete="username" />
+                        placeholder="e.g. 918065908531 or abc@khandelia.com" required autocomplete="username" />
                 </div>
-                <div class="form-group" style="margin-bottom: 0.75rem;">
+                <div class="form-group" style="margin-bottom: 1.25rem;">
                     <label class="form-label">Password</label>
                     <input type="password" id="inp-login-password" class="form-control" placeholder="••••••••" required
                         autocomplete="current-password" />
-                </div>
-                <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.55rem 0.75rem; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.45;">
-                    <span style="font-weight: 600; color: var(--text-primary);">Director / Admin:</span> <code>918065908540</code> (pw: <code>admin</code>)<br>
-                    <span style="font-weight: 600; color: var(--text-primary);">Staff:</span> Allowed Caller ID (pw: <code>12345678</code>)
                 </div>
                 <button type="submit" id="btn-login-submit" class="btn btn-primary"
                     style="width: 100%; justify-content: center; height: 40px; font-weight: 600;">
@@ -64,7 +60,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Work Email Address *</label>
-                    <input type="email" id="inp-reg-email" class="form-control" placeholder="ankit@crm.com" required />
+                    <input type="email" id="inp-reg-email" class="form-control" placeholder="ankit@khandelia.com" required />
                 </div>
                 <div class="form-group" style="margin-bottom: 1.25rem;">
                     <label class="form-label">Create Password *</label>
@@ -85,26 +81,6 @@
                     </button>
                 </div>
             </form>
-
-            <!-- Quick Demo Access Badges -->
-            <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); font-size: 0.8125rem; color: var(--text-muted);">
-                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35rem;">
-                    <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span>Quick Demo Sign-In:</span>
-                </div>
-                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-secondary btn-xs"
-                        onclick="app.quickFillLogin('918065908540', 'admin')">Admin (Yogesh - 8540)</button>
-                    <button type="button" class="btn btn-secondary btn-xs"
-                        onclick="app.quickFillLogin('918065908531', '12345678')">Sahil (8531)</button>
-                    <button type="button" class="btn btn-secondary btn-xs"
-                        onclick="app.quickFillLogin('918065908532', '12345678')">BM Jagga (8532)</button>
-                    <button type="button" class="btn btn-secondary btn-xs"
-                        onclick="app.quickFillLogin('918065908533', '12345678')">Utpal Pal (8533)</button>
-                    <button type="button" class="btn btn-secondary btn-xs"
-                        onclick="app.quickFillLogin('918065908541', '12345678')">Pankaj (8541)</button>
-                </div>
-            </div>
         </div>
     </div>
 

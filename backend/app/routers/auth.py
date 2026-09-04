@@ -83,16 +83,28 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     """
     ident = credentials.email.strip()
     ident_lower = ident.lower()
-    norm_ident = ident.replace("+", "").lstrip("0")
+    # Clean digits to handle formats with spaces, hyphens, +, leading zeros
+    clean_digits = "".join(ch for ch in ident if ch.isdigit()).lstrip("0")
+    norm_ident = ident.replace("+", "").replace(" ", "").replace("-", "").lstrip("0")
     user_part = ident_lower.split("@")[0].replace(".", " ").strip()
+
+    # Build caller ID / DID variants (support with 91, without 91, and raw)
+    cid_variants = {ident, norm_ident, clean_digits}
+    for val in [norm_ident, clean_digits]:
+        if val.isdigit():
+            if len(val) == 10:
+                cid_variants.add(f"91{val}")
+            elif len(val) > 10 and val.startswith("91"):
+                cid_variants.add(val[2:])
+                cid_variants.add(val[-10:])
+    cid_list = [c for c in cid_variants if c]
 
     # Match by Allowed Caller ID, Phone, Email, or Full Name
     candidate_users = db.query(User).filter(
         or_(
-            User.allowed_caller_id == ident,
-            User.allowed_caller_id == norm_ident,
-            User.vid == ident,
-            User.phone == ident,
+            User.allowed_caller_id.in_(cid_list),
+            User.vid.in_(cid_list),
+            User.phone.in_(cid_list),
             User.email == ident_lower,
             User.email.ilike(f"%{ident_lower.split('@')[0]}%"),
             User.full_name.ilike(ident),
@@ -120,8 +132,8 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             detail="Incorrect Allowed Caller ID or password"
         )
 
-    # Prioritize exact match on Allowed Caller ID or Email first
-    exact_cid_matches = [u for u in candidate_users if u.allowed_caller_id in [ident, norm_ident]]
+    # Prioritize exact match on Allowed Caller ID (with or without 91) or Email first
+    exact_cid_matches = [u for u in candidate_users if u.allowed_caller_id in cid_variants]
     exact_email_matches = [u for u in candidate_users if u.email.lower() == ident_lower]
     
     ranked_candidates = exact_cid_matches or exact_email_matches or candidate_users
