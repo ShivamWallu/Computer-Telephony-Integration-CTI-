@@ -1496,9 +1496,18 @@ const customer = {
             clearTimeout(stepTimer2);
             clearTimeout(stepTimer3);
 
+            if (!res || res.success === false) {
+                throw new Error(res?.error || "Failed to extract ledger from TCS iON.");
+            }
+
             this.currentTcsLedgerData = res;
             this.renderTcsLedgerTable(res);
-            api.toast(`✅ TCS iON Ledger for "${partyName}" synced successfully! (${res.total_records || 0} vouchers)`, "success");
+            
+            if (res.total_records === 0) {
+                api.toast(res.message || `No ledger vouchers found for "${partyName}".`, "info", 5000);
+            } else {
+                api.toast(`✅ TCS iON Ledger for "${partyName}" synced successfully! (${res.total_records} vouchers)`, "success");
+            }
 
         } catch (err) {
             clearTimeout(stepTimer1);
@@ -1507,11 +1516,8 @@ const customer = {
             console.error("TCS iON Sync Error:", err);
             
             const errMsg = err.message || "Failed to sync TCS iON ledger";
-            if (errMsg.includes("already logged") || errMsg.includes("cooldown") || errMsg.includes("2 minutes")) {
-                api.toast("⏳ TCS iON Active Session Cooldown: Another session is active. Please retry in 2 minutes.", "warning", 8000);
-            } else {
-                api.toast(`TCS iON Sync: ${errMsg}`, "error");
-            }
+            this.showTcsLedgerError(errMsg);
+            api.toast(`❌ TCS iON Sync Failed: ${errMsg}`, "error", 9000);
         } finally {
             this.isTcsSyncing = false;
             if (syncBtn) {
@@ -1528,6 +1534,45 @@ const customer = {
             if (spinIcon) spinIcon.style.display = 'none';
             if (btnText) btnText.textContent = "📥 Scrape from TCS";
             if (progressBox) progressBox.style.display = 'none';
+        }
+    },
+
+    showTcsLedgerError(errMsg) {
+        const tbody = document.getElementById('tbody-tcs-ledger');
+        const countEl = document.getElementById('tcs-ledger-count');
+        const subtitleEl = document.getElementById('tcs-ledger-subtitle');
+        const kpiOpening = document.getElementById('kpi-tcs-opening');
+        const kpiDebit = document.getElementById('kpi-tcs-debit');
+        const kpiCredit = document.getElementById('kpi-tcs-credit');
+        const kpiClosing = document.getElementById('kpi-tcs-closing');
+
+        if (countEl) countEl.textContent = '0 vouchers';
+        if (kpiOpening) kpiOpening.textContent = '₹0.00';
+        if (kpiDebit) kpiDebit.textContent = '₹0.00';
+        if (kpiCredit) kpiCredit.textContent = '₹0.00';
+        if (kpiClosing) kpiClosing.textContent = '₹0.00';
+
+        if (subtitleEl) {
+            subtitleEl.innerHTML = `<span style="color: #ef4444; font-weight: 700;">⚠️ Sync Error: ${errMsg}</span>`;
+        }
+
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 3rem 1.5rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.75rem;">⚠️</div>
+                        <div style="font-size: 1rem; font-weight: 800; color: #ef4444; margin-bottom: 0.5rem;">
+                            TCS iON Live Sync Error
+                        </div>
+                        <div style="font-size: 0.85rem; color: #cbd5e1; max-width: 540px; margin: 0 auto; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.85rem 1.25rem; border-radius: 8px; line-height: 1.5;">
+                            ${errMsg}
+                        </div>
+                        <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted, #94a3b8);">
+                            Tip: You can use <strong>[🖥️ Auto-Open TCS Screen]</strong> to navigate visually on your desktop or upload an export file.
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
     },
 

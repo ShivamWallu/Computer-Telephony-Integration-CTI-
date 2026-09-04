@@ -68,18 +68,9 @@ class TcsIonScraperService:
                 err_msg = str(exc)
                 logger.error(f"TCS iON scraping error for '{party_name_clean}': {err_msg}")
                 _last_scrape_status["last_error"] = err_msg
-                _last_scrape_status["progress_step"] = f"Notice: {err_msg[:60]}"
-                
-                # Check for session cooldown
-                if "already logged" in err_msg.lower() or "cooldown" in err_msg.lower():
-                    logger.warning(f"TCS iON session cooldown active for {party_name_clean}. Providing structured ledger snapshot.")
-                    return self._generate_fallback_ledger(
-                        party_name_clean, 
-                        months_back, 
-                        note="⚠️ TCS iON Active Session Notice: Live session cooldown active on portal. Showing latest verified ledger snapshot."
-                    )
-
-                return self._generate_fallback_ledger(party_name_clean, months_back, note=f"Live sync note: {err_msg[:120]}")
+                _last_scrape_status["progress_step"] = f"Error: {err_msg[:60]}"
+                # DO NOT RETURN DUMMY/FALLBACK DATA - Propagate the REAL error to the user
+                raise RuntimeError(err_msg)
             finally:
                 _last_scrape_status["is_running"] = False
                 _last_scrape_status["current_party"] = None
@@ -155,14 +146,21 @@ class TcsIonScraperService:
             if line.startswith("JSON_RESULT:"):
                 payload = json.loads(line[len("JSON_RESULT:"):].strip())
                 if payload.get("cooldown"):
-                    raise RuntimeError(payload.get("error") or "Session cooldown active.")
+                    raise RuntimeError(payload.get("error") or "You are already logged into TCS iON with this ID. Please log out from that session and log in after 2 minutes.")
                 if not payload.get("success") and payload.get("error"):
                     raise RuntimeError(payload["error"])
-                if payload.get("total_records", 0) > 0:
+                if payload.get("success"):
+                    # Truly scraped data from live TCS iON portal
                     return payload
 
-        # Fallback if no records returned or parse issue
-        return self._generate_fallback_ledger(party_name, months_back)
+        # If no JSON_RESULT was output by worker, extract actual error from worker logs
+        all_logs = (stderr + "\n" + stdout).strip()
+        err_candidates = [
+            l.strip() for l in all_logs.splitlines() 
+            if any(k in l.lower() for k in ["error", "exception", "failed", "conflict", "cooldown", "timeout"])
+        ]
+        real_err = err_candidates[-1] if err_candidates else (all_logs[-200:] if all_logs else "TCS iON worker closed unexpectedly without completing ledger scrape.")
+        raise RuntimeError(f"TCS iON Scraping Failed: {real_err}")
 
     def parse_tcsion_file_content(self, file_bytes: bytes, filename: str, party_name: str = "") -> Dict[str, Any]:
         """

@@ -625,6 +625,45 @@ class TcsIonStateMachine:
             except Exception:
                 continue
 
+        if not records:
+            # Check if there is an explicit "no records" notification on the TCS screen
+            is_no_records = False
+            for sel in ['text="No record"', 'text="No data"', 'text="0 record"', 'text="No results"', 'text="No vouchers"']:
+                try:
+                    if page.locator(sel).first.is_visible(timeout=1000):
+                        is_no_records = True
+                        break
+                except Exception:
+                    pass
+
+            if is_no_records:
+                out = {
+                    "success": True,
+                    "party_name": self.party_name,
+                    "from_date": self.from_date_str,
+                    "to_date": self.to_date_str,
+                    "total_records": 0,
+                    "summary": {
+                        "opening_balance": 0.0,
+                        "total_debit": 0.0,
+                        "total_credit": 0.0,
+                        "closing_balance": 0.0
+                    },
+                    "records": [],
+                    "synced_at": datetime.utcnow().isoformat(),
+                    "message": f"No ledger vouchers found on TCS iON for '{self.party_name}' in the selected period.",
+                    "source": "TCS iON Finance and Accounting (Live Scraped - 0 Records)"
+                }
+                print("JSON_RESULT:" + json.dumps(out))
+                return out
+            else:
+                out = {
+                    "success": False,
+                    "error": f"TCS iON Party Ledger Report table could not be extracted for '{self.party_name}'. Please verify the Party Name and site filters on TCS iON."
+                }
+                print("JSON_RESULT:" + json.dumps(out))
+                return out
+
         out = {
             "success": True,
             "party_name": self.party_name,
