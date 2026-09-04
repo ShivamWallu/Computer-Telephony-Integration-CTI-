@@ -40,3 +40,6 @@ Thumbs.db
 # Scratch and test logs
 scratch/
 *.log
+
+# Caches, browser profiles & media
+backend/cache/

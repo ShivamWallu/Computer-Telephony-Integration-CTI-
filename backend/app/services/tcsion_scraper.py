@@ -104,15 +104,20 @@ class TcsIonScraperService:
             "--party", party_name_clean,
             "--months", str(months_back),
             "--mode", "visual",
-            "--user", self.username,
-            "--password", self.password,
             "--url", self.login_url
         ]
+        env = {
+            **os.environ,
+            "TCSION_USERNAME": self.username,
+            "TCSION_PASSWORD": self.password,
+            "TCSION_LOGIN_URL": self.login_url
+        }
 
         logger.info(f"Visual Launcher: Spawning visible worker process for '{party_name_clean}'...")
         # Spawn detached / independent background process on desktop
         subprocess.Popen(
             cmd,
+            env=env,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
@@ -131,13 +136,17 @@ class TcsIonScraperService:
             "--party", party_name,
             "--months", str(months_back),
             "--mode", mode,
-            "--user", self.username,
-            "--password", self.password,
             "--url", self.login_url
         ]
+        env = {
+            **os.environ,
+            "TCSION_USERNAME": self.username,
+            "TCSION_PASSWORD": self.password,
+            "TCSION_LOGIN_URL": self.login_url
+        }
 
         logger.info(f"Running TCS iON worker subprocess: {' '.join(cmd)}")
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=env)
         
         stdout = proc.stdout or ""
         stderr = proc.stderr or ""
