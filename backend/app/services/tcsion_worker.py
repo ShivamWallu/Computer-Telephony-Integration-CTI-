@@ -220,7 +220,14 @@ class TcsIonStateMachine:
                 if "sessionexpired" in url.lower() or "session has timed out due to inactivity" in body_text.lower():
                     return STATE_SESSION_EXPIRED, p
 
-                # 1. Check for Target Screen: Party Ledger Detail Report
+                # 1. Check for Login Page (Unauthenticated)
+                if "login.html" in url.lower() or p.locator('#floatingInput, #floatingPassword, #submitlogin').first.is_visible(timeout=500):
+                    return STATE_LOGIN_PAGE, p
+
+                # Check indicators across page and all frames (supports Dojo/iFrames)
+                frames_to_check = [p] + [f for f in p.frames if f != p.main_frame]
+
+                # 2. Check for Target Screen: Party Ledger Detail Report
                 pl_indicators = [
                     '#txtParty',
                     'input[placeholder*="Party" i]',
@@ -231,14 +238,15 @@ class TcsIonStateMachine:
                     'th:has-text("Voucher Number")',
                     'th:has-text("Party Code")'
                 ]
-                for sel in pl_indicators:
-                    try:
-                        if p.locator(sel).first.is_visible(timeout=500):
-                            return STATE_PARTY_LEDGER, p
-                    except Exception:
-                        pass
+                for f in frames_to_check:
+                    for sel in pl_indicators:
+                        try:
+                            if f.locator(sel).first.is_visible(timeout=400):
+                                return STATE_PARTY_LEDGER, p
+                        except Exception:
+                            pass
 
-                # 2. Check for Reports Grid: Accounts Receivable Reports
+                # 3. Check for Reports Grid: Accounts Receivable Reports
                 grid_indicators = [
                     'text="Accounts Receivable Reports"',
                     'div:has-text("Accounts Receivable Reports")',
@@ -247,44 +255,44 @@ class TcsIonStateMachine:
                     '[data-report-id="ARSC0010"]',
                     'text="Debit Note Credit Note Register-Sales"'
                 ]
-                for sel in grid_indicators:
-                    try:
-                        if p.locator(sel).first.is_visible(timeout=500):
-                            return STATE_REPORTS_GRID, p
-                    except Exception:
-                        pass
+                for f in frames_to_check:
+                    for sel in grid_indicators:
+                        try:
+                            if f.locator(sel).first.is_visible(timeout=400):
+                                return STATE_REPORTS_GRID, p
+                        except Exception:
+                            pass
 
-                # 3. Check for Finance & Accounting Navbar
+                # 4. Check for Finance & Accounting Navbar
                 navbar_indicators = [
                     'text="TCS ION Finance and Accounting"',
                     'div:has-text("TCS ION Finance and Accounting")',
+                    'text="TCS iON Finance and Accounting"',
+                    'div:has-text("TCS iON Finance and Accounting")',
                     'a:has-text("Accounts Receivable")',
                     'li:has-text("Accounts Receivable")'
                 ]
-                for sel in navbar_indicators:
-                    try:
-                        if p.locator(sel).first.is_visible(timeout=500):
-                            return STATE_FINANCE_NAVBAR, p
-                    except Exception:
-                        pass
+                for f in frames_to_check:
+                    for sel in navbar_indicators:
+                        try:
+                            if f.locator(sel).first.is_visible(timeout=400):
+                                return STATE_FINANCE_NAVBAR, p
+                        except Exception:
+                            pass
 
-                # 4. Check for TCS iON Home Applications Dashboard
+                # 5. Check for TCS iON Home Applications Dashboard (Authenticated only)
                 home_indicators = [
-                    'text="Applications"',
-                    'div:has-text("Applications")',
                     'input[placeholder*="Type your query" i]',
+                    'div:has-text("Explore and simplify your user experience")',
                     'div:has-text("Quicklinks")'
                 ]
-                for sel in home_indicators:
-                    try:
-                        if p.locator(sel).first.is_visible(timeout=500):
-                            return STATE_TCSION_HOME, p
-                    except Exception:
-                        pass
-
-                # 5. Check for Login Page
-                if "login.html" in url.lower() or p.locator('#floatingInput, #floatingPassword, input[name="accountname"]').first.is_visible(timeout=600):
-                    return STATE_LOGIN_PAGE, p
+                for f in frames_to_check:
+                    for sel in home_indicators:
+                        try:
+                            if f.locator(sel).first.is_visible(timeout=400):
+                                return STATE_TCSION_HOME, p
+                        except Exception:
+                            pass
 
             except Exception:
                 continue
@@ -303,13 +311,13 @@ class TcsIonStateMachine:
         Fills credentials and submits login. Verifies result without spamming.
         """
         logger.info("Entering credentials into TCS iON Enterprise Login...")
-        user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
-        pass_input = page.locator('#floatingPassword, input#password, input[name="password"], input[type="password"]').first
+        user_input = page.locator('#floatingInput, input[name="accountname"], input#userName').first
+        pass_input = page.locator('#floatingPassword, input[name="password"], input#password').first
 
-        if not user_input.is_visible(timeout=8000):
+        if not user_input.is_visible(timeout=6000):
             page.goto(self.login_url, wait_until="networkidle", timeout=30000)
-            user_input = page.locator('#floatingInput, input#userName, input[name="accountname"], input[type="text"]').first
-            pass_input = page.locator('#floatingPassword, input#password, input[name="password"], input[type="password"]').first
+            user_input = page.locator('#floatingInput, input[name="accountname"], input#userName').first
+            pass_input = page.locator('#floatingPassword, input[name="password"], input#password').first
 
         if not user_input.is_visible(timeout=5000):
             logger.error("Username input field not found on login page.")
@@ -327,12 +335,17 @@ class TcsIonStateMachine:
         pass_input.type(self.password, delay=random.randint(35, 65))
         human_delay(0.4, 0.8)
 
-        # Click Login button once
-        login_btn = page.locator('button[type="submit"], input[type="submit"], button:has-text("Log In"), button:has-text("Login")').first
+        # Click Login button (#submitlogin)
+        login_btn = page.locator('#submitlogin, button[type="submit"], input[type="submit"], button:has-text("Login")').first
         login_btn.click()
         logger.info("Submitted login credentials, awaiting authentication verification...")
 
-        human_delay(3.0, 5.0)
+        try:
+            page.wait_for_load_state("networkidle", timeout=12000)
+        except Exception:
+            pass
+
+        human_delay(2.5, 4.0)
         return True
 
     def _handle_session_expired(self, page: Page):
@@ -341,6 +354,10 @@ class TcsIonStateMachine:
         try:
             if login_again_link.is_visible(timeout=3000):
                 login_again_link.click()
+                try:
+                    page.wait_for_load_state("networkidle", timeout=10000)
+                except Exception:
+                    pass
             else:
                 page.goto(self.login_url, wait_until="networkidle", timeout=30000)
         except Exception:
@@ -350,15 +367,14 @@ class TcsIonStateMachine:
     def _handle_home_click_finance(self, context: BrowserContext, page: Page) -> Page:
         """Locates and clicks Finance and Accounting application tile."""
         finance_selectors = [
-            'text="Finance and Accounting"',
-            'text="Finance & Accounting"',
-            'div:has-text("Finance and Accounting")',
-            'div:has-text("Finance & Accounting")',
             'span:has-text("Finance and Accounting")',
-            'span:has-text("Finance & Accounting")',
+            'text="Finance and Accounting"',
+            'p:has-text("Finance and Accounting")',
             'a:has-text("Finance and Accounting")',
-            'a:has-text("Finance & Accounting")',
-            '[title*="Finance" i]'
+            '[title*="Finance" i]',
+            'div.app-card:has-text("Finance and Accounting")',
+            'div:has-text("Finance and Accounting")',
+            'text="Finance & Accounting"'
         ]
 
         clicked = False
