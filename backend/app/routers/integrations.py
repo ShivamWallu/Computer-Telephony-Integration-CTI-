@@ -1,11 +1,10 @@
 import logging
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
-from backend.app.models.customer import Customer
 from backend.app.services.tcsion_scraper import tcsion_scraper
 from backend.app.services.audit_service import AuditService
 from backend.app.utils.security import get_current_user
@@ -96,58 +95,4 @@ async def launch_visual_tcsion_screen(
     except Exception as exc:
         logger.error(f"Error launching visual TCS iON browser: {exc}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Visual Launcher error: {str(exc)}")
-
-@router.post("/tcsion/upload-ledger", response_model=Dict[str, Any])
-async def upload_tcsion_ledger_file(
-    file: UploadFile = File(...),
-    customer_id: Optional[int] = Form(None),
-    party_name: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Directly uploads and parses a downloaded TCS iON Excel (.xlsx/.xls), CSV, or JSON export file.
-    Instantly extracts all 27+ vouchers, totals, and balances with 100% accuracy.
-    """
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file selected.")
-
-    file_bytes = await file.read()
-    if len(file_bytes) == 0:
-        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
-
-    target_party = (party_name or "").strip()
-    if customer_id and not target_party:
-        cust = db.query(Customer).filter(Customer.id == customer_id).first()
-        if cust:
-            target_party = cust.party_name or cust.name
-
-    try:
-        parsed_result = tcsion_scraper.parse_tcsion_file_content(
-            file_bytes=file_bytes,
-            filename=file.filename,
-            party_name=target_party
-        )
-
-        # Audit log the upload
-        try:
-            AuditService.log(
-                db=db,
-                action="TCSION_LEDGER_UPLOAD",
-                entity_type="CUSTOMER",
-                entity_id=str(customer_id or 0),
-                changes={
-                    "filename": file.filename,
-                    "records_count": parsed_result.get("total_records", 0),
-                    "closing_balance": parsed_result.get("summary", {}).get("closing_balance", 0)
-                },
-                user=current_user
-            )
-        except Exception:
-            pass
-
-        return parsed_result
-    except Exception as exc:
-        logger.error(f"Failed to parse uploaded TCS iON file {file.filename}: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to parse TCS iON file: {str(exc)}")
 

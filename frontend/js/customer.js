@@ -1414,36 +1414,10 @@ const customer = {
         }
     },
 
-    copyCurrentPartyName() {
-        const cust = this.currentCustomerData;
-        const partyName = (cust?.party_name || cust?.name || '').trim();
-        if (!partyName || partyName === '—') {
-            api.toast("No Party Name available to copy.", "warning");
-            return;
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(partyName).then(() => {
-                api.toast(`📋 Party Name "${partyName}" copied! Paste directly into TCS iON search box.`, "success", 5000);
-            }).catch(() => {
-                prompt("Copy Party Name:", partyName);
-            });
-        } else {
-            prompt("Copy Party Name:", partyName);
-        }
-    },
-
-    currentTcsLedgerData: null,
-
     updateTcsSyncState(cust) {
         this.currentCustomerData = cust;
         const partyName = (cust?.party_name || cust?.name || '').trim();
         const visualBtn = document.getElementById('btn-drawer-launch-visual');
-        const noPartyAlert = document.getElementById('tcs-ledger-no-party-alert');
-        const partyBadge = document.getElementById('tcs-ledger-party-badge');
-
-        if (partyBadge) {
-            partyBadge.textContent = partyName ? `${partyName} (ARSC0010)` : 'Party Ledger Detail (ARSC0010)';
-        }
 
         if (!partyName || partyName === '—') {
             // Disabled state when Party Name is missing
@@ -1453,7 +1427,6 @@ const customer = {
                 visualBtn.style.cursor = 'not-allowed';
                 visualBtn.title = "⚠️ Party Name is missing. Please edit customer profile to add a Party Name.";
             }
-            if (noPartyAlert) noPartyAlert.style.display = 'block';
         } else {
             // Enabled state
             if (visualBtn) {
@@ -1462,7 +1435,6 @@ const customer = {
                 visualBtn.style.cursor = 'pointer';
                 visualBtn.title = `Auto-Open TCS iON Party Ledger for "${partyName}"`;
             }
-            if (noPartyAlert) noPartyAlert.style.display = 'none';
         }
     },
 
@@ -1509,128 +1481,6 @@ const customer = {
                 launchBtn.style.opacity = '1';
             }
             if (textSpan) textSpan.textContent = "Auto-Open TCS Screen";
-        }
-    },
-
-    renderTcsLedgerTable(data) {
-        const tbody = document.getElementById('tbody-tcs-ledger');
-        const countEl = document.getElementById('tcs-ledger-count');
-        const subtitleEl = document.getElementById('tcs-ledger-subtitle');
-        const kpiOpening = document.getElementById('kpi-tcs-opening');
-        const kpiDebit = document.getElementById('kpi-tcs-debit');
-        const kpiCredit = document.getElementById('kpi-tcs-credit');
-        const kpiClosing = document.getElementById('kpi-tcs-closing');
-
-        if (!data || !tbody) return;
-
-        const summary = data.summary || {};
-        const records = data.records || [];
-
-        if (countEl) countEl.textContent = records.length;
-        if (subtitleEl && data.from_date && data.to_date) {
-            subtitleEl.textContent = `Period: ${data.from_date} to ${data.to_date} | Synced: ${new Date().toLocaleTimeString()} (${data.source || 'TCS iON'})`;
-        }
-
-        // Format currency numbers with Indian commas
-        const fmtCur = (val) => {
-            const num = parseFloat(val) || 0;
-            return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        };
-
-        if (kpiOpening) kpiOpening.textContent = fmtCur(summary.opening_balance || 0);
-        if (kpiDebit) kpiDebit.textContent = fmtCur(summary.total_debit || 0);
-        if (kpiCredit) kpiCredit.textContent = fmtCur(summary.total_credit || 0);
-        if (kpiClosing) {
-            kpiClosing.textContent = fmtCur(summary.closing_balance || 0);
-            kpiClosing.style.color = (summary.closing_balance || 0) > 0 ? 'var(--danger)' : 'var(--success)';
-        }
-
-        if (records.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                        No voucher records found in TCS iON for party <strong>"${data.party_name}"</strong> in the selected period.
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        tbody.innerHTML = records.map(r => `
-            <tr>
-                <td style="font-weight: 700; font-family: monospace; color: var(--primary);">${this.escapeHtml(r.voucher_number || '—')}</td>
-                <td style="white-space: nowrap; font-size: 0.8125rem;">${this.escapeHtml(r.voucher_date || '—')}</td>
-                <td><span class="badge badge-standard" style="font-size: 0.75rem;">${this.escapeHtml(r.voucher_sub_type || 'General')}</span></td>
-                <td style="font-size: 0.8125rem; max-width: 240px; word-break: break-word;">${this.escapeHtml(r.particulars || '—')}</td>
-                <td style="text-align: right; font-weight: 600; color: ${r.debit_amount > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${r.debit_amount > 0 ? fmtCur(r.debit_amount) : '—'}</td>
-                <td style="text-align: right; font-weight: 600; color: ${r.credit_amount > 0 ? 'var(--success)' : 'var(--text-muted)'};">${r.credit_amount > 0 ? fmtCur(r.credit_amount) : '—'}</td>
-                <td style="text-align: right; font-weight: 700; color: var(--text-primary);">${fmtCur(r.balance_amount || 0)}</td>
-            </tr>
-        `).join('');
-    },
-
-    exportTcsLedgerCSV() {
-        if (!this.currentTcsLedgerData || !this.currentTcsLedgerData.records || this.currentTcsLedgerData.records.length === 0) {
-            api.toast("No ledger records available to export", "warning");
-            return;
-        }
-
-        const data = this.currentTcsLedgerData;
-        const rows = [
-            ["Voucher No", "Voucher Date", "Voucher Type", "Particulars", "Debit (INR)", "Credit (INR)", "Balance (INR)"]
-        ];
-
-        data.records.forEach(r => {
-            rows.push([
-                `"${r.voucher_number || ''}"`,
-                `"${r.voucher_date || ''}"`,
-                `"${r.voucher_sub_type || ''}"`,
-                `"${(r.particulars || '').replace(/"/g, '""')}"`,
-                r.debit_amount || 0,
-                r.credit_amount || 0,
-                r.balance_amount || 0
-            ]);
-        });
-
-        const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `TCS_Ledger_${(data.party_name || 'Customer').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        api.toast("✅ TCS Ledger CSV downloaded successfully!", "success");
-    },
-
-    exportTcsLedgerExcel() {
-        this.exportTcsLedgerCSV();
-    },
-
-    async handleTcsFileUpload(inputEl) {
-        if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
-        const file = inputEl.files[0];
-
-        const cust = this.currentCustomerData;
-        const partyName = (cust?.party_name || cust?.name || document.getElementById('drawer-cust-party-name')?.textContent || '').trim();
-
-        const formData = new FormData();
-        formData.append('file', file);
-        if (this.currentCustomerId) formData.append('customer_id', this.currentCustomerId);
-        if (partyName) formData.append('party_name', partyName);
-
-        try {
-            api.toast(`⏳ Parsing TCS iON export (${file.name})...`, "info");
-            const res = await api.post('/integrations/tcsion/upload-ledger', formData);
-            
-            this.currentTcsLedgerData = res;
-            this.renderTcsLedgerTable(res);
-            api.toast(`✅ Successfully imported ${res.total_records || 0} vouchers from ${file.name}!`, "success");
-        } catch (err) {
-            console.error("TCS File Upload Error:", err);
-            api.toast(`Failed to parse TCS iON file: ${err.message}`, "error");
-        } finally {
-            inputEl.value = "";
         }
     }
 };
