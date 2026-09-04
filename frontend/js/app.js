@@ -3,12 +3,12 @@
  */
 const app = {
     currentView: 'dashboard',
-    currentTheme: 'dark',
+    currentTheme: 'light',
 
     async init() {
         console.log("Initializing Enterprise CTI + Customer Management CRM...");
 
-        // 1. Initialize Theme (from localStorage or default dark)
+        // 1. Initialize Theme (cookie first, fallback to localStorage, default light)
         this.initTheme();
 
         // 2. Initialize submodules
@@ -23,26 +23,69 @@ const app = {
         // 3. Bind Global Navigation & Actions
         this.bindGlobalEvents();
 
-        // 4. Check Authentication state
+        // 4. Auto-Login: Check saved session cookie / localStorage token
         const token = api.getToken();
 
         if (token) {
+            // Show a non-intrusive restoring indicator
+            this._showRestoringSession();
             try {
                 const user = await api.get('/auth/me');
-                api.setSession(token, user);
+                // Refresh cookie lifetime on successful restore
+                const rememberMe = api._getCookie(api.SESSION_COOKIE) !== null;
+                api.setSession(token, user, rememberMe);
+                this._hideRestoringSession();
                 this.hideLoginView();
                 this.updateUserVisuals(user);
                 this.switchView('dashboard');
+                if (typeof customer !== 'undefined' && typeof customer.loadCustomers === 'function') {
+                    customer.currentPage = 1;
+                    customer.loadCustomers();
+                }
                 cti.init();
+                api.toast(`Welcome back, ${user.full_name}!`, 'success', 2500);
             } catch (authErr) {
-                console.warn("Session check failed. Opening login modal:", authErr);
+                console.warn('Saved session expired or invalid — showing login:', authErr);
                 api.clearSession();
+                this._hideRestoringSession();
                 this.updateUserVisuals(null);
                 this.showLoginView();
             }
         } else {
             this.updateUserVisuals(null);
             this.showLoginView();
+        }
+    },
+
+    // ── Session Restore Indicator ─────────────────────────────────────────────
+    _showRestoringSession() {
+        if (document.getElementById('_session-restore-overlay')) return;
+        const el = document.createElement('div');
+        el.id = '_session-restore-overlay';
+        el.setAttribute('aria-live', 'polite');
+        el.style.cssText = [
+            'position:fixed', 'inset:0', 'z-index:9999999',
+            'background:var(--bg-canvas)', 'display:flex', 'flex-direction:column',
+            'align-items:center', 'justify-content:center', 'gap:1rem',
+            'font-family:Inter,sans-serif'
+        ].join(';');
+        el.innerHTML = `
+            <img src="/images/KOGM_LOgo.jpg" alt="KOGM" style="max-height:52px;border-radius:6px;background:#fff;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,.12);">
+            <div style="display:flex;align-items:center;gap:.6rem;color:var(--text-secondary);font-size:.875rem;font-weight:500;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" style="animation:spin 1s linear infinite;">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                Restoring your session&hellip;
+            </div>
+            <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+        document.body.appendChild(el);
+    },
+    _hideRestoringSession() {
+        const el = document.getElementById('_session-restore-overlay');
+        if (el) {
+            el.style.transition = 'opacity .25s';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 260);
         }
     },
 
@@ -65,9 +108,8 @@ const app = {
     },
 
     logout() {
-        api.clearSession();
-        localStorage.clear();
-        sessionStorage.clear();
+        api.clearSession();           // clears cookies + localStorage
+        try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
         this.updateUserVisuals(null);
         document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
         const drawer = document.getElementById('drawer-overlay');
@@ -78,10 +120,12 @@ const app = {
         // Reset login form fields
         const inpEmail = document.getElementById('inp-login-email');
         const inpPass = document.getElementById('inp-login-password');
+        const rememberChk = document.getElementById('chk-remember-me');
         if (inpEmail) inpEmail.value = '';
         if (inpPass) inpPass.value = '';
+        if (rememberChk) rememberChk.checked = true;
         this.showLoginView();
-        api.toast("You have been signed out successfully.", "info");
+        api.toast("Signed out. Session cookie cleared.", "info");
     },
 
     toggleAuthForm(type) {
@@ -108,24 +152,28 @@ const app = {
     async handleLoginSubmit(emailOverride, passOverride) {
         const email = emailOverride || document.getElementById('inp-login-email')?.value.trim();
         const password = passOverride || document.getElementById('inp-login-password')?.value.trim();
+        // Remember Me: checked by default; unchecked = session-only cookie
+        const rememberChk = document.getElementById('chk-remember-me');
+        const rememberMe = rememberChk ? rememberChk.checked : true;
 
         if (!email || !password) {
-            api.toast("Please enter your email address/username and password", "error");
+            api.toast("Please enter your Caller ID / Email and password", "error");
             return;
         }
 
         const btn = document.getElementById('btn-login-submit');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = `<span>Authenticating...</span>`;
+            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Authenticating&hellip;</span>`;
         }
 
         try {
             const data = await api.post('/auth/login', { email, password });
-            api.setSession(data.access_token, data.user);
+            api.setSession(data.access_token, data.user, rememberMe);
             this.hideLoginView();
             await this.updateUserVisuals(data.user);
-            api.toast(`Welcome back, ${data.user.full_name}! (${data.user.role.toUpperCase()})`, "success");
+            const sessionMsg = rememberMe ? ' Session saved for 30 days.' : ' Session-only (not saved).';
+            api.toast(`Welcome back, ${data.user.full_name}! (${data.user.role.toUpperCase()})${sessionMsg}`, "success", 4000);
 
             this.switchView('dashboard');
             if (typeof customer !== 'undefined' && typeof customer.loadCustomers === 'function') {
@@ -203,8 +251,33 @@ const app = {
         });
     },
 
+    getCookie(name) {
+        try {
+            const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
+            return match ? decodeURIComponent(match[1]) : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    setCookie(name, value, days = 365) {
+        try {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = `expires=${d.toUTCString()}`;
+            document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+        } catch (e) {
+            console.warn('Unable to persist cookie:', e);
+        }
+    },
+
     initTheme() {
-        const savedTheme = localStorage.getItem('crm_theme') || 'dark';
+        const cookieTheme = this.getCookie('crm_theme');
+        const localTheme = localStorage.getItem('crm_theme');
+        let savedTheme = cookieTheme || localTheme || 'light';
+        if (savedTheme !== 'dark' && savedTheme !== 'light') {
+            savedTheme = 'light';
+        }
         this.setTheme(savedTheme);
 
         const btnToggle = document.getElementById('btn-theme-toggle');
@@ -217,14 +290,18 @@ const app = {
     },
 
     setTheme(themeName) {
-        this.currentTheme = themeName;
-        document.documentElement.setAttribute('data-theme', themeName);
-        localStorage.setItem('crm_theme', themeName);
+        const validTheme = (themeName === 'dark') ? 'dark' : 'light';
+        this.currentTheme = validTheme;
+        document.documentElement.setAttribute('data-theme', validTheme);
+        this.setCookie('crm_theme', validTheme, 365);
+        try {
+            localStorage.setItem('crm_theme', validTheme);
+        } catch (e) {}
 
         const iconEl = document.getElementById('theme-toggle-icon');
         const labelEl = document.getElementById('theme-toggle-label');
         if (iconEl && labelEl) {
-            if (themeName === 'light') {
+            if (validTheme === 'light') {
                 iconEl.innerHTML = Icons.get('moon', { size: 14 });
                 labelEl.textContent = 'Dark';
             } else {
