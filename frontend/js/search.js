@@ -138,8 +138,8 @@ const search = {
                         <div class="search-item-info">
                             <div class="search-item-name">
                                 <span>${partyName}</span>
-                                <span class="badge badge-standard" style="font-size: 0.625rem;">${partyCode}</span>
-                                <span class="badge ${c.status === 'Active' ? 'badge-active' : 'badge-lead'}" style="font-size: 0.625rem;">${c.status}</span>
+                                <span class="badge badge-standard">${partyCode}</span>
+                                <span class="badge ${c.status === 'Active' ? 'badge-active' : 'badge-lead'}">${c.status}</span>
                             </div>
                             <div class="search-item-meta">
                                 <span style="color: var(--primary); font-weight: 600; font-variant-numeric: tabular-nums;">${phone1}</span>
@@ -149,7 +149,7 @@ const search = {
                             </div>
                         </div>
                         <div>
-                            <span class="badge badge-active" style="font-size: 0.625rem;">${matchTag}</span>
+                            <span class="badge badge-active">${matchTag}</span>
                         </div>
                     </div>
                 `;

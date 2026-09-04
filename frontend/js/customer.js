@@ -208,10 +208,10 @@ const customer = {
                                         ${this.escapeHtml(doc.filename)}
                                     </div>
                                     <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; margin-top: 0.2rem;">
-                                        <span class="badge badge-standard" style="font-size: 0.6875rem;">${this.escapeHtml(doc.category)}</span>
-                                        <span style="font-size: 0.6875rem; color: var(--text-muted);">${sizeStr}</span>
-                                        <span style="font-size: 0.6875rem; color: var(--text-muted);">${uploadDateStr}</span>
-                                        <span style="font-size: 0.6875rem; color: var(--text-muted);">${this.escapeHtml(uploadedByStr)}</span>
+                                        <span class="badge badge-standard">${this.escapeHtml(doc.category)}</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">${sizeStr}</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">${uploadDateStr}</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">${this.escapeHtml(uploadedByStr)}</span>
                                     </div>
                                     ${doc.description ? `
                                         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; font-style: italic;">
@@ -818,16 +818,16 @@ const customer = {
                         <span style="color: var(--text-muted);">${Icons.get('phone', { size: 14 })}</span>
                         <div style="min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <span style="font-weight: 600; font-size: 0.8125rem; color: ${isPrimary ? 'var(--primary)' : 'var(--text-primary)'}; font-variant-numeric: tabular-nums;">
+                                <span style="font-weight: 600; font-size: 0.875rem; color: ${isPrimary ? 'var(--primary)' : 'var(--text-primary)'}; font-variant-numeric: tabular-nums;">
                                     ${this.escapeHtml(p.phone_number)}
                                 </span>
                                 ${isPrimary ? `
-                                    <span class="badge badge-active" style="font-size: 0.625rem; padding: 0.05rem 0.3rem;">
+                                    <span class="badge badge-active" style="font-size: 0.72rem; padding: 0.08rem 0.35rem;">
                                         PRIMARY
                                     </span>
                                 ` : ''}
                             </div>
-                            <div style="font-size: 0.6875rem; color: var(--text-muted);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">
                                 ${this.escapeHtml(p.label || type)}
                             </div>
                         </div>
@@ -1352,8 +1352,8 @@ const customer = {
             badgeEl.textContent = isAdm ? 'Admin Master' : `${creds.name} (Employee)`;
             badgeEl.className = isAdm ? 'badge' : 'badge';
             badgeEl.style.cssText = isAdm 
-                ? 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.6875rem; font-weight: 700;' 
-                : 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.6875rem; font-weight: 700;';
+                ? 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.75rem; font-weight: 700;' 
+                : 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.75rem; font-weight: 700;';
         }
         if (toggleBtn) {
             toggleBtn.textContent = this.isTcsPassVisible ? 'Hide Pass' : 'Show Pass';

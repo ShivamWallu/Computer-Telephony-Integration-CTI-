@@ -141,7 +141,7 @@
 }
 
 html {
-    font-size: 14px;
+    font-size: 15px;
     -webkit-text-size-adjust: 100%;
 }
 
@@ -150,9 +150,10 @@ body {
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     background-color: var(--bg-canvas);
     color: var(--text-primary);
-    line-height: 1.5;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     min-height: 100vh;
     overflow-x: hidden;
     transition: background-color 0.2s ease, color 0.2s ease;
@@ -189,8 +190,8 @@ a:hover {
     height: 38px;
     padding: 0 1rem;
     font-family: inherit;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
     line-height: 1;
     border-radius: var(--radius-md);
     border: 1px solid transparent;
@@ -426,31 +427,31 @@ a:hover {
 
 /* Button Sizes */
 .btn-xs {
-    height: 26px;
-    padding: 0 0.5rem;
-    font-size: 0.75rem;
+    height: 28px;
+    padding: 0 0.6rem;
+    font-size: 0.78rem;
     border-radius: var(--radius-xs);
     gap: 0.3rem;
 }
 
 .btn-sm {
-    height: 32px;
-    padding: 0 0.75rem;
-    font-size: 0.8125rem;
+    height: 34px;
+    padding: 0 0.85rem;
+    font-size: 0.85rem;
     border-radius: var(--radius-sm);
     gap: 0.35rem;
 }
 
 .btn-md {
-    height: 38px;
-    padding: 0 1rem;
-    font-size: 0.875rem;
+    height: 40px;
+    padding: 0 1.15rem;
+    font-size: 0.92rem;
 }
 
 .btn-lg {
-    height: 44px;
-    padding: 0 1.35rem;
-    font-size: 0.9375rem;
+    height: 46px;
+    padding: 0 1.45rem;
+    font-size: 1rem;
     border-radius: var(--radius-lg);
     gap: 0.5rem;
 }
@@ -534,7 +535,7 @@ a:hover {
 }
 
 .brand-title {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: -0.01em;
     color: var(--text-primary);
@@ -542,7 +543,7 @@ a:hover {
 }
 
 .brand-subtitle {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     font-weight: 500;
     letter-spacing: 0.02em;
@@ -555,7 +556,7 @@ a:hover {
 }
 
 .nav-group-title {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     color: var(--text-muted);
     font-weight: 600;
@@ -567,19 +568,19 @@ a:hover {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
     margin-bottom: 1.25rem;
 }
 
 .nav-link {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.55rem 0.75rem;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
     border-radius: var(--radius-md);
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     font-weight: 500;
     transition: var(--transition);
     cursor: pointer;
@@ -600,8 +601,8 @@ a:hover {
 
 .nav-link svg,
 .nav-link .icon {
-    width: 17px;
-    height: 17px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
     color: inherit;
 }
@@ -610,8 +611,8 @@ a:hover {
     margin-left: auto;
     background: var(--bg-surface-elevated);
     color: var(--text-secondary);
-    font-size: 0.6875rem;
-    padding: 0.1rem 0.45rem;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
     border-radius: var(--radius-full);
     font-weight: 600;
     border: 1px solid var(--border-color);
@@ -658,7 +659,7 @@ a:hover {
 }
 
 .user-name {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
@@ -668,12 +669,11 @@ a:hover {
 
 .user-role-badge {
     display: inline-block;
-    font-size: 0.625rem;
-    font-weight: 600;
+    background: var(--primary-subtle);
+    color: var(--primary);
+    font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--primary);
-    background: var(--primary-subtle);
     padding: 0.05rem 0.35rem;
     border-radius: var(--radius-xs);
 }
@@ -753,9 +753,9 @@ a:hover {
     background: var(--bg-input);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    padding: 0.55rem 3.5rem 0.55rem 2.4rem;
+    padding: 0.6rem 3.5rem 0.6rem 2.5rem;
     border-radius: var(--radius-full);
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     outline: none;
     transition: var(--transition);
 }
@@ -778,9 +778,9 @@ a:hover {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-color);
     color: var(--text-muted);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    padding: 0.1rem 0.4rem;
+    padding: 0.15rem 0.45rem;
     border-radius: var(--radius-xs);
     font-family: inherit;
 }
@@ -885,14 +885,14 @@ a:hover {
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     border-radius: var(--radius-full);
-    padding: 0 0.75rem;
-    height: 32px;
+    padding: 0 0.85rem;
+    height: 34px;
     box-sizing: border-box;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     cursor: pointer;
     transition: var(--transition);
 }
@@ -909,13 +909,13 @@ a:hover {
 }
 
 .user-switcher-trigger {
-    height: 32px;
-    padding: 0 0.75rem;
+    height: 34px;
+    padding: 0 0.85rem;
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-full);
     color: var(--text-primary);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     display: inline-flex;
     align-items: center;

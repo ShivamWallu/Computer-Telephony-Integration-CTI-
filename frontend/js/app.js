@@ -391,7 +391,7 @@ const app = {
             if (activeName && currentUser) {
                 const isAdm = currentUser.role === 'admin';
                 const roleBadge = isAdm ? 'Admin' : 'Staff';
-                activeName.innerHTML = `${currentUser.full_name} <span class="badge ${isAdm ? 'badge-lead' : 'badge-active'}" style="font-size: 0.65rem; padding: 0.05rem 0.35rem; margin-left: 2px;">${roleBadge}</span>`;
+                activeName.innerHTML = `${currentUser.full_name} <span class="badge ${isAdm ? 'badge-lead' : 'badge-active'}" style="font-size: 0.72rem; padding: 0.08rem 0.4rem; margin-left: 4px;">${roleBadge}</span>`;
             }
 
             let html = '';
@@ -410,47 +410,47 @@ const app = {
                     const cid = adm.allowed_caller_id || adm.vid || '918065908540';
                     html += `
                         <div class="user-switcher-item ${isSelected ? 'active' : ''}" onclick="app.switchUserAccount('${adm.email}')">
-                            <div class="user-switcher-user-info">
-                                <div class="user-switcher-avatar admin">${initials}</div>
-                                <div class="user-switcher-meta">
-                                    <div class="user-switcher-name">
-                                        ${adm.full_name}
-                                        <span class="badge badge-lead" style="font-size: 0.625rem; padding: 0.05rem 0.3rem; margin-left: 3px;">Admin</span>
-                                    </div>
-                                    <div class="user-switcher-sub">
-                                        <span>DID: <strong>${cid}</strong></span>
-                                        <span>•</span>
-                                        <span>${adm.email}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            ${isSelected ? `<span style="color: var(--success); font-weight: bold; font-size: 0.875rem;">✓</span>` : ''}
-                        </div>
-                    `;
-                });
-            }
+                             <div class="user-switcher-user-info">
+                                 <div class="user-switcher-avatar admin">${initials}</div>
+                                 <div class="user-switcher-meta">
+                                     <div class="user-switcher-name">
+                                         ${adm.full_name}
+                                         <span class="badge badge-lead" style="font-size: 0.72rem; padding: 0.08rem 0.35rem; margin-left: 4px;">Admin</span>
+                                     </div>
+                                     <div class="user-switcher-sub">
+                                         <span>DID: <strong>${cid}</strong></span>
+                                         <span>•</span>
+                                         <span>${adm.email}</span>
+                                     </div>
+                                 </div>
+                             </div>
+                             ${isSelected ? `<span style="color: var(--success); font-weight: bold; font-size: 0.875rem;">✓</span>` : ''}
+                         </div>
+                     `;
+                 });
+             }
 
-            // 2. Smartflo Telephony Staff Section
-            if (staff.length > 0) {
-                html += `
-                    <div class="user-switcher-group-label" style="border-top: 1px solid var(--border-color); margin-top: 0.35rem; padding-top: 0.5rem;">
-                        <svg class="icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                        <span>Smartflo Telephony Staff</span>
-                    </div>
-                `;
-                staff.forEach(emp => {
-                    const isSelected = currentUser && currentUser.email === emp.email;
-                    const initials = emp.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                    const cid = emp.allowed_caller_id || emp.vid || 'N/A';
-                    html += `
-                        <div class="user-switcher-item ${isSelected ? 'active' : ''}" onclick="app.switchUserAccount('${emp.email}')">
-                            <div class="user-switcher-user-info">
-                                <div class="user-switcher-avatar staff">${initials}</div>
-                                <div class="user-switcher-meta">
-                                    <div class="user-switcher-name">
-                                        ${emp.full_name}
-                                        <span class="badge badge-active" style="font-size: 0.625rem; padding: 0.05rem 0.3rem; margin-left: 3px;">${emp.designation || 'Staff'}</span>
-                                    </div>
+             // 2. Smartflo Telephony Staff Section
+             if (staff.length > 0) {
+                 html += `
+                     <div class="user-switcher-group-label" style="border-top: 1px solid var(--border-color); margin-top: 0.35rem; padding-top: 0.5rem;">
+                         <svg class="icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                         <span>Smartflo Telephony Staff</span>
+                     </div>
+                 `;
+                 staff.forEach(emp => {
+                     const isSelected = currentUser && currentUser.email === emp.email;
+                     const initials = emp.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                     const cid = emp.allowed_caller_id || emp.vid || 'N/A';
+                     html += `
+                         <div class="user-switcher-item ${isSelected ? 'active' : ''}" onclick="app.switchUserAccount('${emp.email}')">
+                             <div class="user-switcher-user-info">
+                                 <div class="user-switcher-avatar staff">${initials}</div>
+                                 <div class="user-switcher-meta">
+                                     <div class="user-switcher-name">
+                                         ${emp.full_name}
+                                         <span class="badge badge-active" style="font-size: 0.72rem; padding: 0.08rem 0.35rem; margin-left: 4px;">${emp.designation || 'Staff'}</span>
+                                     </div>
                                     <div class="user-switcher-sub">
                                         <span>DID: <strong>${cid}</strong></span>
                                         <span>•</span>
@@ -899,7 +899,7 @@ const app = {
                                     <td><span style="font-family: monospace; font-size: 0.75rem;" title="UUID: ${c.uuid || c.call_id}">${(c.call_id || 'CALL').substring(0, 14)}</span></td>
                                     <td>${dirBadge}</td>
                                     <td><strong style="color: var(--primary); font-variant-numeric: tabular-nums;">${c.phone_number}</strong></td>
-                                    <td><span class="badge badge-standard" style="font-size: 0.6875rem;">${vid}</span></td>
+                                    <td><span class="badge badge-standard">${vid}</span></td>
                                     <td>
                                         ${custName && custId ? `
                                             <a href="#" onclick="customer.openDrawer(${custId}); return false;" style="color: var(--text-primary); font-weight: 600;">${custName}</a>
@@ -907,8 +907,8 @@ const app = {
                                     </td>
                                     <td>${statusBadge}</td>
                                     <td><span style="font-variant-numeric: tabular-nums;">${durationFormatted}</span></td>
-                                    <td><span class="text-muted" style="font-size: 0.75rem;">${this.formatDateTime(c.start_time)}</span></td>
-                                    <td><span style="font-size: 0.75rem; font-weight: 500;">${agentName}</span></td>
+                                    <td><span class="text-muted" style="font-size: 0.8125rem;">${this.formatDateTime(c.start_time)}</span></td>
+                                    <td><span style="font-size: 0.8125rem; font-weight: 500;">${agentName}</span></td>
                                     <td>
                                         <div style="display: flex; gap: 0.35rem; align-items: center;">
                                             ${custId ? `
@@ -937,7 +937,7 @@ const app = {
             const streamList = document.getElementById('dashboard-recent-stream');
             if (streamList && stats.recent_activity) {
                 if (stats.recent_activity.length === 0) {
-                    streamList.innerHTML = `<p class="text-muted" style="font-size: 0.8125rem; padding: 1rem 0;">No recent activity logs.</p>`;
+                    streamList.innerHTML = `<p class="text-muted" style="font-size: 0.875rem; padding: 1rem 0;">No recent activity logs.</p>`;
                 } else {
                     streamList.innerHTML = stats.recent_activity.map(a => {
                         const iconType = a.type === 'call' ? 'phone' : (a.type === 'email' ? 'mail' : 'file-text');
@@ -948,10 +948,10 @@ const app = {
                                 </div>
                                 <div class="timeline-body">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <strong style="color: var(--text-primary); font-size: 0.8125rem;">${a.title}</strong>
-                                        <span class="text-muted" style="font-size: 0.6875rem;">${this.formatDateTime(a.time)}</span>
+                                        <strong style="color: var(--text-primary); font-size: 0.875rem;">${a.title}</strong>
+                                        <span class="text-muted" style="font-size: 0.75rem;">${this.formatDateTime(a.time)}</span>
                                     </div>
-                                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem;">
+                                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.15rem;">
                                         ${a.customer_name ? `<span style="color: var(--primary); font-weight: 600;">${a.customer_name}:</span> ` : ''}${a.description}
                                     </div>
                                 </div>
@@ -1273,20 +1273,20 @@ const app = {
 
             return `
                 <tr>
-                    <td><span style="font-family: monospace; font-size: 0.75rem;" title="UUID: ${c.uuid || c.call_id}">${(c.call_id || 'CALL').substring(0, 14)}</span></td>
+                    <td><span style="font-family: monospace; font-size: 0.8125rem;" title="UUID: ${c.uuid || c.call_id}">${(c.call_id || 'CALL').substring(0, 14)}</span></td>
                     <td>${dirBadge}</td>
                     <td><strong style="color: var(--primary); font-variant-numeric: tabular-nums;">${c.phone_number}</strong></td>
-                    <td><span class="badge badge-standard" style="font-size: 0.6875rem;">${vid}</span></td>
+                    <td><span class="badge badge-standard">${vid}</span></td>
                     <td>
                         ${custName && custId ? `
                             <a href="#" onclick="customer.openDrawer(${custId}); return false;" style="color: var(--text-primary); font-weight: 600;">${custName}</a>
-                            <div style="font-size: 0.6875rem; color: var(--text-muted);">${c.customer?.city || ''}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">${c.customer?.city || ''}</div>
                         ` : `<span class="text-muted">Unlinked Contact</span>`}
                     </td>
                     <td>${statusBadge}</td>
                     <td><span style="font-variant-numeric: tabular-nums;">${durationFormatted}</span></td>
-                    <td><span class="text-muted" style="font-size: 0.75rem;">${this.formatDateTime(c.start_time)}</span></td>
-                    <td><span style="font-size: 0.75rem; font-weight: 500;">${agentName}</span></td>
+                    <td><span class="text-muted" style="font-size: 0.8125rem;">${this.formatDateTime(c.start_time)}</span></td>
+                    <td><span style="font-size: 0.8125rem; font-weight: 500;">${agentName}</span></td>
                     <td>
                         <div style="display: flex; gap: 0.35rem; align-items: center;">
                             <button class="btn btn-secondary btn-xs" onclick="cti.initiateDirectCall('${c.phone_number}', ${custId || 'null'}, '${custName ? custName.replace(/'/g, "\\'") : ''}')" title="Direct Outbound Call" style="display: inline-flex; align-items: center; gap: 3px; font-weight: 500; color: var(--success);">
@@ -1472,12 +1472,12 @@ const app = {
             <tr>
                 <td style="font-weight: 600; color: var(--text-secondary);">1</td>
                 <td>
-                    <strong style="color: var(--text-primary); font-size: 0.8125rem;">${this.escapeHtml(token.token_name)}</strong>
-                    <div style="font-size: 0.6875rem; color: var(--text-muted);">Tata Smartflo REST Trunk</div>
+                    <strong style="color: var(--text-primary); font-size: 0.875rem;">${this.escapeHtml(token.token_name)}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Tata Smartflo REST Trunk</div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; gap: 0.4rem;">
-                        <code id="smartflo-token-display-code" style="font-family: monospace; font-size: 0.75rem; background: var(--bg-surface); padding: 0.2rem 0.5rem; border-radius: var(--radius-xs); border: 1px solid var(--border-color); color: var(--primary); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(displayToken)}</code>
+                        <code id="smartflo-token-display-code" style="font-family: monospace; font-size: 0.8125rem; background: var(--bg-surface); padding: 0.2rem 0.5rem; border-radius: var(--radius-xs); border: 1px solid var(--border-color); color: var(--primary); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(displayToken)}</code>
                         <button class="btn btn-secondary btn-xs" onclick="app.toggleSmartfloTokenVisibility()" title="${this.isSmartfloTokenRevealed ? 'Hide Token' : 'Reveal Token'}" style="padding: 2px 6px;">
                             ${this.isSmartfloTokenRevealed ? Icons.get('eye-off', { size: 12 }) : Icons.get('eye', { size: 12 })}
                         </button>
@@ -1748,12 +1748,12 @@ const app = {
                         <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #B45309; display: flex; align-items: center; gap: 4px;">
                             🏆 Top Performer
                         </span>
-                        <span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #B45309; font-size: 0.68rem; font-weight: 700;">Rank #1</span>
+                        <span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #B45309; font-size: 0.75rem; font-weight: 700;">Rank #1</span>
                     </div>
                     <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${topPerf ? topPerf.name : 'Team Activity Pending'}">
                         ${topPerf ? topPerf.name : 'N/A'}
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <div style="font-size: 0.8125rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                         <span style="color: var(--success); font-weight: 600;">${topPerf ? topPerf.connected_calls : 0} Connected</span>
                         <span>•</span>
                         <span>${topPerf ? topPerf.connect_rate : 100}% Rate</span>
@@ -1765,15 +1765,15 @@ const app = {
                 <!-- Total Today Calls -->
                 <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                        <span style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
                             Total Calls Today
                         </span>
-                        <span class="badge badge-standard" style="font-size: 0.68rem;">Today</span>
+                        <span class="badge badge-standard" style="font-size: 0.75rem;">Today</span>
                     </div>
                     <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">
                         ${totalCalls}
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                    <div style="font-size: 0.8125rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
                         <span style="color: var(--primary); font-weight: 600;">${outCalls} Outbound</span>
                         <span>•</span>
                         <span style="color: #0891b2; font-weight: 600;">${inCalls} Inbound</span>
@@ -1783,15 +1783,15 @@ const app = {
                 <!-- Connected Calls & Rate -->
                 <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                        <span style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--success);">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--success);">
                             Connected Calls
                         </span>
-                        <span class="badge badge-active" style="font-size: 0.68rem;">${connRate}% Rate</span>
+                        <span class="badge badge-active" style="font-size: 0.75rem;">${connRate}% Rate</span>
                     </div>
                     <div style="font-size: 1.4rem; font-weight: 700; color: var(--success); margin-bottom: 0.2rem;">
                         ${connCalls}
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                    <div style="font-size: 0.8125rem; color: var(--text-secondary);">
                         <span style="color: var(--success); font-weight: 600;">${connCalls} answered</span> out of ${totalCalls} calls
                     </div>
                 </div>
@@ -1799,15 +1799,15 @@ const app = {
                 <!-- Missed / Incomplete -->
                 <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                        <span style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--danger);">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--danger);">
                             Missed / Unanswered
                         </span>
-                        <span class="badge badge-overdue" style="font-size: 0.68rem;">Attention</span>
+                        <span class="badge badge-overdue" style="font-size: 0.75rem;">Attention</span>
                     </div>
                     <div style="font-size: 1.4rem; font-weight: 700; color: var(--danger); margin-bottom: 0.2rem;">
                         ${missedCalls}
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                    <div style="font-size: 0.8125rem; color: var(--text-secondary);">
                         ${missedCalls > 0 ? 'Requires follow-up / redial' : 'Zero missed calls today'}
                     </div>
                 </div>
@@ -1815,12 +1815,12 @@ const app = {
                 <!-- Most vs Least Calls Split -->
                 <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                        <span style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
                             Activity Spread
                         </span>
-                        <span class="badge badge-standard" style="font-size: 0.68rem;">Spread</span>
+                        <span class="badge badge-standard" style="font-size: 0.75rem;">Spread</span>
                     </div>
-                    <div style="font-size: 0.78rem; line-height: 1.4; color: var(--text-primary);">
+                    <div style="font-size: 0.8125rem; line-height: 1.4; color: var(--text-primary);">
                         <div style="margin-bottom: 0.3rem; display: flex; align-items: center; justify-content: space-between;">
                             <span style="color: var(--primary); font-weight: 600;">🔝 Most:</span>
                             <span style="font-weight: 700;">${mostCalls ? `${mostCalls.name.split(' ')[0]} (${mostCalls.count})` : 'N/A'}</span>

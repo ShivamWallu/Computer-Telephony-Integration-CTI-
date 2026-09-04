@@ -324,12 +324,12 @@ const cti = {
                         <span class="pulse-ring"></span>
                         <span id="cti-status-label-${callKey}">${isOutgoing ? 'LIVE OUTBOUND' : 'LIVE INCOMING'}</span>
                     </div>
-                    <span class="badge badge-standard" style="font-size: 0.6875rem;" title="${isOutgoing ? 'Calling via Configured DID' : 'Dialed DID / Virtual Number'}">
+                    <span class="badge badge-standard" style="font-size: 0.75rem;" title="${isOutgoing ? 'Calling via Configured DID' : 'Dialed DID / Virtual Number'}">
                         ${vid}
                     </span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="font-size: 0.72rem; color: var(--text-muted);" title="Call Start Time">${callTimeDisplay}</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);" title="Call Start Time">${callTimeDisplay}</span>
                     <div id="cti-timer-${callKey}" style="font-size: 0.875rem; font-weight: 700; color: var(--warning); font-variant-numeric: tabular-nums; background: var(--warning-subtle); padding: 0.1rem 0.4rem; border-radius: var(--radius-xs); border: 1px solid rgba(245, 158, 11, 0.25);">
                         ${currentTimerText}
                     </div>
@@ -338,7 +338,7 @@ const cti = {
             </div>
 
             <!-- DID / Routing Metadata Banner -->
-            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface-elevated); padding: 0.3rem 0.55rem; border-radius: var(--radius-xs); font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.65rem; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface-elevated); padding: 0.35rem 0.65rem; border-radius: var(--radius-xs); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.65rem; border: 1px solid var(--border-color);">
                 <span style="display: inline-flex; align-items: center; gap: 4px;">📡 ${operatorCircle}</span>
                 <span style="font-weight: 600; color: var(--primary);">👤 Agent: ${assignedEmployee}</span>
             </div>
@@ -1077,19 +1077,19 @@ const cti = {
                         <div class="${avatarClass}" style="width: 28px; height: 28px; font-size: 0.72rem;">${staff.avatar}</div>
                         <div style="min-width: 0; text-align: left;">
                             <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <strong style="font-size: 0.8125rem; color: var(--text-primary);">${staff.name}</strong>
-                                <span class="${roleBadgeClass}" style="font-size: 0.625rem; padding: 0.05rem 0.3rem;">${staff.role}</span>
+                                <strong style="font-size: 0.875rem; color: var(--text-primary);">${staff.name}</strong>
+                                <span class="${roleBadgeClass}" style="font-size: 0.72rem; padding: 0.08rem 0.35rem;">${staff.role}</span>
                             </div>
-                            <div style="font-size: 0.6875rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 ${staff.email}
                             </div>
                         </div>
                     </div>
                     <div style="text-align: right; flex-shrink: 0; margin-left: 0.5rem;">
-                        <div style="font-size: 0.75rem; font-weight: 700; color: ${isSelected ? 'var(--success)' : 'var(--text-primary)'}; font-variant-numeric: tabular-nums;">
+                        <div style="font-size: 0.8125rem; font-weight: 700; color: ${isSelected ? 'var(--success)' : 'var(--text-primary)'}; font-variant-numeric: tabular-nums;">
                             ${staff.vid}
                         </div>
-                        ${isSelected ? '<span style="font-size: 0.6875rem; color: var(--success); font-weight: 700;">✓ Selected</span>' : ''}
+                        ${isSelected ? '<span style="font-size: 0.75rem; color: var(--success); font-weight: 700;">✓ Selected</span>' : ''}
                     </div>
                 </div>
             `;

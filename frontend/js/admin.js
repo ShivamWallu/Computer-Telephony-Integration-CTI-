@@ -224,20 +224,20 @@ const admin = {
                 <tr>
                     <td>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.6875rem;">
+                            <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.75rem;">
                                 ${initials}
                             </div>
                             <div>
                                 <div style="font-weight: 600; color: var(--text-primary);">${emp.full_name}</div>
-                                <div style="font-size: 0.72rem; color: var(--text-muted);">${emp.email}</div>
+                                <div style="font-size: 0.78rem; color: var(--text-muted);">${emp.email}</div>
                             </div>
                         </div>
                     </td>
                     <td>
-                        <span style="font-family: monospace; font-size: 0.75rem; font-weight: 500; color: var(--text-secondary);">${phone}</span>
+                        <span style="font-family: monospace; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary);">${phone}</span>
                     </td>
                     <td>
-                        <span class="badge badge-standard" style="font-size: 0.6875rem;">
+                        <span class="badge badge-standard">
                             ${allowedCid}
                         </span>
                     </td>
@@ -436,36 +436,36 @@ const admin = {
                     </td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-subtle); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 700; flex-shrink: 0;">
+                            <div style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-subtle); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">
                                 ${initials}
                             </div>
                             <div>
-                                <strong style="color: var(--text-primary); font-size: 0.8125rem;">${userName}</strong>
-                                ${userEmail ? `<div style="font-size: 0.6875rem; color: var(--text-muted); line-height: 1.2;">${userEmail}</div>` : ''}
+                                <strong style="color: var(--text-primary); font-size: 0.875rem;">${userName}</strong>
+                                ${userEmail ? `<div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.2;">${userEmail}</div>` : ''}
                             </div>
                         </div>
                     </td>
                     <td>
-                        <span class="badge ${roleBadgeClass}" style="font-size: 0.6875rem; font-weight: 600; padding: 0.15rem 0.45rem;">
+                        <span class="badge ${roleBadgeClass}" style="font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.5rem;">
                             ${userRole}
                         </span>
                     </td>
                     <td>
-                        <span class="badge ${badgeClass}" style="font-size: 0.72rem; font-weight: 600;">
+                        <span class="badge ${badgeClass}" style="font-size: 0.75rem; font-weight: 600;">
                             ${actionLabel}
                         </span>
                     </td>
                     <td>
-                        <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-primary);">
+                        <span style="font-size: 0.8125rem; font-weight: 500; color: var(--text-primary);">
                             ${(l.entity_type || '').toUpperCase()} ${l.entity_id ? `(#${l.entity_id})` : ''}
                         </span>
                     </td>
                     <td>
-                        <span class="badge badge-active" style="font-size: 0.6875rem; font-weight: 600;">
+                        <span class="badge badge-active" style="font-size: 0.75rem; font-weight: 600;">
                             ${status}
                         </span>
                     </td>
-                    <td style="font-size: 0.72rem; color: var(--text-muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${detailsText}">
+                    <td style="font-size: 0.78rem; color: var(--text-muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${detailsText}">
                         ${detailsText}
                     </td>
                 </tr>
