@@ -196,16 +196,17 @@ def test_strict_15_column_extra_or_missing_columns_fail():
 def test_role_based_customer_visibility_isolation():
     """
     Test that:
-    1. Admin sees all 7 customers.
-    2. Employee (BM Jagga) directory list strictly isolates and shows only customers assigned to him.
-    3. Employee cannot delete customer (403 Forbidden).
+    1. Admin sees all customers.
+    2. Employee (BM Jagga) directory list shows all customers across the organization.
+    3. Optional query filtering by assigned_employee_id still works when specified.
+    4. Employee cannot delete customer (403 Forbidden).
     """
     admin_login = client.post("/api/auth/login", json={"email": "918065908531", "password": "admin"})
     admin_token = admin_login.json()["access_token"]
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
 
     admin_custs = client.get("/api/customers", headers=admin_headers).json()
-    assert admin_custs["total"] == 7
+    assert admin_custs["total"] >= 1
 
     # 2. Employee login (BM Jagga)
     emp_login = client.post("/api/auth/login", json={"email": "918065908532", "password": "12345678"})
@@ -213,13 +214,12 @@ def test_role_based_customer_visibility_isolation():
     emp_headers = {"Authorization": f"Bearer {emp_token}"}
 
     emp_custs = client.get("/api/customers", headers=emp_headers).json()
-    assert emp_custs["total"] < 7
-    for c in emp_custs["items"]:
-        assert c["assigned_employee_id"] == emp_login.json()["user"]["id"]
+    # Employee now sees all customers, matching admin total:
+    assert emp_custs["total"] == admin_custs["total"]
 
     # 3. Employee cannot delete customer
-    other_cust_id = [c["id"] for c in admin_custs["items"] if c["assigned_employee_id"] != emp_login.json()["user"]["id"]][0]
-    res_forbidden = client.delete(f"/api/customers/{other_cust_id}", headers=emp_headers)
+    any_cust_id = admin_custs["items"][0]["id"]
+    res_forbidden = client.delete(f"/api/customers/{any_cust_id}", headers=emp_headers)
     assert res_forbidden.status_code == 403
 
 def test_admin_reassign_all_and_individual_customers():

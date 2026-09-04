@@ -18,6 +18,7 @@ const app = {
         excelImport.init();
         followups.init();
         admin.init();
+        if (typeof intelligence !== 'undefined') intelligence.init();
 
         // 3. Bind Global Navigation & Actions
         this.bindGlobalEvents();
@@ -581,6 +582,8 @@ const app = {
             this.refreshDashboard();
         } else if (viewName === 'customers') {
             customer.loadCustomers();
+        } else if (viewName === 'intelligence') {
+            if (typeof intelligence !== 'undefined') intelligence.loadIntelligence();
         } else if (viewName === 'followups') {
             followups.loadFollowups();
         } else if (viewName === 'calls') {

@@ -275,9 +275,12 @@ const admin = {
 
         try {
             const employees = await api.get('/employees');
-            sel.innerHTML = employees.map(e => `
-                <option value="${e.id}">${e.full_name} (${e.role.toUpperCase()})</option>
-            `).join('');
+            sel.innerHTML = `
+                <option value="0">All Employees (Shared Pool / Universal Access)</option>
+                ${employees.map(e => `
+                    <option value="${e.id}">${e.full_name} (${(e.role || 'Staff').toUpperCase()})</option>
+                `).join('')}
+            `;
         } catch (err) {
             console.error("Could not populate employee dropdown:", err);
         }
@@ -311,16 +314,12 @@ const admin = {
     },
 
     async executeReassignment() {
-        const targetId = parseInt(document.getElementById('reassign-target-employee')?.value);
+        const rawTargetId = document.getElementById('reassign-target-employee')?.value;
+        const targetId = parseInt(rawTargetId);
         const scope = document.getElementById('reassign-scope')?.value || 'all';
 
-        if (!targetId) {
-            api.toast("Please select a target employee", "error");
-            return;
-        }
-
         let payload = {
-            target_employee_id: targetId,
+            target_employee_id: (isNaN(targetId) || targetId === 0) ? null : targetId,
             reassign_scope: scope
         };
 
@@ -336,7 +335,7 @@ const admin = {
         try {
             const res = await api.post('/employees/reassign-customers', payload);
 
-            api.toast(res.message || `Successfully reassigned customers to ${res.assigned_to}! Email sent.`, "success");
+            api.toast(res.message || `Successfully assigned customers to ${res.assigned_to}!`, "success");
             
             // Auto-reset all reassignment selection fields & dropdowns to clean default state
             const scopeSelect = document.getElementById('reassign-scope');

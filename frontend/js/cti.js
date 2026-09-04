@@ -106,6 +106,10 @@ const cti = {
                         this.handleIncomingCallEvent(data);
                     } else if (data.event === 'call_ended') {
                         this.handleCallEndedEvent(data);
+                    } else if (data.event === 'customer_rating_updated') {
+                        if (typeof intelligence !== 'undefined' && typeof intelligence.handleLiveRatingUpdate === 'function') {
+                            intelligence.handleLiveRatingUpdate(data);
+                        }
                     }
                 } catch (e) {
                     // Ignore heartbeat comments

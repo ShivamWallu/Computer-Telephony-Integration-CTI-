@@ -90,6 +90,35 @@ def ensure_schema_columns(target_engine):
                     if col_name not in call_cols:
                         conn.execute(text(f"ALTER TABLE calls ADD COLUMN {col_name} {col_type}"))
                 conn.commit()
+
+            # 3. customers table (Customer Intelligence)
+            if "customers" in tables:
+                cust_cols = [c["name"] for c in inspector.get_columns("customers")]
+                if "rating" not in cust_cols:
+                    conn.execute(text("ALTER TABLE customers ADD COLUMN rating INTEGER DEFAULT 0"))
+                if "category" not in cust_cols:
+                    conn.execute(text("ALTER TABLE customers ADD COLUMN category VARCHAR(50) DEFAULT 'Regular'"))
+                conn.commit()
+
+            # 4. customer_rating_history table
+            if "customer_rating_history" not in tables:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS customer_rating_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        customer_id INTEGER NOT NULL,
+                        previous_rating INTEGER,
+                        new_rating INTEGER NOT NULL,
+                        previous_category VARCHAR(50),
+                        new_category VARCHAR(50) NOT NULL,
+                        user_id INTEGER,
+                        notes TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_cust_rating_hist_cust ON customer_rating_history(customer_id, created_at)"))
+                conn.commit()
     except Exception as e:
         logger.warning(f"Schema column check: {e}")
 

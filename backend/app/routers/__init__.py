@@ -10,6 +10,7 @@ from backend.app.routers.imports import router as imports_router
 from backend.app.routers.audit import router as audit_router
 from backend.app.routers.documents import router as documents_router
 from backend.app.routers.integrations import router as integrations_router
+from backend.app.routers.intelligence import router as intelligence_router
 
 __all__ = [
     "auth_router",
@@ -23,5 +24,6 @@ __all__ = [
     "imports_router",
     "audit_router",
     "documents_router",
-    "integrations_router"
+    "integrations_router",
+    "intelligence_router"
 ]

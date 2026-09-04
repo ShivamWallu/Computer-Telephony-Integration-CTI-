@@ -191,8 +191,8 @@ const customer = {
 
             listEl.innerHTML = displayDocs.map(doc => {
                 const sizeKb = (doc.file_size_bytes / 1024).toFixed(1);
-                const sizeStr = doc.file_size_bytes >= 1024 * 1024 
-                    ? `${(doc.file_size_bytes / (1024 * 1024)).toFixed(2)} MB` 
+                const sizeStr = doc.file_size_bytes >= 1024 * 1024
+                    ? `${(doc.file_size_bytes / (1024 * 1024)).toFixed(2)} MB`
                     : `${sizeKb} KB`;
 
                 const uploadDateStr = app.formatDateTime(doc.created_at);
@@ -291,7 +291,7 @@ const customer = {
     async previewDocument(docId, filename = 'document') {
         if (!this.currentCustomerId || !docId) return;
         const token = api.getToken() || localStorage.getItem('crm_access_token') || localStorage.getItem('access_token');
-        
+
         try {
             api.toast(`Opening preview for '${filename}'...`, "info");
             const url = `/api/customers/${this.currentCustomerId}/documents/${docId}/preview` + (token ? `?token=${encodeURIComponent(token)}` : '');
@@ -317,7 +317,7 @@ const customer = {
     async downloadDocument(docId, filename = 'document') {
         if (!this.currentCustomerId || !docId) return;
         const token = api.getToken() || localStorage.getItem('crm_access_token') || localStorage.getItem('access_token');
-        
+
         try {
             api.toast(`Downloading '${filename}'...`, "info");
             const url = `/api/customers/${this.currentCustomerId}/documents/${docId}/download` + (token ? `?token=${encodeURIComponent(token)}` : '');
@@ -581,13 +581,13 @@ const customer = {
             if (status) url += `&status=${encodeURIComponent(status)}`;
 
             const data = await api.get(url);
-            
+
             const totalFormatted = (window.app && typeof app.formatFullNumber === 'function') ? app.formatFullNumber(data.total) : data.total;
             const startNum = data.items.length > 0 ? ((data.page - 1) * this.limit + 1) : 0;
             const endNum = Math.min(data.page * this.limit, data.total);
-            document.getElementById('customers-pagination-info').textContent = 
+            document.getElementById('customers-pagination-info').textContent =
                 `Showing ${startNum} to ${endNum} of ${totalFormatted} customers (Page ${data.page} of ${data.total_pages})`;
-            
+
             const badge = document.getElementById('nav-badge-customers');
             if (badge) {
                 badge.textContent = (window.app && typeof app.formatNumberDisplay === 'function') ? app.formatNumberDisplay(data.total) : data.total;
@@ -607,7 +607,7 @@ const customer = {
                 const phone1 = c.phone_1 || c.mobile;
                 const emailId = c.email_id_1 || c.email || '—';
                 const contactPerson = c.contact_person_1 || '—';
-                
+
                 return `
                     <tr style="cursor: pointer;" onclick="customer.openDrawer(${c.id})">
                         <td><span class="badge badge-standard">${partyCode}</span></td>
@@ -669,7 +669,7 @@ const customer = {
         setVal('drawer-cust-name', partyName);
         setVal('drawer-cust-contact', `Contact: ${contactPerson}`);
         setVal('drawer-cust-location', location);
-        
+
         // 15 Standardized Fields
         setVal('drawer-cust-party-code', partyCode);
         setVal('drawer-cust-party-name', partyName);
@@ -690,6 +690,34 @@ const customer = {
         const statusBadge = document.getElementById('drawer-cust-status-badge');
         if (statusBadge) {
             statusBadge.innerHTML = `<span class="badge ${cust.status === 'Active' ? 'badge-active' : 'badge-lead'}">${cust.status || 'Active'}</span>`;
+        }
+
+        // Render Customer Rating Badge in Drawer Header
+        const ratingBadgeEl = document.getElementById('drawer-cust-rating-badge');
+        if (ratingBadgeEl) {
+            const r = Math.max(0, Math.min(5, parseInt(cust.rating, 10) || 0));
+            const ratingLabels = { 0: 'Not Rated', 1: 'Needs Attention', 2: 'Growth Potential', 3: 'Good', 4: 'Premium', 5: 'Top Customer' };
+            const ratingColors = { 0: '#94A3B8', 1: '#EF4444', 2: '#F97316', 3: '#EAB308', 4: '#3B82F6', 5: '#10B981' };
+            const ratingBgColors = { 0: 'rgba(148,163,184,0.1)', 1: 'rgba(239,68,68,0.08)', 2: 'rgba(249,115,22,0.08)', 3: 'rgba(234,179,8,0.1)', 4: 'rgba(59,130,246,0.08)', 5: 'rgba(16,185,129,0.1)' };
+            const color = ratingColors[r] || '#94A3B8';
+            const bg = ratingBgColors[r] || 'rgba(148,163,184,0.1)';
+            const label = (cust.category && r > 0) ? cust.category : (ratingLabels[r] || 'Not Rated');
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= r) {
+                    starsHtml += `<svg width="15" height="15" viewBox="0 0 24 24" style="fill: #F59E0B; stroke: #F59E0B; stroke-width: 1px; filter: drop-shadow(0 0 4px rgba(245,158,11,0.45)); flex-shrink: 0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                } else {
+                    starsHtml += `<svg width="15" height="15" viewBox="0 0 24 24" style="fill: rgba(245, 158, 11, 0.04); stroke: #F59E0B; stroke-width: 1.8px; opacity: 0.85; flex-shrink: 0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                }
+            }
+            ratingBadgeEl.innerHTML = `
+                <div style="display: inline-flex; align-items: center; gap: 0.45rem; background: ${bg}; border: 1.5px solid ${color}25; border-radius: 8px; padding: 4px 10px;">
+                    <div style="display: flex; align-items: center; gap: 2px;">${starsHtml}</div>
+                    <div style="width: 1px; height: 14px; background: ${color}30; margin: 0 1px;"></div>
+                    <span style="font-size: 0.78rem; font-weight: 800; color: ${color};">${r > 0 ? r + '.0' : '—'}</span>
+                    <span style="font-size: 0.7rem; font-weight: 700; color: ${color}; background: ${color}18; border-radius: 4px; padding: 1px 5px; letter-spacing: 0.02em;">${label.toUpperCase()}</span>
+                </div>
+            `;
         }
 
         // Render Multiple Phone Numbers List
@@ -888,13 +916,13 @@ const customer = {
             const cust = await api.get(`/customers/${customerId}`);
             this.populateDrawerFields(cust);
             this.loadTimeline(customerId, this.currentTimelineFilter);
-            
+
             api.get(`/customers/${customerId}/documents`).then(docs => {
                 const tabCount = document.getElementById('drawer-docs-count');
                 const badgeCount = document.getElementById('drawer-docs-badge-count');
                 if (tabCount) tabCount.textContent = docs.length;
                 if (badgeCount) badgeCount.textContent = `${docs.length} Files`;
-            }).catch(() => {});
+            }).catch(() => { });
         } catch (err) {
             console.warn("Could not fetch customer details from /customers/" + customerId, err);
             this.loadTimeline(customerId, this.currentTimelineFilter);
@@ -1159,7 +1187,7 @@ const customer = {
             document.getElementById('inp-cust-city').value = cust.city || '';
             document.getElementById('inp-cust-pincode').value = cust.pincode || '';
             document.getElementById('inp-cust-phone-type').value = cust.phone_type_1 || 'Mobile';
-            
+
             // Handle Phone 1 & Country Code
             let phone1 = (cust.phone_1 || cust.mobile || '').trim();
             let cc = "+91";
@@ -1313,9 +1341,9 @@ const customer = {
         }
 
         const userEmail = (user.email || '').toLowerCase().trim();
-        const isAdmin = user.role === 'admin' || 
-                        userEmail === 'infotech@khandelia.com' || 
-                        userEmail === 'itchd.kogm@gmail.com';
+        const isAdmin = user.role === 'admin' ||
+            userEmail === 'infotech@khandelia.com' ||
+            userEmail === 'itchd.kogm@gmail.com';
 
         if (isAdmin) {
             return {
@@ -1351,8 +1379,8 @@ const customer = {
             const isAdm = creds.role === 'admin';
             badgeEl.textContent = isAdm ? 'Admin Master' : `${creds.name} (Employee)`;
             badgeEl.className = isAdm ? 'badge' : 'badge';
-            badgeEl.style.cssText = isAdm 
-                ? 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.75rem; font-weight: 700;' 
+            badgeEl.style.cssText = isAdm
+                ? 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.75rem; font-weight: 700;'
                 : 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.75rem; font-weight: 700;';
         }
         if (toggleBtn) {

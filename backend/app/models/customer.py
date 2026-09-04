@@ -30,6 +30,10 @@ class Customer(Base):
     assigned_employee_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     notes = Column(Text, nullable=True)
     is_archived = Column(Boolean, default=False, index=True, nullable=False)
+
+    # Customer Intelligence Fields
+    rating = Column(Integer, default=0, index=True, nullable=False)                  # 1-5 Stars (0 = unrated)
+    category = Column(String(50), default="Regular", index=True, nullable=False)    # Top Customer, Premium, Regular, New Customer, Potential, Needs Attention
     
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -41,6 +45,7 @@ class Customer(Base):
     follow_ups = relationship("FollowUp", back_populates="customer", cascade="all, delete-orphan", order_by="FollowUp.due_date")
     documents = relationship("CustomerDocument", back_populates="customer", cascade="all, delete-orphan", order_by="desc(CustomerDocument.created_at)")
     additional_phones = relationship("CustomerPhoneNumber", back_populates="customer", cascade="all, delete-orphan", order_by="desc(CustomerPhoneNumber.is_primary)")
+    rating_history = relationship("CustomerRatingHistory", back_populates="customer", cascade="all, delete-orphan", order_by="desc(CustomerRatingHistory.created_at)")
 
     # Backward compatibility properties & aliases
     @property
@@ -133,3 +138,24 @@ class CustomerPhoneNumber(Base):
         Index("idx_cust_phone_norm_lookup", "phone_normalized"),
         Index("idx_cust_phone_cust_id", "customer_id", "is_primary"),
     )
+
+class CustomerRatingHistory(Base):
+    __tablename__ = "customer_rating_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
+    previous_rating = Column(Integer, nullable=True)
+    new_rating = Column(Integer, nullable=False)
+    previous_category = Column(String(50), nullable=True)
+    new_category = Column(String(50), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    customer = relationship("Customer", back_populates="rating_history")
+    user = relationship("User")
+
+    __table_args__ = (
+        Index("idx_cust_rating_hist_cust", "customer_id", "created_at"),
+    )
+

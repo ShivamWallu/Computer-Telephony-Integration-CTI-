@@ -19,7 +19,8 @@ from backend.app.routers import (
     imports_router,
     audit_router,
     documents_router,
-    integrations_router
+    integrations_router,
+    intelligence_router
 )
 from backend.app.utils.seed_data import seed_database
 
@@ -95,6 +96,7 @@ app.include_router(imports_router, prefix=settings.API_V1_STR)
 app.include_router(audit_router, prefix=settings.API_V1_STR)
 app.include_router(documents_router, prefix=settings.API_V1_STR)
 app.include_router(integrations_router, prefix=settings.API_V1_STR)
+app.include_router(intelligence_router, prefix=settings.API_V1_STR)
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 def healthcheck():

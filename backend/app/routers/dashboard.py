@@ -45,8 +45,8 @@ def get_dashboard_stats(
     fu_query = db.query(FollowUp)
 
     if not is_admin:
-        # Employee view: personalize stats
-        cust_query = cust_query.filter(Customer.assigned_employee_id == current_user.id)
+        # Employee view: personalize stats (calls, interactions, follow-ups)
+        # Note: All customers are visible to both admin and employees across the platform.
         user_cid = current_user.allowed_caller_id or current_user.vid
         if user_cid:
             norm_cid = user_cid.replace("+", "").lstrip("0")

@@ -52,9 +52,6 @@ def verify_customer_access(customer_id: int, user: User, db: Session) -> Custome
     if not customer:
         raise HTTPException(status_code=404, detail="Customer record not found")
     
-    if user.role == "employee" and customer.assigned_employee_id != user.id:
-        raise HTTPException(status_code=403, detail="Access denied: Customer is not assigned to you")
-    
     return customer
 
 @router.get("", response_model=List[CustomerDocumentOut])

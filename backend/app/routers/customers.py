@@ -64,12 +64,9 @@ def list_customers(
     if not include_archived:
         query = query.filter(Customer.is_archived == False)
 
-    # Role-based filtering:
-    # Admin: Sees all customers
-    # Employee: Sees only their assigned customers
-    if current_user.role == "employee":
-        query = query.filter(Customer.assigned_employee_id == current_user.id)
-    elif assigned_employee_id:
+    # Visibility: All active customers are visible to both admin and employees.
+    # Optional filter: Filter by assigned employee if explicitly provided.
+    if assigned_employee_id:
         query = query.filter(Customer.assigned_employee_id == assigned_employee_id)
 
     if status:

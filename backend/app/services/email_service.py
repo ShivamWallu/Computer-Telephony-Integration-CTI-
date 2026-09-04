@@ -225,6 +225,15 @@ class EmailService:
         Send automatic email notification to employee when customers are assigned/reassigned.
         Includes employee credentials info (name, email, password), assigned customers table, and CRM login guidance.
         """
+        # User Safety Directive: Do NOT send assignment emails to employee email addresses
+        logger.info(f"[EMAIL POLICY] Assignment email dispatch to employee {employee_email} bypassed per user directive.")
+        return {
+            "status": "bypassed",
+            "recipient": employee_email,
+            "count": len(assigned_customers),
+            "message": "Email dispatch to employee email bypassed per user directive."
+        }
+
         count = len(assigned_customers)
         subject = f"🔔 CRM Assignment Update: {count} Customer(s) Assigned to You ({employee_name})"
         pwd_display = employee_password or (employee_email.split('@')[0] if employee_email else "admin")

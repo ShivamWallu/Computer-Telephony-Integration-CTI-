@@ -17,8 +17,8 @@ router = APIRouter(prefix="/employees", tags=["Employee Management"])
 
 class ReassignCustomersRequest(BaseModel):
     customer_ids: Optional[List[int]] = None
-    target_employee_id: int
-    reassign_scope: Optional[str] = "all"  # "all", "unassigned", "individual"
+    target_employee_id: Optional[int] = None  # None or 0 means All Employees (Shared Pool)
+    reassign_scope: Optional[str] = "all"  # "all", "unassigned", "selected"
 
 @router.get("", response_model=List[UserOut])
 def list_employees(
@@ -222,12 +222,19 @@ def reassign_customers(
     current_user: User = Depends(get_current_admin_user)
 ):
     """
-    Admin-only: Bulk or individually reassign customers to another employee,
-    and automatically trigger email notification to the newly assigned employee.
+    Admin-only: Bulk or individually assign customers to a specific employee or to All Employees (Shared Pool).
+    Note: Automatic email notification to employees is bypassed per safety policy.
     """
-    target_emp = db.query(User).filter(User.id == req.target_employee_id, User.is_active == True).first()
-    if not target_emp:
-        raise HTTPException(status_code=404, detail="Target employee not found")
+    target_emp = None
+    assigned_to_name = "All Employees (Shared Pool)"
+    assigned_emp_id = None
+
+    if req.target_employee_id and req.target_employee_id > 0:
+        target_emp = db.query(User).filter(User.id == req.target_employee_id, User.is_active == True).first()
+        if not target_emp:
+            raise HTTPException(status_code=404, detail="Target employee not found")
+        assigned_to_name = target_emp.full_name
+        assigned_emp_id = target_emp.id
 
     query = db.query(Customer).filter(Customer.is_archived == False)
 
@@ -236,13 +243,12 @@ def reassign_customers(
     elif req.reassign_scope == "unassigned":
         query = query.filter(Customer.assigned_employee_id == None)
 
-    # Get the target customers to include in email notification
     target_customers = query.all()
     if not target_customers:
         return {
             "status": "success",
             "reassigned_count": 0,
-            "assigned_to": target_emp.full_name,
+            "assigned_to": assigned_to_name,
             "message": "No matching customers found for reassignment criteria."
         }
 
@@ -250,26 +256,11 @@ def reassign_customers(
     updated_count = (
         db.query(Customer)
         .filter(Customer.id.in_(cust_ids))
-        .update({Customer.assigned_employee_id: req.target_employee_id}, synchronize_session=False)
+        .update({Customer.assigned_employee_id: assigned_emp_id}, synchronize_session=False)
     )
     db.commit()
 
-    # Determine employee password representation
-    emp_pwd = target_emp.email.split('@')[0] if target_emp.email else "welcome123"
-    if target_emp.email in ["admin@crm.com", "shivam@crm.com"]:
-        emp_pwd = "admin"
-
-    # Automatically dispatch notification email to target employee
-    try:
-        EmailService.send_assignment_notification(
-            employee_email=target_emp.email,
-            employee_name=target_emp.full_name,
-            assigned_customers=target_customers,
-            admin_name=current_user.full_name,
-            employee_password=emp_pwd
-        )
-    except Exception as e:
-        logger.warning(f"Could not dispatch assignment notification email: {e}")
+    logger.info(f"Assigned {updated_count} customers to '{assigned_to_name}'. Employee email dispatch bypassed per policy.")
 
     AuditService.log(
         db,
@@ -277,9 +268,9 @@ def reassign_customers(
         entity_type="customer",
         changes={
             "customer_count": updated_count,
-            "target_employee": target_emp.full_name,
-            "target_email": target_emp.email,
-            "scope": req.reassign_scope
+            "assigned_to": assigned_to_name,
+            "scope": req.reassign_scope,
+            "email_dispatched": False
         },
         user=current_user
     )
@@ -287,8 +278,8 @@ def reassign_customers(
     return {
         "status": "success",
         "reassigned_count": updated_count,
-        "assigned_to": target_emp.full_name,
-        "message": f"Successfully reassigned {updated_count} customer(s) to {target_emp.full_name}. Notification email dispatched."
+        "assigned_to": assigned_to_name,
+        "message": f"Successfully assigned {updated_count} customer(s) to {assigned_to_name}."
     }
 
 @router.post("/clean-production-data")

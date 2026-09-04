@@ -20,6 +20,8 @@ class CustomerBase(BaseModel):
     phone_1: str = Field(..., min_length=5, max_length=50)
     status: str = "Active"
     notes: Optional[str] = None
+    rating: Optional[int] = 0
+    category: Optional[str] = "Regular"
 
     # Backward compatibility aliases for legacy payload fields
     name: Optional[str] = None
@@ -68,6 +70,8 @@ class CustomerUpdate(BaseModel):
     status: Optional[str] = None
     assigned_employee_id: Optional[int] = None
     notes: Optional[str] = None
+    rating: Optional[int] = None
+    category: Optional[str] = None
     is_archived: Optional[bool] = None
 
     # Aliases
@@ -108,6 +112,8 @@ class CustomerSearchOut(BaseModel):
     status: str
     assigned_employee_name: Optional[str] = None
     match_type: Optional[str] = None
+    rating: Optional[int] = 0
+    category: Optional[str] = "Regular"
 
     # Backward compatibility
     customer_id: Optional[str] = None
