@@ -1329,14 +1329,11 @@ const customer = {
     },
 
     currentTcsLedgerData: null,
-    isTcsSyncing: false,
 
     updateTcsSyncState(cust) {
         this.currentCustomerData = cust;
         const partyName = (cust?.party_name || cust?.name || '').trim();
-        const syncBtn = document.getElementById('btn-drawer-sync-tcs');
         const visualBtn = document.getElementById('btn-drawer-launch-visual');
-        const tabSyncBtn = document.getElementById('btn-tab-sync-tcs');
         const noPartyAlert = document.getElementById('tcs-ledger-no-party-alert');
         const partyBadge = document.getElementById('tcs-ledger-party-badge');
 
@@ -1346,40 +1343,20 @@ const customer = {
 
         if (!partyName || partyName === '—') {
             // Disabled state when Party Name is missing
-            if (syncBtn) {
-                syncBtn.disabled = true;
-                syncBtn.style.opacity = '0.55';
-                syncBtn.style.cursor = 'not-allowed';
-                syncBtn.title = "⚠️ Party Name is missing. Please edit customer profile to add a Party Name.";
-            }
             if (visualBtn) {
                 visualBtn.disabled = true;
                 visualBtn.style.opacity = '0.55';
                 visualBtn.style.cursor = 'not-allowed';
-            }
-            if (tabSyncBtn) {
-                tabSyncBtn.disabled = true;
-                tabSyncBtn.style.opacity = '0.55';
-                tabSyncBtn.style.cursor = 'not-allowed';
+                visualBtn.title = "⚠️ Party Name is missing. Please edit customer profile to add a Party Name.";
             }
             if (noPartyAlert) noPartyAlert.style.display = 'block';
         } else {
             // Enabled state
-            if (syncBtn && !this.isTcsSyncing) {
-                syncBtn.disabled = false;
-                syncBtn.style.opacity = '1';
-                syncBtn.style.cursor = 'pointer';
-                syncBtn.title = `Scrape Party Ledger Detail Report for "${partyName}" directly from TCS iON`;
-            }
             if (visualBtn) {
                 visualBtn.disabled = false;
                 visualBtn.style.opacity = '1';
                 visualBtn.style.cursor = 'pointer';
-            }
-            if (tabSyncBtn && !this.isTcsSyncing) {
-                tabSyncBtn.disabled = false;
-                tabSyncBtn.style.opacity = '1';
-                tabSyncBtn.style.cursor = 'pointer';
+                visualBtn.title = `Auto-Open TCS iON Party Ledger for "${partyName}"`;
             }
             if (noPartyAlert) noPartyAlert.style.display = 'none';
         }
@@ -1393,9 +1370,6 @@ const customer = {
             api.toast("Party Name is required to open TCS iON Party Ledger screen.", "warning");
             return;
         }
-
-        const monthsSelect = document.getElementById('sel-tcs-months-back');
-        const monthsBack = monthsSelect ? parseInt(monthsSelect.value) || 3 : 3;
 
         const launchBtn = document.getElementById('btn-drawer-launch-visual');
         const textSpan = document.getElementById('text-launch-visual-btn');
@@ -1412,7 +1386,7 @@ const customer = {
             const res = await api.post('/integrations/tcsion/launch-visual', {
                 customer_id: this.currentCustomerId || null,
                 party_name: partyName,
-                months_back: monthsBack
+                months_back: 3
             });
 
             if (res.cooldown) {
@@ -1431,148 +1405,6 @@ const customer = {
                 launchBtn.style.opacity = '1';
             }
             if (textSpan) textSpan.textContent = "🖥️ Auto-Open TCS Screen";
-        }
-    },
-
-    async syncTcsIonLedger() {
-        if (this.isTcsSyncing) return; // Prevent multiple simultaneous clicks
-
-        const cust = this.currentCustomerData;
-        const partyName = (cust?.party_name || cust?.name || document.getElementById('drawer-cust-party-name')?.textContent || '').trim();
-
-        if (!partyName || partyName === '—' || partyName === 'Location N/A') {
-            api.toast("Party Name is required to sync TCS iON Ledger. Please update Customer Profile first.", "warning");
-            return;
-        }
-
-        const monthsSelect = document.getElementById('sel-tcs-months-back');
-        const monthsBack = monthsSelect ? parseInt(monthsSelect.value) || 3 : 3;
-
-        // Switch to TCS Ledger tab automatically
-        this.switchDrawerTab('ledger');
-
-        // Set Loading UI States
-        this.isTcsSyncing = true;
-        const syncBtn = document.getElementById('btn-drawer-sync-tcs');
-        const tabSyncBtn = document.getElementById('btn-tab-sync-tcs');
-        const idleIcon = document.getElementById('icon-sync-tcs-idle');
-        const spinIcon = document.getElementById('icon-sync-tcs-spinning');
-        const btnText = document.getElementById('text-sync-tcs-btn');
-        const progressBox = document.getElementById('tcs-ledger-progress-box');
-        const stepText = document.getElementById('tcs-progress-step-text');
-
-        if (syncBtn) {
-            syncBtn.disabled = true;
-            syncBtn.style.opacity = '0.75';
-            syncBtn.style.cursor = 'wait';
-        }
-        if (tabSyncBtn) {
-            tabSyncBtn.disabled = true;
-            tabSyncBtn.style.opacity = '0.75';
-            tabSyncBtn.style.cursor = 'wait';
-        }
-        if (idleIcon) idleIcon.style.display = 'none';
-        if (spinIcon) spinIcon.style.display = 'inline-block';
-        if (btnText) btnText.textContent = "Scraping TCS...";
-        if (progressBox) progressBox.style.display = 'block';
-
-        const updateStep = (msg) => {
-            if (stepText) stepText.textContent = msg;
-        };
-
-        updateStep("1/4: Initializing Browser & Authenticating with TCS iON...");
-        const stepTimer1 = setTimeout(() => updateStep("2/4: Accessing Finance & Accounting -> Accounts Receivable..."), 3500);
-        const stepTimer2 = setTimeout(() => updateStep(`3/4: Opening Party Ledger Report (ARSC0010) & Searching "${partyName}"...`), 8000);
-        const stepTimer3 = setTimeout(() => updateStep("4/4: Applying Site Filters & Extracting Ledger Vouchers..."), 13000);
-
-        try {
-            const res = await api.post('/integrations/tcsion/ledger', {
-                customer_id: this.currentCustomerId || null,
-                party_name: partyName,
-                months_back: monthsBack
-            });
-
-            clearTimeout(stepTimer1);
-            clearTimeout(stepTimer2);
-            clearTimeout(stepTimer3);
-
-            if (!res || res.success === false) {
-                throw new Error(res?.error || "Failed to extract ledger from TCS iON.");
-            }
-
-            this.currentTcsLedgerData = res;
-            this.renderTcsLedgerTable(res);
-            
-            if (res.total_records === 0) {
-                api.toast(res.message || `No ledger vouchers found for "${partyName}".`, "info", 5000);
-            } else {
-                api.toast(`✅ TCS iON Ledger for "${partyName}" synced successfully! (${res.total_records} vouchers)`, "success");
-            }
-
-        } catch (err) {
-            clearTimeout(stepTimer1);
-            clearTimeout(stepTimer2);
-            clearTimeout(stepTimer3);
-            console.error("TCS iON Sync Error:", err);
-            
-            const errMsg = err.message || "Failed to sync TCS iON ledger";
-            this.showTcsLedgerError(errMsg);
-            api.toast(`❌ TCS iON Sync Failed: ${errMsg}`, "error", 9000);
-        } finally {
-            this.isTcsSyncing = false;
-            if (syncBtn) {
-                syncBtn.disabled = false;
-                syncBtn.style.opacity = '1';
-                syncBtn.style.cursor = 'pointer';
-            }
-            if (tabSyncBtn) {
-                tabSyncBtn.disabled = false;
-                tabSyncBtn.style.opacity = '1';
-                tabSyncBtn.style.cursor = 'pointer';
-            }
-            if (idleIcon) idleIcon.style.display = 'inline-block';
-            if (spinIcon) spinIcon.style.display = 'none';
-            if (btnText) btnText.textContent = "📥 Scrape from TCS";
-            if (progressBox) progressBox.style.display = 'none';
-        }
-    },
-
-    showTcsLedgerError(errMsg) {
-        const tbody = document.getElementById('tbody-tcs-ledger');
-        const countEl = document.getElementById('tcs-ledger-count');
-        const subtitleEl = document.getElementById('tcs-ledger-subtitle');
-        const kpiOpening = document.getElementById('kpi-tcs-opening');
-        const kpiDebit = document.getElementById('kpi-tcs-debit');
-        const kpiCredit = document.getElementById('kpi-tcs-credit');
-        const kpiClosing = document.getElementById('kpi-tcs-closing');
-
-        if (countEl) countEl.textContent = '0 vouchers';
-        if (kpiOpening) kpiOpening.textContent = '₹0.00';
-        if (kpiDebit) kpiDebit.textContent = '₹0.00';
-        if (kpiCredit) kpiCredit.textContent = '₹0.00';
-        if (kpiClosing) kpiClosing.textContent = '₹0.00';
-
-        if (subtitleEl) {
-            subtitleEl.innerHTML = `<span style="color: #ef4444; font-weight: 700;">⚠️ Sync Error: ${errMsg}</span>`;
-        }
-
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 3rem 1.5rem;">
-                        <div style="font-size: 2rem; margin-bottom: 0.75rem;">⚠️</div>
-                        <div style="font-size: 1rem; font-weight: 800; color: #ef4444; margin-bottom: 0.5rem;">
-                            TCS iON Live Sync Error
-                        </div>
-                        <div style="font-size: 0.85rem; color: #cbd5e1; max-width: 540px; margin: 0 auto; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.85rem 1.25rem; border-radius: 8px; line-height: 1.5;">
-                            ${errMsg}
-                        </div>
-                        <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted, #94a3b8);">
-                            Tip: You can use <strong>[🖥️ Auto-Open TCS Screen]</strong> to navigate visually on your desktop or upload an export file.
-                        </div>
-                    </td>
-                </tr>
-            `;
         }
     },
 

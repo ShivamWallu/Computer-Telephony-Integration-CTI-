@@ -38,43 +38,6 @@ class TcsIonScraperService:
             "is_locked": _tcsion_lock.locked()
         }
 
-    async def scrape_party_ledger(self, party_name: str, months_back: int = 3) -> Dict[str, Any]:
-        """
-        Main entry point to scrape Party Ledger Detail Report from TCS iON.
-        Runs in an isolated clean worker process to prevent any asyncio event loop conflicts.
-        """
-        if not self.username or not self.password:
-            raise ValueError("TCS iON credentials not configured in environment (TCSION_USERNAME / TCSION_PASSWORD).")
-
-        party_name_clean = party_name.strip()
-        if not party_name_clean:
-            raise ValueError("Party Name must be provided.")
-
-        if _tcsion_lock.locked():
-            raise RuntimeError("Another TCS iON sync operation is currently running. Please wait a moment.")
-
-        async with _tcsion_lock:
-            _last_scrape_status["is_running"] = True
-            _last_scrape_status["current_party"] = party_name_clean
-            _last_scrape_status["last_error"] = None
-            _last_scrape_status["progress_step"] = "Initializing Browser Session"
-            _last_scrape_status["last_run"] = datetime.utcnow().isoformat()
-
-            try:
-                result = await asyncio.to_thread(self._run_worker_sync, party_name_clean, months_back, "scrape")
-                _last_scrape_status["progress_step"] = "Completed Successfully"
-                return result
-            except Exception as exc:
-                err_msg = str(exc)
-                logger.error(f"TCS iON scraping error for '{party_name_clean}': {err_msg}")
-                _last_scrape_status["last_error"] = err_msg
-                _last_scrape_status["progress_step"] = f"Error: {err_msg[:60]}"
-                # DO NOT RETURN DUMMY/FALLBACK DATA - Propagate the REAL error to the user
-                raise RuntimeError(err_msg)
-            finally:
-                _last_scrape_status["is_running"] = False
-                _last_scrape_status["current_party"] = None
-
     async def launch_visual_party_ledger(self, party_name: str, months_back: int = 3) -> Dict[str, Any]:
         """
         Visual Auto-Launcher:
@@ -119,48 +82,6 @@ class TcsIonScraperService:
             "party_name": party_name_clean,
             "message": f"🚀 Live Chrome window is opening on your desktop and navigating to Party Ledger for '{party_name_clean}'!"
         }
-
-    def _run_worker_sync(self, party_name: str, months_back: int, mode: str) -> Dict[str, Any]:
-        cmd = [
-            sys.executable,
-            self.worker_script,
-            "--party", party_name,
-            "--months", str(months_back),
-            "--mode", mode,
-            "--url", self.login_url
-        ]
-        env = {
-            **os.environ,
-            "TCSION_USERNAME": self.username,
-            "TCSION_PASSWORD": self.password,
-            "TCSION_LOGIN_URL": self.login_url
-        }
-
-        logger.info(f"Running TCS iON worker subprocess: {' '.join(cmd)}")
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=env)
-        
-        stdout = proc.stdout or ""
-        stderr = proc.stderr or ""
-
-        for line in stdout.splitlines():
-            if line.startswith("JSON_RESULT:"):
-                payload = json.loads(line[len("JSON_RESULT:"):].strip())
-                if payload.get("cooldown"):
-                    raise RuntimeError(payload.get("error") or "You are already logged into TCS iON with this ID. Please log out from that session and log in after 2 minutes.")
-                if not payload.get("success") and payload.get("error"):
-                    raise RuntimeError(payload["error"])
-                if payload.get("success"):
-                    # Truly scraped data from live TCS iON portal
-                    return payload
-
-        # If no JSON_RESULT was output by worker, extract actual error from worker logs
-        all_logs = (stderr + "\n" + stdout).strip()
-        err_candidates = [
-            l.strip() for l in all_logs.splitlines() 
-            if any(k in l.lower() for k in ["error", "exception", "failed", "conflict", "cooldown", "timeout"])
-        ]
-        real_err = err_candidates[-1] if err_candidates else (all_logs[-200:] if all_logs else "TCS iON worker closed unexpectedly without completing ledger scrape.")
-        raise RuntimeError(f"TCS iON Scraping Failed: {real_err}")
 
     def parse_tcsion_file_content(self, file_bytes: bytes, filename: str, party_name: str = "") -> Dict[str, Any]:
         """
@@ -351,58 +272,5 @@ class TcsIonScraperService:
             return float(cleaned) if cleaned else 0.0
         except ValueError:
             return 0.0
-
-    def _generate_fallback_ledger(self, party_name: str, months_back: int = 3, note: Optional[str] = None) -> Dict[str, Any]:
-        records = [
-            {"party_code": "SDMOBH0016", "voucher_number": "U1ICN27/0072", "voucher_date": "09/06/2026", "voucher_sub_type": "Credit Note", "debit_amount": 0.0, "credit_amount": 100000.0, "balance_amount": -100000.0, "particulars": "Inter Unit Total Adjusted Amount=60000 INR"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0608", "voucher_date": "11/06/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 2500000.0, "balance_amount": -2600000.0, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271170", "voucher_date": "11/06/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 4684854.97, "credit_amount": 0.0, "balance_amount": 2084854.97, "particulars": "Tax Invoice #KOGMU1271170 - Mustard Oil Commercial Dispatch"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0677", "voucher_date": "23/06/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 2000000.0, "balance_amount": 84854.97, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0708", "voucher_date": "30/06/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 2000000.0, "balance_amount": -1915145.03, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1TCN27/0099", "voucher_date": "30/06/2026", "voucher_sub_type": "TDS Credit Note", "debit_amount": 0.0, "credit_amount": 58331.64, "balance_amount": -1973476.67, "particulars": "Being TDS Credit note issue through TDS-R-ULK-645-Q1-00045"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U4TCN27/0043", "voucher_date": "30/06/2026", "voucher_sub_type": "TDS Credit Note", "debit_amount": 0.0, "credit_amount": 101.28, "balance_amount": -1973577.95, "particulars": "Being TDS Credit note issue through TDS-R-ULK-645-Q1-00045"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271428", "voucher_date": "07/07/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 4907524.00, "credit_amount": 0.0, "balance_amount": 2933946.05, "particulars": "Tax Invoice #KOGMU1271428 - Mustard Oil Commercial Dispatch"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0752", "voucher_date": "08/07/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 4507524.00, "balance_amount": -1573577.95, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271450", "voucher_date": "08/07/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 1494883.00, "credit_amount": 0.0, "balance_amount": -78694.95, "particulars": "Tax Invoice #KOGMU1271450 - Refined Oil Delivery"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0803", "voucher_date": "14/07/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 4000000.00, "balance_amount": -4078694.95, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271524", "voucher_date": "14/07/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 2244587.00, "credit_amount": 0.0, "balance_amount": -1834107.95, "particulars": "Tax Invoice #KOGMU1271524 - Mustard Oil Bulk Load"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271525", "voucher_date": "14/07/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 3120008.97, "credit_amount": 0.0, "balance_amount": 1285901.02, "particulars": "Tax Invoice #KOGMU1271525 - Mustard Oil Commercial Delivery"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271529", "voucher_date": "15/07/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 2743114.93, "credit_amount": 0.0, "balance_amount": 4029015.95, "particulars": "Tax Invoice #KOGMU1271529 - Commercial Oil Consignment"},
-            {"party_code": "SDMOBH0016", "voucher_number": "SRMOU1270005", "voucher_date": "15/07/2026", "voucher_sub_type": "Sales Return", "debit_amount": 2500.00, "credit_amount": 0.0, "balance_amount": 4031515.95, "particulars": "RATE DIFFERENCE AGAINST INVOICE NO 2610738"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0840", "voucher_date": "20/07/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 2743115.00, "balance_amount": 1288400.95, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0896", "voucher_date": "25/07/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 2000000.00, "balance_amount": -711599.05, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0920", "voucher_date": "28/07/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 1500000.00, "balance_amount": -2211599.05, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271615", "voucher_date": "28/07/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 4204587.00, "credit_amount": 0.0, "balance_amount": 1992987.95, "particulars": "Tax Invoice #KOGMU1271615 - Mustard Pure Kachi Ghani Dispatch"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0942", "voucher_date": "31/07/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 1897811.20, "balance_amount": 95176.75, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/0998", "voucher_date": "06/08/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 2000000.00, "balance_amount": -1904823.25, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/1012", "voucher_date": "12/08/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 2244587.00, "balance_amount": -4149410.25, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U1SIR27/1025", "voucher_date": "23/08/2026", "voucher_sub_type": "Receipt against Sales Invoice", "debit_amount": 0.0, "credit_amount": 3120009.00, "balance_amount": -7269419.25, "particulars": "This voucher is created through Receipt No. SBNR52026 HDFC Bank"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271790", "voucher_date": "28/08/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 2782751.00, "credit_amount": 0.0, "balance_amount": -4486668.25, "particulars": "Tax Invoice #KOGMU1271790 - Dispatch to Patna Godown"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U4ICN27/0042", "voucher_date": "29/08/2026", "voucher_sub_type": "Party Journal Debit Note", "debit_amount": 10018.00, "credit_amount": 0.0, "balance_amount": -4476650.25, "particulars": "This is Voucher Being amount transfer for inter unit"},
-            {"party_code": "SDMOBH0016", "voucher_number": "U4ICN27/0043", "voucher_date": "29/08/2026", "voucher_sub_type": "Party Journal Credit Note", "debit_amount": 0.0, "credit_amount": 10128.00, "balance_amount": -4486778.25, "particulars": "This is Voucher Corresponding Note Inter Unit"},
-            {"party_code": "SDMOBH0016", "voucher_number": "KOGMU1271890", "voucher_date": "02/09/2026", "voucher_sub_type": "Sales ( Commercial )", "debit_amount": 4736904.13, "credit_amount": 0.0, "balance_amount": 250126.00, "particulars": "Tax Invoice #KOGMU1271890 - Pure Kachi Ghani Bulk Dispatch"}
-        ]
-
-        total_debit = 28848983.00
-        total_credit = 28598857.00
-        closing_balance = 250126.00
-
-        return {
-            "success": True,
-            "party_name": party_name,
-            "from_date": "04/06/2026",
-            "to_date": datetime.now().strftime("%d/%m/%Y"),
-            "total_records": len(records),
-            "summary": {
-                "opening_balance": 0.0,
-                "total_debit": total_debit,
-                "total_credit": total_credit,
-                "closing_balance": closing_balance
-            },
-            "records": records,
-            "synced_at": datetime.utcnow().isoformat(),
-            "source": "TCS iON Finance and Accounting (Accounts Receivable)",
-            "note": note or "Verified Party Ledger Detail Report (ARSC0010)"
-        }
 
 tcsion_scraper = TcsIonScraperService()

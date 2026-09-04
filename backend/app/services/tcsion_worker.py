@@ -710,7 +710,7 @@ def main():
     parser = argparse.ArgumentParser(description="TCS iON Automated State Machine Worker")
     parser.add_argument("--party", default="SDMOBH0016", help="Party Name or Code")
     parser.add_argument("--months", type=int, default=3, help="Months back for ledger report")
-    parser.add_argument("--mode", default="scrape", choices=["scrape", "visual"], help="Automation mode")
+    parser.add_argument("--mode", default="visual", choices=["visual", "scrape"], help="Automation mode")
     parser.add_argument("--url", default="https://training.tcsion.com/Login/Login.html", help="Login URL")
     # For backward compatibility or override; passwords should preferentially be passed via environment variables
     parser.add_argument("--user", default=None, help="Optional username override")
