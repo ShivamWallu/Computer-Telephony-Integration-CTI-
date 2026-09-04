@@ -27,6 +27,24 @@ def get_tcsion_sync_status():
     """
     return tcsion_scraper.get_status()
 
+@router.get("/tcsion/credentials", response_model=Dict[str, Any])
+def get_current_user_tcs_credentials(current_user: User = Depends(get_current_user)):
+    """
+    Returns the authenticated user's specific TCS iON ERP credentials.
+    - Admins share master credentials (trng_infotech@khandelia.com / Pass!@#32132)
+    - Employees have their dedicated individual credentials
+    """
+    from backend.app.config import settings
+    tcs_user = (current_user.tcs_username or "").strip() or settings.TCSION_USERNAME
+    tcs_pass = (current_user.tcs_password or "").strip() or settings.TCSION_PASSWORD
+    return {
+        "tcs_username": tcs_user,
+        "tcs_password": tcs_pass,
+        "role": current_user.role,
+        "full_name": current_user.full_name,
+        "email": current_user.email
+    }
+
 @router.post("/tcsion/launch-visual", response_model=Dict[str, Any])
 async def launch_visual_tcsion_screen(
     payload: TcsIonLedgerRequest,
@@ -34,20 +52,27 @@ async def launch_visual_tcsion_screen(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Visual Auto-Launcher (New Plan):
-    Launches a real visible Chrome browser window on the desktop, auto-logs into TCS iON,
-    navigates through the 4 menus, and leaves the Party Ledger Detail Report open for the user!
+    Visual Auto-Launcher:
+    Launches a real visible Chrome browser window on the desktop, auto-logs into TCS iON
+    using the active user's dedicated credentials (admins share master credentials, employees have their own),
+    navigates through the menus, and leaves the Party Ledger Detail Report open for the user!
     """
     party_name = payload.party_name.strip()
     if not party_name:
         raise HTTPException(status_code=400, detail="Party Name cannot be empty.")
 
-    logger.info(f"User {current_user.email} triggered Visual Auto-Launcher for '{party_name}'")
+    from backend.app.config import settings
+    user_tcs_username = (current_user.tcs_username or "").strip() or settings.TCSION_USERNAME
+    user_tcs_password = (current_user.tcs_password or "").strip() or settings.TCSION_PASSWORD
+
+    logger.info(f"User {current_user.email} (TCS User: '{user_tcs_username}') triggered Visual Auto-Launcher for '{party_name}'")
 
     try:
         res = await tcsion_scraper.launch_visual_party_ledger(
             party_name=party_name,
-            months_back=payload.months_back
+            months_back=payload.months_back,
+            username=user_tcs_username,
+            password=user_tcs_password
         )
 
         try:
@@ -56,7 +81,12 @@ async def launch_visual_tcsion_screen(
                 action="TCSION_VISUAL_LAUNCH",
                 entity_type="CUSTOMER",
                 entity_id=str(payload.customer_id or 0),
-                changes={"party_name": party_name, "mode": "visual_browser_assist"},
+                changes={
+                    "party_name": party_name,
+                    "tcs_account": user_tcs_username,
+                    "user_role": current_user.role,
+                    "mode": "visual_browser_assist"
+                },
                 user=current_user
             )
         except Exception:

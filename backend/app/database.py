@@ -63,6 +63,10 @@ def ensure_schema_columns(target_engine):
                     conn.execute(text("ALTER TABLE users ADD COLUMN intercom VARCHAR(50)"))
                 if "designation" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN designation VARCHAR(100)"))
+                if "tcs_username" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN tcs_username VARCHAR(255)"))
+                if "tcs_password" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN tcs_password VARCHAR(255)"))
                 conn.commit()
 
             # 2. calls table

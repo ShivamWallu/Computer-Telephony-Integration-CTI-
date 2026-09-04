@@ -70,6 +70,8 @@ def create_employee(
         agent_id=user_in.agent_id,
         intercom=user_in.intercom,
         designation=user_in.designation or "Employee",
+        tcs_username=user_in.tcs_username,
+        tcs_password=user_in.tcs_password,
         is_active=True
     )
     db.add(new_user)
@@ -135,6 +137,10 @@ def update_employee(
         employee.designation = user_update.designation
     if user_update.is_active is not None:
         employee.is_active = user_update.is_active
+    if user_update.tcs_username is not None:
+        employee.tcs_username = user_update.tcs_username.strip()
+    if user_update.tcs_password is not None:
+        employee.tcs_password = user_update.tcs_password.strip()
     if user_update.password:
         employee.hashed_password = get_password_hash(user_update.password)
 

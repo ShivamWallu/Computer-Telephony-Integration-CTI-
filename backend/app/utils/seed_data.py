@@ -26,7 +26,9 @@ DEMO_USERS = [
         "phone": "919914565011",
         "agent_id": "506912000010",
         "intercom": "1009",
-        "designation": "Director"
+        "designation": "Director",
+        "tcs_username": "trng_infotech@khandelia.com",
+        "tcs_password": "Pass!@#32132"
     },
     {
         "email": "itchd.kogm@gmail.com",
@@ -38,7 +40,9 @@ DEMO_USERS = [
         "phone": "+91 78147 49816",
         "agent_id": "ADMIN001",
         "intercom": "1000",
-        "designation": "System Admin"
+        "designation": "System Admin",
+        "tcs_username": "trng_infotech@khandelia.com",
+        "tcs_password": "Pass!@#32132"
     },
     {
         "email": "kogm.sahildogra@gmail.com",
@@ -50,7 +54,9 @@ DEMO_USERS = [
         "phone": "918146982211",
         "agent_id": "506912000001",
         "intercom": "1001",
-        "designation": "Support Agent"
+        "designation": "Support Agent",
+        "tcs_username": "trng_sahildogra@khandelia.com",
+        "tcs_password": "Sahil@Tcs2026!"
     },
     {
         "email": "bmjagga@khandelia.com",
@@ -62,7 +68,9 @@ DEMO_USERS = [
         "phone": "917087422511",
         "agent_id": "506912000002",
         "intercom": "1002",
-        "designation": "Support Agent"
+        "designation": "Support Agent",
+        "tcs_username": "trng_bmjagga@khandelia.com",
+        "tcs_password": "Jagga@Tcs2026!"
     },
     {
         "email": "sales.kol@khandelia.com",
@@ -74,7 +82,9 @@ DEMO_USERS = [
         "phone": "919830022111",
         "agent_id": "506912000004",
         "intercom": "1004",
-        "designation": "Support Agent"
+        "designation": "Support Agent",
+        "tcs_username": "trng_utpalpal@khandelia.com",
+        "tcs_password": "Utpal@Tcs2026!"
     },
     {
         "email": "sales.gm@khandelia.com",
@@ -86,7 +96,9 @@ DEMO_USERS = [
         "phone": "917888814811",
         "agent_id": "506912000003",
         "intercom": "1003",
-        "designation": "Support Agent"
+        "designation": "Support Agent",
+        "tcs_username": "trng_suniljain@khandelia.com",
+        "tcs_password": "Sunil@Tcs2026!"
     },
     {
         "email": "customercare@khandelia.com",
@@ -98,7 +110,9 @@ DEMO_USERS = [
         "phone": "917814694240",
         "agent_id": "506912000005",
         "intercom": "1005",
-        "designation": "Customer Care"
+        "designation": "Customer Care",
+        "tcs_username": "trng_customercare@khandelia.com",
+        "tcs_password": "Ravi@Tcs2026!"
     },
     {
         "email": "account.unit6@khandelia.com",
@@ -110,7 +124,9 @@ DEMO_USERS = [
         "phone": "919784410004",
         "agent_id": "506912000008",
         "intercom": "1007",
-        "designation": "Sales"
+        "designation": "Sales",
+        "tcs_username": "trng_ankushdingra@khandelia.com",
+        "tcs_password": "Ankush@Tcs2026!"
     },
     {
         "email": "kogm.sonukumar@gmail.com",
@@ -122,7 +138,9 @@ DEMO_USERS = [
         "phone": "919316113211",
         "agent_id": "506912000007",
         "intercom": "1006",
-        "designation": "HR manager"
+        "designation": "HR manager",
+        "tcs_username": "trng_sonukumar@khandelia.com",
+        "tcs_password": "Sonu@Tcs2026!"
     },
     {
         "email": "storepurchase@khandelia.com",
@@ -134,7 +152,9 @@ DEMO_USERS = [
         "phone": "917696304207",
         "agent_id": "506912000009",
         "intercom": "1008",
-        "designation": "store manager"
+        "designation": "store manager",
+        "tcs_username": "trng_ankushkapila@khandelia.com",
+        "tcs_password": "Store@Tcs2026!"
     },
     {
         "email": "kogm.pankaj@gmail.com",
@@ -146,7 +166,9 @@ DEMO_USERS = [
         "phone": "+917743004676",
         "agent_id": "506912000011",
         "intercom": "1010",
-        "designation": "Sales Team"
+        "designation": "Sales Team",
+        "tcs_username": "trng_pankaj@khandelia.com",
+        "tcs_password": "Pankaj@Tcs2026!"
     }
 ]
 
@@ -230,6 +252,8 @@ def seed_database(db: Session, force_reset: bool = False):
                 agent_id=udata.get("agent_id"),
                 intercom=udata.get("intercom"),
                 designation=udata.get("designation"),
+                tcs_username=udata.get("tcs_username"),
+                tcs_password=udata.get("tcs_password"),
                 is_active=True
             )
             db.add(u)
@@ -245,6 +269,8 @@ def seed_database(db: Session, force_reset: bool = False):
             existing.agent_id = udata.get("agent_id")
             existing.intercom = udata.get("intercom")
             existing.designation = udata.get("designation")
+            existing.tcs_username = udata.get("tcs_username")
+            existing.tcs_password = udata.get("tcs_password")
             if force_reset:
                 existing.hashed_password = get_password_hash(udata["password"])
             db.flush()

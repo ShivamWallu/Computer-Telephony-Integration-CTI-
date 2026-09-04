@@ -12,6 +12,8 @@ class UserBase(BaseModel):
     agent_id: Optional[str] = None
     intercom: Optional[str] = None
     designation: Optional[str] = None
+    tcs_username: Optional[str] = None
+    tcs_password: Optional[str] = None
     is_active: bool = True
 
 class UserCreate(UserBase):
@@ -27,6 +29,8 @@ class UserUpdate(BaseModel):
     agent_id: Optional[str] = None
     intercom: Optional[str] = None
     designation: Optional[str] = None
+    tcs_username: Optional[str] = None
+    tcs_password: Optional[str] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
 

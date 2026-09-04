@@ -282,6 +282,10 @@ def update_profile(
         current_user.email = update_data.email
     if update_data.password:
         current_user.hashed_password = get_password_hash(update_data.password)
+    if update_data.tcs_username is not None:
+        current_user.tcs_username = update_data.tcs_username.strip()
+    if update_data.tcs_password is not None:
+        current_user.tcs_password = update_data.tcs_password.strip()
     
     db.commit()
     db.refresh(current_user)

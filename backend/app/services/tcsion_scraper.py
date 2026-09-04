@@ -38,15 +38,25 @@ class TcsIonScraperService:
             "is_locked": _tcsion_lock.locked()
         }
 
-    async def launch_visual_party_ledger(self, party_name: str, months_back: int = 3) -> Dict[str, Any]:
+    async def launch_visual_party_ledger(
+        self,
+        party_name: str,
+        months_back: int = 3,
+        username: Optional[str] = None,
+        password: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Visual Auto-Launcher:
         Spawns a real, visible Chrome browser on desktop in an isolated process.
-        Automatically logs into TCS iON, clicks Finance & Accounting -> Accounts Receivable -> Drill Down Reports -> Party Ledger Detail,
+        Automatically logs into TCS iON using the authenticated user's specific credentials,
+        clicks Finance & Accounting -> Accounts Receivable -> Drill Down Reports -> Party Ledger Detail,
         and leaves the live Party Ledger screen OPEN on the desktop!
         """
-        if not self.username or not self.password:
-            raise ValueError("TCS iON credentials not configured in environment.")
+        tcs_user = (username or "").strip() or self.username
+        tcs_pass = (password or "").strip() or self.password
+
+        if not tcs_user or not tcs_pass:
+            raise ValueError("TCS iON credentials not configured for this user.")
 
         party_name_clean = party_name.strip()
         if not party_name_clean:
@@ -62,12 +72,12 @@ class TcsIonScraperService:
         ]
         env = {
             **os.environ,
-            "TCSION_USERNAME": self.username,
-            "TCSION_PASSWORD": self.password,
+            "TCSION_USERNAME": tcs_user,
+            "TCSION_PASSWORD": tcs_pass,
             "TCSION_LOGIN_URL": self.login_url
         }
 
-        logger.info(f"Visual Launcher: Spawning visible worker process for '{party_name_clean}'...")
+        logger.info(f"Visual Launcher: Spawning visible worker process for '{party_name_clean}' using account '{tcs_user}'...")
         # Spawn detached / independent background process on desktop
         subprocess.Popen(
             cmd,
@@ -80,7 +90,8 @@ class TcsIonScraperService:
         return {
             "success": True,
             "party_name": party_name_clean,
-            "message": f"🚀 Live Chrome window is opening on your desktop and navigating to Party Ledger for '{party_name_clean}'!"
+            "tcs_user": tcs_user,
+            "message": f"🚀 Live Chrome window is opening on your desktop and navigating to Party Ledger for '{party_name_clean}' using account '{tcs_user}'!"
         }
 
     def parse_tcsion_file_content(self, file_bytes: bytes, filename: str, party_name: str = "") -> Dict[str, Any]:

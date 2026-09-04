@@ -17,6 +17,8 @@ class User(Base):
     agent_id = Column(String(50), nullable=True)                       # Smartflo Agent ID (e.g. 506912000001)
     intercom = Column(String(50), nullable=True)                       # Smartflo Intercom (e.g. 1001)
     designation = Column(String(100), nullable=True)                   # Designation (e.g. Sales, Director, HR manager)
+    tcs_username = Column(String(255), nullable=True)                  # Dedicated TCS iON Login Username/Email
+    tcs_password = Column(String(255), nullable=True)                  # Dedicated TCS iON Login Password
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

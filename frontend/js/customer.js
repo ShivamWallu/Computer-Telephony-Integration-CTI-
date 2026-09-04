@@ -713,6 +713,7 @@ const customer = {
 
         // Update TCS iON Sync Button State (Enabled if party_name exists, disabled if missing)
         this.updateTcsSyncState(cust);
+        this.updateTcsCredentialsUI();
     },
 
     toggleAddPhoneForm(show = null) {
@@ -1274,9 +1275,111 @@ const customer = {
         }
     },
 
+    isTcsPassVisible: false,
+
+    getTcsCredentials() {
+        const MASTER_ADMIN_USER = "trng_infotech@khandelia.com";
+        const MASTER_ADMIN_PASS = "Pass!@#32132";
+
+        // Predefined fallback map for all 9 employees' dedicated TCS credentials
+        const EMPLOYEE_TCS_MAP = {
+            "kogm.sahildogra@gmail.com": { email: "trng_sahildogra@khandelia.com", pass: "Sahil@Tcs2026!" },
+            "sahil.dogra@khandelia.com": { email: "trng_sahildogra@khandelia.com", pass: "Sahil@Tcs2026!" },
+            "bmjagga@khandelia.com": { email: "trng_bmjagga@khandelia.com", pass: "Jagga@Tcs2026!" },
+            "jagga@khandelia.com": { email: "trng_bmjagga@khandelia.com", pass: "Jagga@Tcs2026!" },
+            "sales.kol@khandelia.com": { email: "trng_utpalpal@khandelia.com", pass: "Utpal@Tcs2026!" },
+            "utpal@khandelia.com": { email: "trng_utpalpal@khandelia.com", pass: "Utpal@Tcs2026!" },
+            "sales.gm@khandelia.com": { email: "trng_suniljain@khandelia.com", pass: "Sunil@Tcs2026!" },
+            "sunil@khandelia.com": { email: "trng_suniljain@khandelia.com", pass: "Sunil@Tcs2026!" },
+            "customercare@khandelia.com": { email: "trng_customercare@khandelia.com", pass: "Ravi@Tcs2026!" },
+            "account.unit6@khandelia.com": { email: "trng_ankushdingra@khandelia.com", pass: "Ankush@Tcs2026!" },
+            "ankush@khandelia.com": { email: "trng_ankushdingra@khandelia.com", pass: "Ankush@Tcs2026!" },
+            "kogm.sonukumar@gmail.com": { email: "trng_sonukumar@khandelia.com", pass: "Sonu@Tcs2026!" },
+            "sonu@khandelia.com": { email: "trng_sonukumar@khandelia.com", pass: "Sonu@Tcs2026!" },
+            "storepurchase@khandelia.com": { email: "trng_ankushkapila@khandelia.com", pass: "Store@Tcs2026!" },
+            "kogm.pankaj@gmail.com": { email: "trng_pankaj@khandelia.com", pass: "Pankaj@Tcs2026!" },
+            "pankaj@khandelia.com": { email: "trng_pankaj@khandelia.com", pass: "Pankaj@Tcs2026!" }
+        };
+
+        const user = api.getCurrentUser();
+        if (!user) {
+            return {
+                email: MASTER_ADMIN_USER,
+                password: MASTER_ADMIN_PASS,
+                role: 'admin',
+                name: 'Administrator'
+            };
+        }
+
+        const userEmail = (user.email || '').toLowerCase().trim();
+        const isAdmin = user.role === 'admin' || 
+                        userEmail === 'infotech@khandelia.com' || 
+                        userEmail === 'itchd.kogm@gmail.com';
+
+        if (isAdmin) {
+            return {
+                email: user.tcs_username || MASTER_ADMIN_USER,
+                password: user.tcs_password || MASTER_ADMIN_PASS,
+                role: 'admin',
+                name: user.full_name || 'Admin'
+            };
+        }
+
+        const empCreds = EMPLOYEE_TCS_MAP[userEmail] || {};
+        return {
+            email: user.tcs_username || empCreds.email || MASTER_ADMIN_USER,
+            password: user.tcs_password || empCreds.pass || MASTER_ADMIN_PASS,
+            role: user.role || 'employee',
+            name: user.full_name || 'Employee'
+        };
+    },
+
+    updateTcsCredentialsUI() {
+        const creds = this.getTcsCredentials();
+        const userEl = document.getElementById('tcs-creds-user-text');
+        const passEl = document.getElementById('tcs-creds-pass-text');
+        const badgeEl = document.getElementById('tcs-creds-badge');
+        const toggleBtn = document.getElementById('btn-toggle-tcs-pass');
+
+        if (userEl) userEl.textContent = creds.email;
+        if (passEl) {
+            passEl.textContent = this.isTcsPassVisible ? creds.password : '••••••••';
+            passEl.title = this.isTcsPassVisible ? creds.password : 'Password masked';
+        }
+        if (badgeEl) {
+            const isAdm = creds.role === 'admin';
+            badgeEl.textContent = isAdm ? 'Admin Master' : `${creds.name} (Employee)`;
+            badgeEl.className = isAdm ? 'badge' : 'badge';
+            badgeEl.style.cssText = isAdm 
+                ? 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.6875rem; font-weight: 700;' 
+                : 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.6875rem; font-weight: 700;';
+        }
+        if (toggleBtn) {
+            toggleBtn.textContent = this.isTcsPassVisible ? 'Hide Pass' : 'Show Pass';
+            toggleBtn.title = this.isTcsPassVisible ? 'Hide Password' : 'Show Password';
+        }
+    },
+
+    toggleTcsPasswordVisibility() {
+        this.isTcsPassVisible = !this.isTcsPassVisible;
+        const creds = this.getTcsCredentials();
+        const passEl = document.getElementById('tcs-creds-pass-text');
+        const toggleBtn = document.getElementById('btn-toggle-tcs-pass');
+
+        if (passEl) {
+            passEl.textContent = this.isTcsPassVisible ? creds.password : '••••••••';
+            passEl.title = this.isTcsPassVisible ? creds.password : 'Password masked';
+        }
+        if (toggleBtn) {
+            toggleBtn.textContent = this.isTcsPassVisible ? 'Hide Pass' : 'Show Pass';
+            toggleBtn.title = this.isTcsPassVisible ? 'Hide Password' : 'Show Password';
+        }
+    },
+
     openTcsIonPortal() {
-        const email = "trng_infotech@khandelia.com";
-        const password = "Pass!@#32132";
+        const creds = this.getTcsCredentials();
+        const email = creds.email;
+        const password = creds.password;
         const url = "https://training.tcsion.com/Login/Login.html";
         const cust = this.currentCustomerData;
         const partyName = (cust?.party_name || cust?.name || '').trim();
@@ -1284,12 +1387,12 @@ const customer = {
         // Auto copy credentials to clipboard
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(email).then(() => {
-                api.toast(`🚀 Opening TCS iON... User: ${email} | Pass: ${password}${partyName ? ` | Party: "${partyName}"` : ''}`, "info", 7000);
+                api.toast(`Opening TCS iON... User: ${email} | Pass: ${password}${partyName ? ` | Party: "${partyName}"` : ''}`, "info", 7000);
             }).catch(() => {
-                api.toast(`🚀 Opening TCS iON Portal... User: ${email} | Pass: ${password}`, "info", 5000);
+                api.toast(`Opening TCS iON Portal... User: ${email} | Pass: ${password}`, "info", 5000);
             });
         } else {
-            api.toast(`🚀 Opening TCS iON Portal... User: ${email} | Pass: ${password}`, "info", 5000);
+            api.toast(`Opening TCS iON Portal... User: ${email} | Pass: ${password}`, "info", 5000);
         }
 
         // Open in new tab
@@ -1297,7 +1400,8 @@ const customer = {
     },
 
     copyTcsCredentials(type) {
-        const text = type === 'user' ? 'trng_infotech@khandelia.com' : 'Pass!@#32132';
+        const creds = this.getTcsCredentials();
+        const text = type === 'user' ? creds.email : creds.password;
         const label = type === 'user' ? 'Username / Email' : 'Password';
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(() => {
@@ -1404,7 +1508,7 @@ const customer = {
                 launchBtn.disabled = false;
                 launchBtn.style.opacity = '1';
             }
-            if (textSpan) textSpan.textContent = "🖥️ Auto-Open TCS Screen";
+            if (textSpan) textSpan.textContent = "Auto-Open TCS Screen";
         }
     },
 

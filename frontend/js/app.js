@@ -367,6 +367,11 @@ const app = {
         if (adminNav) {
             adminNav.style.display = isAdmin ? 'block' : 'none';
         }
+
+        // Dynamically update TCS iON credentials display for the logged-in user
+        if (typeof customer !== 'undefined' && customer.updateTcsCredentialsUI) {
+            customer.updateTcsCredentialsUI();
+        }
     },
 
     async populateUserQuickSwitcher() {

@@ -66,8 +66,10 @@ class TcsIonStateMachine:
         self.is_visual = (mode == "visual")
         self.is_headless = not self.is_visual
 
-        # Profile directory for persistent browser session cookies
-        self.profile_dir = os.path.abspath("backend/cache/tcs_browser_profile")
+        # Isolated profile directory for persistent browser session cookies per TCS account
+        import re
+        safe_user = re.sub(r'[^a-zA-Z0-9_]', '_', (self.username or "default").lower())
+        self.profile_dir = os.path.abspath(f"backend/cache/tcs_browser_profile_{safe_user}")
         os.makedirs(self.profile_dir, exist_ok=True)
 
         from_date_dt = datetime.now() - timedelta(days=months_back * 30)
