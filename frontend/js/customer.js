@@ -1119,15 +1119,16 @@ const customer = {
             if (phoneInput) phoneInput.value = prefilledPhone;
         }
 
-        // Populate agents dropdown safely
-        await this.populateAgentDropdown();
-
         // Close right-side drawer if open so modal is 100% unobstructed
         if (this.isDrawerOpen) {
             this.closeDrawer();
         }
 
+        // Open modal immediately for instant feedback
         app.openModal('modal-add-customer');
+
+        // Populate agents dropdown safely in background
+        this.populateAgentDropdown();
     },
 
     async openEditModal(customerId) {

@@ -271,8 +271,8 @@
                     </button>
 
                     <!-- Live Incoming Call Simulator Button -->
-                    <button class="btn btn-secondary btn-sm" id="btn-open-simulate-call"
-                        title="Simulate Incoming Telephony Call">
+                    <button class="btn btn-secondary btn-sm" id="btn-open-simulate-call" onclick="app.openModal('modal-simulate-call')"
+                        title="Simulate Incoming Telephony Call" style="display: inline-flex; align-items: center; gap: 4px;">
                         <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                         </svg>
@@ -280,7 +280,8 @@
                     </button>
 
                     <!-- Add Customer Button -->
-                    <button class="btn btn-primary btn-sm" id="btn-open-add-customer">
+                    <button class="btn btn-primary btn-sm" id="btn-open-add-customer" onclick="customer.openAddModal()"
+                        title="Create New Customer Record" style="display: inline-flex; align-items: center; gap: 4px;">
                         <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1160,15 +1161,10 @@
                             <h2 id="drawer-cust-name" style="font-size: 1.1875rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; margin: 0; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Customer Profile">Customer Profile</h2>
                         </div>
                         <div class="drawer-header-actions" style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0; flex-wrap: nowrap;">
-                            <button class="btn btn-tcs-light btn-sm" id="btn-drawer-launch-visual" onclick="customer.launchVisualTcsLedger()" title="Auto-launches visible Chrome browser, logs in, and opens the live Party Ledger Detail Report screen for this customer">
-                                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                                <span id="text-launch-visual-btn">Auto-Open TCS Screen</span>
-                            </button>
                             <button class="btn btn-danger btn-sm admin-only" id="btn-drawer-delete-customer" style="display: none; height: 32px; padding: 0 9px; font-size: 0.8125rem; font-weight: 600;" title="Delete Customer (Admin Only)">
                                 <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 <span>Delete</span>
                             </button>
-                            <div style="width: 1px; height: 18px; background: var(--border-color); margin: 0 2px;"></div>
                             <button class="btn-icon" id="btn-close-drawer" aria-label="Close drawer" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px;" title="Close Drawer">
                                 <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
@@ -1220,18 +1216,23 @@
                                         <button type="button" class="btn-link" id="btn-toggle-tcs-pass" onclick="customer.toggleTcsPasswordVisibility()" style="font-size: 0.75rem; color: var(--primary); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">Show Pass</button>
                                     </div>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                                    <button type="button" class="btn btn-secondary btn-xs" onclick="customer.copyTcsCredentials('user')" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600;" title="Copy TCS Username">
+                                <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                                    <button class="btn btn-tcs-light btn-sm" id="btn-drawer-launch-visual" onclick="customer.launchVisualTcsLedger()" style="display: inline-flex; align-items: center; gap: 5px; font-weight: 700; height: 30px; padding: 0 11px;" title="Auto-launches visible Chrome browser, logs in, and opens the live Party Ledger Detail Report screen for this customer">
+                                        <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                                        <span id="text-launch-visual-btn">Auto-Open TCS Screen</span>
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="customer.openTcsIonPortal()" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600; height: 30px; padding: 0 9px;" title="Open TCS iON Portal in New Tab">
+                                        <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                        <span>Open TCS Ion</span>
+                                    </button>
+                                    <div style="width: 1px; height: 18px; background: var(--border-color); margin: 0 2px;"></div>
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="customer.copyTcsCredentials('user')" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600; height: 30px; padding: 0 8px;" title="Copy TCS Username">
                                         <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                         <span>Copy User</span>
                                     </button>
-                                    <button type="button" class="btn btn-secondary btn-xs" onclick="customer.copyTcsCredentials('pass')" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600;" title="Copy TCS Password">
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="customer.copyTcsCredentials('pass')" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600; height: 30px; padding: 0 8px;" title="Copy TCS Password">
                                         <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                                         <span>Copy Pass</span>
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-xs" onclick="customer.openTcsIonPortal()" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600;" title="Open TCS iON Portal in New Tab">
-                                        <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                                        <span>Open TCS Ion</span>
                                     </button>
                                 </div>
                             </div>
@@ -1638,6 +1639,8 @@
                             <!-- Document List Container -->
                             <div id="drawer-documents-list" style="display: flex; flex-direction: column; gap: 0.45rem;"></div>
                         </div>
+                    </div>
+                </div>
 
                 <!-- 2. NEW / UNKNOWN CALLER VIEW -->
                 <div id="drawer-view-new" style="display: none; flex-direction: column; height: 100%;">
