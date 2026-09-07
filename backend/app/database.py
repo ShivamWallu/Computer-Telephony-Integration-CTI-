@@ -84,21 +84,21 @@ def ensure_schema_columns(target_engine):
                 if "allowed_categories" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN allowed_categories VARCHAR(500) DEFAULT '[\"*\"]'"))
                 if "can_add_customer" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_add_customer BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_add_customer BOOLEAN DEFAULT TRUE"))
                 if "can_edit_customer" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_edit_customer BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_edit_customer BOOLEAN DEFAULT TRUE"))
                 if "can_delete_customer" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_delete_customer BOOLEAN DEFAULT 0"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_delete_customer BOOLEAN DEFAULT FALSE"))
                 if "can_rate_customer" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_rate_customer BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_rate_customer BOOLEAN DEFAULT TRUE"))
                 if "can_make_calls" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_make_calls BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_make_calls BOOLEAN DEFAULT TRUE"))
                 if "can_listen_recordings" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_listen_recordings BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_listen_recordings BOOLEAN DEFAULT TRUE"))
                 if "can_export_data" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_export_data BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_export_data BOOLEAN DEFAULT TRUE"))
                 if "can_view_unassigned" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN can_view_unassigned BOOLEAN DEFAULT 1"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_view_unassigned BOOLEAN DEFAULT TRUE"))
                 conn.commit()
 
             # 2. calls table
@@ -145,9 +145,12 @@ def ensure_schema_columns(target_engine):
 
             # 4. customer_rating_history table
             if "customer_rating_history" not in tables:
-                conn.execute(text("""
+                is_pg = target_engine.dialect.name == "postgresql"
+                id_type = "SERIAL PRIMARY KEY" if is_pg else "INTEGER PRIMARY KEY AUTOINCREMENT"
+                ts_type = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP" if is_pg else "DATETIME DEFAULT CURRENT_TIMESTAMP"
+                conn.execute(text(f"""
                     CREATE TABLE IF NOT EXISTS customer_rating_history (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id {id_type},
                         customer_id INTEGER NOT NULL,
                         previous_rating INTEGER,
                         new_rating INTEGER NOT NULL,
@@ -155,7 +158,7 @@ def ensure_schema_columns(target_engine):
                         new_category VARCHAR(50) NOT NULL,
                         user_id INTEGER,
                         notes TEXT,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        created_at {ts_type},
                         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
                     )
