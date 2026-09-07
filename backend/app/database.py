@@ -83,6 +83,8 @@ def ensure_schema_columns(target_engine):
                     conn.execute(text("ALTER TABLE users ADD COLUMN tcs_password VARCHAR(255)"))
                 if "allowed_categories" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN allowed_categories VARCHAR(500) DEFAULT '[\"*\"]'"))
+                if "allowed_upload_categories" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN allowed_upload_categories VARCHAR(500) DEFAULT '[]'"))
                 if "can_add_customer" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN can_add_customer BOOLEAN DEFAULT TRUE"))
                 if "can_edit_customer" not in user_cols:
@@ -133,10 +135,22 @@ def ensure_schema_columns(target_engine):
                     "zone": "VARCHAR(100)",
                     "company_website": "VARCHAR(255)",
                     "sales_region_code": "VARCHAR(100)",
+                    "address_date": "VARCHAR(50)",
+                    "address_line_1": "VARCHAR(255)",
+                    "address_line_2": "VARCHAR(255)",
+                    "address_line_3": "VARCHAR(255)",
+                    "country": "VARCHAR(100) DEFAULT 'India'",
+                    "state": "VARCHAR(100)",
+                    "city": "VARCHAR(100)",
+                    "pincode": "VARCHAR(20)",
+                    "contact_person_1": "VARCHAR(255)",
+                    "email_id_1": "VARCHAR(255)",
+                    "phone_type_1": "VARCHAR(50) DEFAULT 'Mobile'",
                     "contact_person_2": "VARCHAR(255)",
                     "email_id_2": "VARCHAR(255)",
                     "contact_person_3": "VARCHAR(255)",
-                    "email_id_3": "VARCHAR(255)"
+                    "email_id_3": "VARCHAR(255)",
+                    "is_archived": "BOOLEAN DEFAULT FALSE"
                 }
                 for col_name, col_type in new_cust_cols.items():
                     if col_name not in cust_cols:
