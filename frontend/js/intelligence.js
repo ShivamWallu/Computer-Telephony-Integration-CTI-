@@ -213,6 +213,135 @@ const intelligence = {
         if (elTop) elTop.textContent = ((kpis.top_customers || 0) + (kpis.premium_customers || 0)).toLocaleString();
         if (elTopSub) elTopSub.textContent = `${kpis.top_customers || 0} Top, ${kpis.premium_customers || 0} Premium`;
         if (elAttention) elAttention.textContent = (kpis.needs_attention || 0).toLocaleString();
+
+        // Render dynamic interactive Category Pills
+        this.renderCategoryPills(kpis.category_counts, kpis.total_customers);
+    },
+
+    getCategoryIconSvg(categoryName, size = 14, color = 'currentColor') {
+        const iconMap = {
+            'All': 'globe',
+            'By Product': 'package',
+            'DOC': 'file-text',
+            'SAS': 'zap',
+            'MRO': 'settings',
+            'MCK': 'cpu',
+            'HUSK': 'feather',
+            'MSD': 'shield',
+            'MOL': 'droplet',
+            'MOMT': 'tool',
+            'General': 'tag',
+            'Top Customer': 'crown',
+            'Premium': 'award',
+            'Regular': 'zap',
+            'New Customer': 'sparkles',
+            'Potential': 'activity',
+            'Needs Attention': 'alert-triangle'
+        };
+        const iconKey = iconMap[categoryName] || 'tag';
+        if (typeof Icons !== 'undefined' && Icons.get) {
+            return Icons.get(iconKey, { size: size, color: color });
+        }
+        return '';
+    },
+
+    renderCategoryPills(categoryCounts, totalCustomers) {
+        const navContainer = document.getElementById('intel-business-categories-nav') || document.getElementById('intel-category-pills-bar');
+        if (!navContainer) return;
+
+        let allowedCats = [];
+        const user = (typeof api !== 'undefined' && api.getCurrentUser) ? api.getCurrentUser() : null;
+        if (user && user.allowed_categories) {
+            const raw = user.allowed_categories;
+            if (Array.isArray(raw)) {
+                allowedCats = raw.map(c => String(c).trim().toUpperCase()).filter(c => c && c !== '***');
+            } else if (typeof raw === 'string') {
+                const s = raw.replace(/[\[\]\'\"]/g, '').trim();
+                if (s && s !== '***') allowedCats = s.split(',').map(c => c.trim().toUpperCase());
+            }
+        }
+        const hasAllAccess = !user || user.role === 'admin' || user.role === 'ADMIN' || allowedCats.length === 0 || allowedCats.includes('*') || allowedCats.includes('ALL') || allowedCats.length >= 10;
+
+        const allStandardCategories = [
+            { name: "By Product", icon: "package", color: "#F59E0B", bg: "rgba(245, 158, 11, 0.14)" },
+            { name: "DOC", icon: "file-text", color: "#3B82F6", bg: "rgba(59, 130, 246, 0.14)" },
+            { name: "SAS", icon: "zap", color: "#10B981", bg: "rgba(16, 185, 129, 0.14)" },
+            { name: "MRO", icon: "settings", color: "#8B5CF6", bg: "rgba(139, 92, 246, 0.14)" },
+            { name: "MCK", icon: "cpu", color: "#06B6D4", bg: "rgba(6, 182, 212, 0.14)" },
+            { name: "HUSK", icon: "feather", color: "#EA580C", bg: "rgba(234, 88, 12, 0.14)" },
+            { name: "MSD", icon: "shield", color: "#64748B", bg: "rgba(100, 116, 139, 0.14)" },
+            { name: "MOL", icon: "droplet", color: "#F43F5E", bg: "rgba(244, 63, 94, 0.14)" },
+            { name: "MOMT", icon: "tool", color: "#6366F1", bg: "rgba(99, 102, 241, 0.14)" },
+            { name: "General", icon: "tag", color: "#6B7280", bg: "rgba(107, 114, 128, 0.14)" }
+        ];
+
+        const standardCategories = allStandardCategories.filter(cat => {
+            if (hasAllAccess) return true;
+            return allowedCats.includes(cat.name.toUpperCase());
+        });
+
+        const counts = categoryCounts || {};
+        const activeCat = this.categoryFilter || '';
+
+        const allActive = !activeCat || activeCat === 'all';
+        const globeSvg = (typeof Icons !== 'undefined' && Icons.get) ? Icons.get('globe', { size: 14 }) : '';
+
+        let html = `
+            <button type="button" class="intel-cat-tab-btn ${allActive ? 'active' : ''}" 
+                onclick="intelligence.selectCategoryFilter('')"
+                title="View All Categories (${(totalCustomers || 0).toLocaleString()} customers)">
+                ${globeSvg}
+                <span>All Categories</span>
+                <span class="intel-cat-tab-badge">${(totalCustomers || 0).toLocaleString()}</span>
+            </button>
+        `;
+
+        standardCategories.forEach(cat => {
+            const count = counts[cat.name] || 0;
+            const isSelected = activeCat === cat.name;
+            const iconSvg = (typeof Icons !== 'undefined' && Icons.get)
+                ? Icons.get(cat.icon, { size: 14, color: isSelected ? cat.color : 'currentColor' })
+                : '';
+
+            html += `
+                <button type="button" class="intel-cat-tab-btn ${isSelected ? 'active' : ''}"
+                    onclick="intelligence.selectCategoryFilter('${cat.name}')"
+                    title="${cat.name} Category (${count.toLocaleString()} customers)"
+                    style="${isSelected ? `color: ${cat.color} !important; border-color: ${cat.color}40 !important;` : ''}">
+                    ${iconSvg}
+                    <span>${cat.name}</span>
+                    <span class="intel-cat-tab-badge" style="${isSelected ? `background: ${cat.bg} !important; color: ${cat.color} !important; border: 1px solid ${cat.color}35;` : ''}">${count.toLocaleString()}</span>
+                </button>
+            `;
+        });
+
+        // Any additional dynamic categories in DB
+        Object.keys(counts).forEach(k => {
+            if (!standardCategories.some(sc => sc.name.toLowerCase() === k.toLowerCase()) && counts[k] > 0) {
+                const isSelected = activeCat === k;
+                const tagSvg = (typeof Icons !== 'undefined' && Icons.get) ? Icons.get('tag', { size: 14 }) : '';
+                html += `
+                    <button type="button" class="intel-cat-tab-btn ${isSelected ? 'active' : ''}"
+                        onclick="intelligence.selectCategoryFilter('${k}')"
+                        title="${k} Category (${counts[k].toLocaleString()} customers)">
+                        ${tagSvg}
+                        <span>${k}</span>
+                        <span class="intel-cat-tab-badge">${counts[k].toLocaleString()}</span>
+                    </button>
+                `;
+            }
+        });
+
+        navContainer.innerHTML = html;
+    },
+
+    selectCategoryFilter(catName) {
+        this.categoryFilter = catName || '';
+        const cSelect = document.getElementById('intel-filter-category');
+        if (cSelect) cSelect.value = this.categoryFilter;
+        this.currentPage = 1;
+        this.updateResetButtonVisibility();
+        this.loadIntelligence();
     },
 
     renderTable(items, total, page, limit) {
@@ -245,11 +374,11 @@ const intelligence = {
             // Rank Badge
             let rankHtml = '';
             if (item.rank === 1) {
-                rankHtml = `<span class="rank-badge rank-gold" title="Rank 1 - Top Rated">🥇 #1</span>`;
+                rankHtml = `<span class="rank-badge rank-gold" title="Rank 1 - Top Rated">#1 TOP</span>`;
             } else if (item.rank === 2) {
-                rankHtml = `<span class="rank-badge rank-silver" title="Rank 2">🥈 #2</span>`;
+                rankHtml = `<span class="rank-badge rank-silver" title="Rank 2">#2</span>`;
             } else if (item.rank === 3) {
-                rankHtml = `<span class="rank-badge rank-bronze" title="Rank 3">🥉 #3</span>`;
+                rankHtml = `<span class="rank-badge rank-bronze" title="Rank 3">#3</span>`;
             } else {
                 rankHtml = `<span class="rank-badge rank-regular">#${item.rank}</span>`;
             }
@@ -360,31 +489,29 @@ const intelligence = {
     },
 
     renderCategoryBadge(category) {
-        const cat = category || 'Regular';
-        let cls = 'badge-cat-regular';
-        let icon = '●';
+        const cat = String(category || 'General').trim();
+        const categoryThemes = {
+            'By Product': { icon: 'package', color: '#B45309', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.35)' },
+            'DOC': { icon: 'file-text', color: '#1D4ED8', bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.35)' },
+            'SAS': { icon: 'zap', color: '#047857', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.35)' },
+            'MRO': { icon: 'settings', color: '#6D28D9', bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.35)' },
+            'MCK': { icon: 'cpu', color: '#0E7490', bg: 'rgba(6, 182, 212, 0.15)', border: 'rgba(6, 182, 212, 0.35)' },
+            'HUSK': { icon: 'feather', color: '#C2410C', bg: 'rgba(234, 88, 12, 0.15)', border: 'rgba(234, 88, 12, 0.35)' },
+            'MSD': { icon: 'shield', color: '#334155', bg: 'rgba(100, 116, 139, 0.15)', border: 'rgba(100, 116, 139, 0.35)' },
+            'MOL': { icon: 'droplet', color: '#BE123C', bg: 'rgba(244, 63, 94, 0.15)', border: 'rgba(244, 63, 94, 0.35)' },
+            'MOMT': { icon: 'tool', color: '#4338CA', bg: 'rgba(99, 102, 241, 0.15)', border: 'rgba(99, 102, 241, 0.35)' },
+            'General': { icon: 'tag', color: '#475569', bg: 'rgba(107, 114, 128, 0.15)', border: 'rgba(107, 114, 128, 0.35)' },
+            'Top Customer': { icon: 'crown', color: '#047857', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.35)' },
+            'Premium': { icon: 'award', color: '#1D4ED8', bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.35)' },
+            'Regular': { icon: 'zap', color: '#D97706', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.35)' },
+            'New Customer': { icon: 'sparkles', color: '#059669', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.35)' },
+            'Potential': { icon: 'activity', color: '#7C3AED', bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.35)' },
+            'Needs Attention': { icon: 'alert-triangle', color: '#DC2626', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.35)' }
+        };
 
-        if (cat === 'Top Customer') {
-            cls = 'badge-cat-top';
-            icon = '👑';
-        } else if (cat === 'Premium') {
-            cls = 'badge-cat-premium';
-            icon = '💎';
-        } else if (cat === 'Regular') {
-            cls = 'badge-cat-regular';
-            icon = '⚡';
-        } else if (cat === 'New Customer') {
-            cls = 'badge-cat-new';
-            icon = '🌱';
-        } else if (cat === 'Potential') {
-            cls = 'badge-cat-potential';
-            icon = '🚀';
-        } else if (cat === 'Needs Attention') {
-            cls = 'badge-cat-attention';
-            icon = '⚠️';
-        }
-
-        return `<span class="badge-cat ${cls}"><span style="font-size: 0.75rem;">${icon}</span> <span>${cat}</span></span>`;
+        const theme = categoryThemes[cat] || { icon: 'tag', color: '#475569', bg: 'rgba(100, 116, 139, 0.12)', border: 'rgba(100, 116, 139, 0.25)' };
+        const iconSvg = (typeof Icons !== 'undefined' && Icons.get) ? Icons.get(theme.icon, { size: 12, color: theme.color }) : '';
+        return `<span class="badge" style="background: ${theme.bg}; color: ${theme.color}; border: 1px solid ${theme.border}; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.55rem; display: inline-flex; align-items: center; gap: 5px; border-radius: var(--radius-full);">${iconSvg} <span>${this.escapeHtml(cat)}</span></span>`;
     },
 
     renderPagination(total, page, limit, totalPages) {
@@ -493,6 +620,22 @@ const intelligence = {
             statusEl.textContent = c.status || 'Active';
             statusEl.className = `badge ${c.status === 'Active' ? 'badge-active' : (c.status === 'Lead' ? 'badge-lead' : 'badge-standard')}`;
         }
+        const catBadgeEl = document.getElementById('intel-drawer-cat-badge');
+        if (catBadgeEl) {
+            const custCat = c.category || 'General';
+            if (typeof customer !== 'undefined' && typeof customer.getCategoryStyle === 'function') {
+                const style = customer.getCategoryStyle(custCat);
+                const iconSvg = customer.getCategoryIconSvg(custCat);
+                catBadgeEl.style.display = 'inline-flex';
+                catBadgeEl.style.background = style.bg;
+                catBadgeEl.style.color = style.color;
+                catBadgeEl.style.border = `1px solid ${style.border}`;
+                catBadgeEl.innerHTML = `<span style="display: inline-flex; align-items: center;">${iconSvg}</span><span>${custCat}</span>`;
+            } else {
+                catBadgeEl.style.display = 'inline-flex';
+                catBadgeEl.textContent = custCat;
+            }
+        }
         if (avatarEl) {
             avatarEl.textContent = c.party_name.substring(0, 2).toUpperCase();
         }
@@ -532,27 +675,37 @@ const intelligence = {
         }
         if (notesInp) notesInp.value = '';
 
-        // Role Permission Control — Both Admin & Employees can change ratings
+        // Role & Granular Permission Control — Check can_rate_customer
         const currentUser = api.getCurrentUser();
-        const isAdmin = currentUser && currentUser.role === 'admin';
-        const canEdit = currentUser && currentUser.is_active;
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ADMIN');
+        const canRate = isAdmin || (currentUser && currentUser.is_active && currentUser.can_rate_customer !== false);
 
         if (permBadge) {
             if (isAdmin) {
-                permBadge.innerHTML = `<span style="color: #A855F7;">&#9679;</span> Admin Access`;
+                permBadge.innerHTML = `<span style="color: #A855F7;">&#9679;</span> Admin Access (Full Rating)`;
                 permBadge.className = `badge badge-role-admin`;
-            } else {
-                permBadge.innerHTML = `<span style="color: #0284C7;">&#9679;</span> Employee Access`;
+            } else if (canRate) {
+                permBadge.innerHTML = `<span style="color: #0284C7;">&#9679;</span> Employee Access (Rating Allowed)`;
                 permBadge.className = `badge badge-role-employee`;
+            } else {
+                permBadge.innerHTML = `<span style="color: #EF4444;">&#9679;</span> Rating Restricted (View Only)`;
+                permBadge.className = `badge badge-standard`;
             }
         }
 
-        // Initialize Star Picker — enabled for all active users
+        // Initialize Star Picker — enabled only if canRate is true
         this.selectedRating = Math.max(1, Math.min(5, c.rating || 5));
-        this.renderStarPicker(this.selectedRating, canEdit);
+        this.renderStarPicker(this.selectedRating, canRate);
 
-        if (saveBtn) saveBtn.disabled = !canEdit;
-        if (readonlyNote) readonlyNote.style.display = canEdit ? 'none' : 'block';
+        if (saveBtn) saveBtn.style.display = canRate ? 'inline-flex' : 'none';
+        if (catSelect) catSelect.disabled = !canRate;
+        if (notesInp) notesInp.disabled = !canRate;
+        if (readonlyNote) {
+            readonlyNote.style.display = canRate ? 'none' : 'block';
+            if (!canRate) {
+                readonlyNote.textContent = "🔒 1-5★ Rating & category changes are restricted for your employee account. Contact administrator.";
+            }
+        }
 
         // Render History
         this.renderRatingHistory(c.history || []);
@@ -1349,32 +1502,22 @@ const intelligence = {
             const newR = item.new_rating || 0;
             const delta = newR - prevR;
 
-            const prevStars = prevR > 0
-                ? this.renderStarsSvg(prevR, 12, 1.5)
-                : '<span style="font-size:0.72rem;color:var(--text-muted);font-style:italic;">Unrated</span>';
-            const newStars = this.renderStarsSvg(newR, 12, 1.5);
+            const newStars = this.renderStarsSvg(newR, 13, 2);
 
             let deltaHtml = '';
             if (prevR === 0) {
-                deltaHtml = `<span class="badge-diff-zyada" style="font-size:0.65rem;">NEW RATED</span>`;
+                deltaHtml = `<span class="badge" style="background: rgba(99,102,241,0.12); color: var(--primary); font-size: 0.72rem; font-weight: 700; border: 1px solid rgba(99,102,241,0.25); padding: 1px 6px;">⭐ Newly Rated</span>`;
             } else if (delta > 0) {
-                deltaHtml = `<span class="badge-diff-zyada">▲ +${delta}</span>`;
+                deltaHtml = `<span class="badge" style="background: rgba(16,185,129,0.12); color: #059669; font-size: 0.72rem; font-weight: 700; border: 1px solid rgba(16,185,129,0.3); padding: 1px 6px;">▲ +${delta} (from ${prevR}.0★)</span>`;
             } else if (delta < 0) {
-                deltaHtml = `<span class="badge-diff-kam">▼ ${delta}</span>`;
+                deltaHtml = `<span class="badge" style="background: rgba(239,68,68,0.1); color: #DC2626; font-size: 0.72rem; font-weight: 700; border: 1px solid rgba(239,68,68,0.25); padding: 1px 6px;">▼ ${delta} (from ${prevR}.0★)</span>`;
             } else {
-                deltaHtml = `<span style="font-size:0.65rem; color:var(--text-muted); background:var(--bg-surface-elevated); padding:0.1rem 0.35rem; border-radius:var(--radius-xs); border:1px solid var(--border-color);">= Same</span>`;
+                deltaHtml = `<span class="badge" style="background: rgba(0,0,0,0.05); color: var(--text-muted); font-size: 0.72rem; font-weight: 600; padding: 1px 6px;">Unchanged (${newR}.0★)</span>`;
             }
 
             // Category transition
             const prevCat = item.previous_category || 'Unset';
             const newCat = item.new_category || 'Regular';
-            const catBadgeHtml = (prevCat && prevCat !== newCat && prevCat !== 'Unset')
-                ? `<div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-                       <span style="font-size:0.7rem; color:var(--text-muted); text-decoration:line-through;">${this.escapeHtml(prevCat)}</span>
-                       <span style="color:var(--text-muted); font-size:0.75rem;">&rarr;</span>
-                       ${this.renderCategoryBadge(newCat)}
-                   </div>`
-                : this.renderCategoryBadge(newCat);
 
             // Relative and full time
             const relativeTime = this.formatRelativeTime(item.created_at);
@@ -1386,62 +1529,65 @@ const intelligence = {
             html += `
                 <tr class="recent-change-row" data-change-id="${item.id}" data-customer-id="${item.customer_id}">
                     <!-- Customer Details -->
-                    <td style="vertical-align: middle;">
-                        <div style="display: flex; align-items: flex-start; gap: 0.55rem;">
-                            <div style="width: 34px; height: 34px; border-radius: var(--radius-sm); background: var(--primary-subtle); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; margin-top: 1px;">
+                    <td style="vertical-align: middle; padding: 0.85rem 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--primary-subtle); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem; flex-shrink: 0;">
                                 ${(item.party_name || 'CU').substring(0, 2).toUpperCase()}
                             </div>
                             <div style="min-width: 0;">
-                                <div style="font-weight: 700; color: var(--text-primary); font-size: 0.875rem; cursor: pointer;" onclick="intelligence.openDetailPanel(${item.customer_id})">
+                                <div style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem; cursor: pointer; line-height: 1.3;" onclick="intelligence.openDetailPanel(${item.customer_id})">
                                     ${this.escapeHtml(item.party_name)}
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.15rem; flex-wrap: wrap;">
-                                    <code style="font-size: 0.72rem; padding: 0.1rem 0.35rem; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-xs); color: var(--text-secondary); font-weight: 600;">
+                                <div style="display: flex; align-items: center; gap: 0.45rem; margin-top: 0.2rem; flex-wrap: wrap;">
+                                    <span class="badge badge-standard" style="font-size: 0.72rem; padding: 1px 6px; font-weight: 600;">
                                         ${this.escapeHtml(item.party_code)}
-                                    </code>
-                                    ${item.phone_1 ? `<span style="font-size: 0.72rem; color: var(--text-muted);">${this.escapeHtml(item.phone_1)}</span>` : ''}
-                                    ${locationStr ? `<span style="font-size: 0.72rem; color: var(--text-muted);">• ${this.escapeHtml(locationStr)}</span>` : ''}
+                                    </span>
+                                    ${item.phone_1 ? `<span style="font-size: 0.78rem; font-weight: 600; color: var(--primary);">${this.escapeHtml(item.phone_1)}</span>` : ''}
+                                    ${locationStr ? `<span style="font-size: 0.75rem; color: var(--text-muted);">• ${this.escapeHtml(locationStr)}</span>` : ''}
                                 </div>
                             </div>
                         </div>
                     </td>
 
                     <!-- Rating Change -->
-                    <td style="vertical-align: middle;">
-                        <div class="rating-delta-box">
-                            <div style="display: flex; flex-direction: column; gap: 2px;">
-                                <div style="display: flex; align-items: center; gap: 5px;">
-                                    <span>${prevStars}</span>
-                                    <span style="color: var(--text-muted); font-size: 0.75rem;">&rarr;</span>
-                                    <span>${newStars}</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--text-secondary);">
-                                    <span>${prevR > 0 ? prevR + '.0' : 'Unrated'} &rarr; <strong>${newR}.0</strong></span>
-                                    ${deltaHtml}
-                                </div>
+                    <td style="vertical-align: middle; padding: 0.85rem 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span>${newStars}</span>
+                                <span style="font-weight: 700; font-size: 0.875rem; color: var(--text-primary);">${newR}.0★</span>
+                            </div>
+                            <div>
+                                ${deltaHtml}
                             </div>
                         </div>
                     </td>
 
                     <!-- Category Tier -->
-                    <td style="vertical-align: middle;">
-                        ${catBadgeHtml}
+                    <td style="vertical-align: middle; padding: 0.85rem 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 3px; align-items: flex-start;">
+                            ${this.renderCategoryBadge(newCat)}
+                            ${(prevCat && prevCat !== newCat && prevCat !== 'Unset') ? `
+                                <span style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.2;">
+                                    was: <span style="text-decoration: line-through;">${this.escapeHtml(prevCat)}</span>
+                                </span>
+                            ` : ''}
+                        </div>
                     </td>
 
                     <!-- Changed By -->
-                    <td style="vertical-align: middle;">
-                        <div style="display: flex; align-items: center; gap: 0.45rem;">
-                            <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--primary-subtle); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;">
+                    <td style="vertical-align: middle; padding: 0.85rem 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-subtle); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;">
                                 ${this.escapeHtml(userInitials)}
                             </div>
                             <div style="min-width: 0;">
-                                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                                    <span style="font-weight: 600; font-size: 0.8125rem; color: var(--text-primary); line-height: 1.2;">
+                                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                                    <span style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary); line-height: 1.2;">
                                         ${this.escapeHtml(item.user_name || 'Staff')}
                                     </span>
                                     ${isMe ? `<span class="badge-you-indicator">★ You</span>` : ''}
                                 </div>
-                                <span class="badge ${roleClass}" style="font-size: 0.6rem; margin-top: 2px; display: inline-block;">
+                                <span class="badge ${roleClass}" style="font-size: 0.62rem; margin-top: 2px; display: inline-block;">
                                     ${(item.user_role || 'EMPLOYEE').toUpperCase()}
                                 </span>
                             </div>
@@ -1449,29 +1595,24 @@ const intelligence = {
                     </td>
 
                     <!-- Audit Notes / Reason -->
-                    <td style="vertical-align: middle;">
+                    <td style="vertical-align: middle; padding: 0.85rem 1rem;">
                         ${item.notes ? `
                             <div class="audit-notes-bubble" title="${this.escapeHtml(item.notes)}">
-                                <svg style="width: 10px; height: 10px; flex-shrink: 0; vertical-align: middle; margin-right: 3px;" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 <span>${this.escapeHtml(item.notes)}</span>
                             </div>
-                        ` : `<span style="font-size: 0.72rem; color: var(--text-muted); font-style: italic;">No audit remarks</span>`}
+                        ` : `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No audit remarks</span>`}
                     </td>
 
                     <!-- Changed At -->
-                    <td style="vertical-align: middle;">
-                        <div style="font-weight: 600; font-size: 0.75rem; color: var(--text-secondary);" title="${fullTimeStr}">
-                            ${relativeTime}
-                        </div>
-                        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 1px;" title="${fullTimeStr}">
-                            ${fullTimeStr}
-                        </div>
+                    <td style="vertical-align: middle; padding: 0.85rem 1rem; white-space: nowrap;">
+                        <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-primary);">${relativeTime}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${fullTimeStr}</div>
                     </td>
 
                     <!-- Action -->
-                    <td style="text-align: right; vertical-align: middle;">
-                        <button class="btn btn-secondary btn-xs" onclick="intelligence.openDetailPanel(${item.customer_id})" title="Manage Customer Rating &amp; Details" style="display: inline-flex; align-items: center; gap: 3px; height: 26px; padding: 0 0.5rem; font-weight: 600;">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <td style="text-align: right; vertical-align: middle; padding: 0.85rem 1rem;">
+                        <button class="btn btn-secondary btn-sm" onclick="intelligence.openDetailPanel(${item.customer_id})" title="Manage Customer" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600; height: 30px; padding: 0 0.65rem;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             <span>Manage</span>
                         </button>
                     </td>
@@ -1551,6 +1692,24 @@ const intelligence = {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    },
+
+    /**
+     * Apply active employee permissions to intelligence UI elements
+     */
+    applyUserPermissions(user) {
+        if (!user) return;
+        const isAdmin = user.role === 'admin' || user.role === 'ADMIN';
+
+        // Export Data Permission
+        const canExport = isAdmin || user.can_export_data !== false;
+        const exportBtn = document.getElementById('btn-intel-export');
+        if (exportBtn) exportBtn.style.display = canExport ? 'inline-flex' : 'none';
+
+        // Reload data to re-filter category counts & permissions
+        if (typeof app !== 'undefined' && app.currentView === 'intelligence') {
+            this.loadIntelligence();
+        }
     }
 };
 

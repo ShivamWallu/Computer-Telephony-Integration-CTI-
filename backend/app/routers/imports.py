@@ -1,7 +1,8 @@
 import io
 import csv
 import json
-from typing import Optional, List, Dict
+from datetime import datetime, timezone
+from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
@@ -43,12 +44,58 @@ def download_sample_csv():
         headers={"Content-Disposition": "attachment; filename=sample_customer_import_15_columns.csv"}
     )
 
+def _check_user_upload_permission(user: User, target_category: Optional[str] = None):
+    """Check if user has permission to upload data for the category."""
+    if user.role and user.role.lower() == "admin":
+        return True
+
+    raw = user.allowed_upload_categories
+    if not raw:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to upload data. By default only Administrators or employees with explicit upload permissions can upload files."
+        )
+
+    cats = []
+    if isinstance(raw, list):
+        cats = [str(c).strip().upper() for c in raw if str(c).strip()]
+    elif isinstance(raw, str):
+        raw_str = raw.strip()
+        if raw_str.startswith('[') and raw_str.endswith(']'):
+            try:
+                parsed = json.loads(raw_str)
+                if isinstance(parsed, list):
+                    cats = [str(c).strip().upper() for c in parsed if str(c).strip()]
+            except Exception:
+                pass
+        if not cats:
+            cats = [c.strip().upper() for c in raw_str.split(',') if c.strip()]
+
+    if not cats or cats == ["[]"]:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to upload data. By default only Administrators or employees with explicit upload permissions can upload files."
+        )
+
+    if "*" in cats or "ALL" in cats:
+        return True
+
+    if target_category and target_category.strip().upper() not in cats and target_category.strip().lower() not in ("auto", "all", ""):
+        raise HTTPException(
+            status_code=403,
+            detail=f"You do not have permission to upload data for category '{target_category}'. Permitted upload categories: {', '.join(cats)}."
+        )
+    return True
+
 @router.post("/preview")
 async def preview_excel_import(
     file: UploadFile = File(...),
+    category: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user)
 ):
-    """Inspect uploaded Excel/CSV file, validate exact 15 columns sequence, and return sample rows."""
+    """Inspect uploaded Excel/CSV file, validate exact columns sequence, and return sample rows."""
+    _check_user_upload_permission(current_user, category)
+
     if not (file.filename.endswith(".xlsx") or file.filename.endswith(".xls") or file.filename.endswith(".csv")):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload an Excel (.xlsx) or CSV (.csv) file.")
 
@@ -67,11 +114,13 @@ async def preview_excel_import(
 @router.post("/process", response_model=ImportSummaryResponse)
 async def process_excel_import(
     file: UploadFile = File(...),
-    import_mode: str = Form("update"),  # "update", "skip"
+    import_mode: str = Form("skip"),  # "skip" by default for duplicate protection, or "update"
+    category: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Execute customer import with strict 15-column validation, duplicate detection, and error tracking."""
+    """Execute customer import with strict 25-column validation, duplicate detection, category assignment, and error tracking."""
+    _check_user_upload_permission(current_user, category)
     contents = await file.read()
 
     try:
@@ -80,7 +129,8 @@ async def process_excel_import(
             file_bytes=contents,
             filename=file.filename,
             import_mode=import_mode,
-            user_id=current_user.id
+            user_id=current_user.id,
+            target_category=category
         )
 
         AuditService.log(
@@ -103,6 +153,13 @@ async def process_excel_import(
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+def _format_utc_iso(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
 
 @router.get("/history")
 def get_import_history(
@@ -129,7 +186,7 @@ def get_import_history(
             "error_count": j.error_count,
             "status": j.status,
             "uploaded_by": j.uploaded_by.full_name if j.uploaded_by else "System",
-            "created_at": j.created_at.isoformat() if j.created_at else None
+            "created_at": _format_utc_iso(j.created_at)
         }
         for j in jobs
     ]
@@ -232,33 +289,7 @@ def get_job_updates(
             "previous_data": u.previous_data or {},
             "new_data": u.new_data or {},
             "changed_fields": u.changed_fields or [],
-            "created_at": u.created_at.isoformat() if u.created_at else None
+            "created_at": _format_utc_iso(u.created_at)
         }
         for u in updates
     ]
-
-@router.get("/{job_id}/download-updates")
-def download_job_updates_csv(
-    job_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Download updated records log as a downloadable CSV."""
-    updates = db.query(ImportUpdate).filter(ImportUpdate.import_job_id == job_id).order_by(ImportUpdate.row_number).all()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Excel Row #", "Party Code", "Party Name", "Updated Fields", "Previous Data (Before)", "New Data (Updated)", "Update Timestamp"])
-
-    for u in updates:
-        prev_str = json.dumps(u.previous_data or {})
-        new_str = json.dumps(u.new_data or {})
-        changed_str = ", ".join(u.changed_fields or []) if isinstance(u.changed_fields, list) else str(u.changed_fields)
-        created_str = u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else ""
-
-        writer.writerow([u.row_number, u.party_code, u.party_name, changed_str, prev_str, new_str, created_str])
-
-    return Response(
-        content=output.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=import_job_{job_id}_updated_records.csv"}
-    )

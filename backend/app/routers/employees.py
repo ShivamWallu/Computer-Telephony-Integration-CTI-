@@ -1,24 +1,118 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app.models.user import User
 from backend.app.models.customer import Customer
-from backend.app.schemas.auth import UserOut, UserCreate, UserUpdate
+from sqlalchemy import func
+from backend.app.schemas.auth import UserOut, UserCreate, UserUpdate, UserPermissionsUpdate
 from backend.app.utils.security import get_current_user, get_current_admin_user, get_password_hash
 from backend.app.services.audit_service import AuditService
 from backend.app.services.email_service import EmailService
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/employees", tags=["Employee Management"])
 
+def _normalize_allowed_categories(cats) -> str:
+    """Normalize allowed_categories to a standard JSON string format like '["HUSK", "SAS"]' or '["*"]'."""
+    if cats is None:
+        return '["*"]'
+    if isinstance(cats, list):
+        cleaned = [str(c).strip() for c in cats if str(c).strip() and str(c).strip() not in ('***', "['***']")]
+        if not cleaned or "ALL" in [c.upper() for c in cleaned] or "*" in cleaned or len(cleaned) >= 10:
+            return '["*"]'
+        return json.dumps(cleaned)
+    if isinstance(cats, str):
+        cats_str = cats.strip()
+        if cats_str.startswith('[') and cats_str.endswith(']'):
+            try:
+                parsed = json.loads(cats_str)
+                if isinstance(parsed, list):
+                    return _normalize_allowed_categories(parsed)
+            except Exception:
+                pass
+        parts = [p.strip() for p in cats_str.split(',') if p.strip() and p.strip() not in ('***', "['***']")]
+        if not parts or "ALL" in [p.upper() for p in parts] or "*" in parts or len(parts) >= 10:
+            return '["*"]'
+        return json.dumps(parts)
+    return '["*"]'
+
+def _normalize_allowed_upload_categories(cats) -> str:
+    """Normalize allowed_upload_categories to a standard JSON string format like '["HUSK"]' or '[]'."""
+    if cats is None:
+        return '[]'
+    if isinstance(cats, list):
+        cleaned = [str(c).strip() for c in cats if str(c).strip() and str(c).strip() not in ('***', "['***']")]
+        if "*" in cleaned or "ALL" in [c.upper() for c in cleaned]:
+            return '["*"]'
+        return json.dumps(cleaned)
+    if isinstance(cats, str):
+        cats_str = cats.strip()
+        if cats_str.startswith('[') and cats_str.endswith(']'):
+            try:
+                parsed = json.loads(cats_str)
+                if isinstance(parsed, list):
+                    return _normalize_allowed_upload_categories(parsed)
+            except Exception:
+                pass
+        parts = [p.strip() for p in cats_str.split(',') if p.strip() and p.strip() not in ('***', "['***']")]
+        if "*" in parts or "ALL" in [p.upper() for p in parts]:
+            return '["*"]'
+        return json.dumps(parts)
+    return '[]'
+
 class ReassignCustomersRequest(BaseModel):
     customer_ids: Optional[List[int]] = None
     target_employee_id: Optional[int] = None  # None or 0 means All Employees (Shared Pool)
     reassign_scope: Optional[str] = "all"  # "all", "unassigned", "selected"
+
+@router.get("/assignment-stats")
+def get_assignment_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns real-time distribution of assigned customers across all employees,
+    including total active customers and unassigned/shared pool customers.
+    """
+    total = db.query(func.count(Customer.id)).filter(Customer.is_archived == False).scalar() or 0
+    
+    # Active team employees (role == 'employee')
+    employees = db.query(User).filter(User.is_active == True, User.role == "employee").order_by(User.full_name).all()
+    emp_ids = [e.id for e in employees]
+    
+    # Counts for team employees
+    counts_raw = (
+        db.query(Customer.assigned_employee_id, func.count(Customer.id))
+        .filter(Customer.is_archived == False, Customer.assigned_employee_id.in_(emp_ids))
+        .group_by(Customer.assigned_employee_id)
+        .all()
+    ) if emp_ids else []
+    counts_map = {emp_id: cnt for emp_id, cnt in counts_raw}
+    
+    total_assigned_to_employees = sum(counts_map.values())
+    unassigned = max(0, total - total_assigned_to_employees)
+    
+    stats = []
+    for emp in employees:
+        stats.append({
+            "employee_id": emp.id,
+            "full_name": emp.full_name,
+            "email": emp.email,
+            "role": emp.role,
+            "designation": emp.designation,
+            "assigned_count": counts_map.get(emp.id, 0)
+        })
+        
+    return {
+        "total_customers": total,
+        "unassigned_customers": unassigned,
+        "employees": stats
+    }
 
 @router.get("", response_model=List[UserOut])
 def list_employees(
@@ -141,6 +235,26 @@ def update_employee(
         employee.tcs_username = user_update.tcs_username.strip()
     if user_update.tcs_password is not None:
         employee.tcs_password = user_update.tcs_password.strip()
+    if user_update.allowed_categories is not None:
+        employee.allowed_categories = _normalize_allowed_categories(user_update.allowed_categories)
+    if user_update.allowed_upload_categories is not None:
+        employee.allowed_upload_categories = _normalize_allowed_upload_categories(user_update.allowed_upload_categories)
+    if user_update.can_add_customer is not None:
+        employee.can_add_customer = user_update.can_add_customer
+    if user_update.can_edit_customer is not None:
+        employee.can_edit_customer = user_update.can_edit_customer
+    if user_update.can_delete_customer is not None:
+        employee.can_delete_customer = user_update.can_delete_customer
+    if user_update.can_rate_customer is not None:
+        employee.can_rate_customer = user_update.can_rate_customer
+    if user_update.can_make_calls is not None:
+        employee.can_make_calls = user_update.can_make_calls
+    if user_update.can_listen_recordings is not None:
+        employee.can_listen_recordings = user_update.can_listen_recordings
+    if user_update.can_export_data is not None:
+        employee.can_export_data = user_update.can_export_data
+    if user_update.can_view_unassigned is not None:
+        employee.can_view_unassigned = user_update.can_view_unassigned
     if user_update.password:
         employee.hashed_password = get_password_hash(user_update.password)
 
@@ -152,6 +266,54 @@ def update_employee(
         action="EMPLOYEE_UPDATED",
         entity_type="user",
         entity_id=str(employee.id),
+        changes={"name": employee.full_name, "email": employee.email},
+        user=admin_user
+    )
+
+    return UserOut.model_validate(employee)
+
+@router.put("/{id}/permissions", response_model=UserOut)
+def update_employee_permissions(
+    id: int,
+    perms: Union[UserPermissionsUpdate, UserUpdate],
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Admin-only: Update granular permissions and allowed categories for an employee."""
+    employee = db.query(User).filter(User.id == id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    if perms.allowed_categories is not None:
+        employee.allowed_categories = _normalize_allowed_categories(perms.allowed_categories)
+    if perms.allowed_upload_categories is not None:
+        employee.allowed_upload_categories = _normalize_allowed_upload_categories(perms.allowed_upload_categories)
+    if perms.can_add_customer is not None:
+        employee.can_add_customer = perms.can_add_customer
+    if perms.can_edit_customer is not None:
+        employee.can_edit_customer = perms.can_edit_customer
+    if perms.can_delete_customer is not None:
+        employee.can_delete_customer = perms.can_delete_customer
+    if perms.can_rate_customer is not None:
+        employee.can_rate_customer = perms.can_rate_customer
+    if perms.can_make_calls is not None:
+        employee.can_make_calls = perms.can_make_calls
+    if perms.can_listen_recordings is not None:
+        employee.can_listen_recordings = perms.can_listen_recordings
+    if perms.can_export_data is not None:
+        employee.can_export_data = perms.can_export_data
+    if perms.can_view_unassigned is not None:
+        employee.can_view_unassigned = perms.can_view_unassigned
+
+    db.commit()
+    db.refresh(employee)
+
+    AuditService.log(
+        db,
+        action="EMPLOYEE_PERMISSIONS_UPDATED",
+        entity_type="user",
+        entity_id=str(employee.id),
+        changes=perms.model_dump(exclude_unset=True),
         user=admin_user
     )
 
@@ -223,7 +385,7 @@ def reassign_customers(
 ):
     """
     Admin-only: Bulk or individually assign customers to a specific employee or to All Employees (Shared Pool).
-    Note: Automatic email notification to employees is bypassed per safety policy.
+    Assignment notifications are delivered only to the configured test inbox.
     """
     target_emp = None
     assigned_to_name = "All Employees (Shared Pool)"
@@ -241,7 +403,9 @@ def reassign_customers(
     if req.customer_ids and len(req.customer_ids) > 0:
         query = query.filter(Customer.id.in_(req.customer_ids))
     elif req.reassign_scope == "unassigned":
-        query = query.filter(Customer.assigned_employee_id == None)
+        emp_ids = [u.id for u in db.query(User.id).filter(User.is_active == True, User.role == "employee").all()]
+        if emp_ids:
+            query = query.filter(or_(Customer.assigned_employee_id == None, ~Customer.assigned_employee_id.in_(emp_ids)))
 
     target_customers = query.all()
     if not target_customers:
@@ -260,7 +424,16 @@ def reassign_customers(
     )
     db.commit()
 
-    logger.info(f"Assigned {updated_count} customers to '{assigned_to_name}'. Employee email dispatch bypassed per policy.")
+    notification = {"status": "not_applicable"}
+    if target_emp:
+        notification = EmailService.send_assignment_notification(
+            employee_email=target_emp.email,
+            employee_name=target_emp.full_name,
+            assigned_customers=target_customers,
+            admin_name=current_user.full_name
+        )
+
+    logger.info(f"Assigned {updated_count} customers to '{assigned_to_name}'. Assignment test notification status: {notification.get('status')}.")
 
     AuditService.log(
         db,
@@ -270,7 +443,9 @@ def reassign_customers(
             "customer_count": updated_count,
             "assigned_to": assigned_to_name,
             "scope": req.reassign_scope,
-            "email_dispatched": False
+            "email_dispatched": notification.get("status") == "sent",
+            "email_recipient": notification.get("recipient"),
+            "email_status": notification.get("status")
         },
         user=current_user
     )
@@ -279,7 +454,8 @@ def reassign_customers(
         "status": "success",
         "reassigned_count": updated_count,
         "assigned_to": assigned_to_name,
-        "message": f"Successfully assigned {updated_count} customer(s) to {assigned_to_name}."
+        "message": f"Successfully assigned {updated_count} customer(s) to {assigned_to_name}.",
+        "notification": notification
     }
 
 @router.post("/clean-production-data")

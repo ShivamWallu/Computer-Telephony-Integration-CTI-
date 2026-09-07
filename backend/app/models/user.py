@@ -20,6 +20,19 @@ class User(Base):
     tcs_username = Column(String(255), nullable=True)                  # Dedicated TCS iON Login Username/Email
     tcs_password = Column(String(255), nullable=True)                  # Dedicated TCS iON Login Password
     is_active = Column(Boolean, default=True, nullable=False)
+
+    # Granular Employee Permissions & Category Scoping
+    allowed_categories = Column(String(500), default='["*"]', nullable=True)  # JSON list e.g. ["HUSK", "SAS"] or ["*"]
+    allowed_upload_categories = Column(String(500), default='[]', nullable=True)  # JSON list e.g. ["HUSK"] or ["*"]
+    can_add_customer = Column(Boolean, default=True, nullable=False)
+    can_edit_customer = Column(Boolean, default=True, nullable=False)
+    can_delete_customer = Column(Boolean, default=False, nullable=False)
+    can_rate_customer = Column(Boolean, default=True, nullable=False)
+    can_make_calls = Column(Boolean, default=True, nullable=False)
+    can_listen_recordings = Column(Boolean, default=True, nullable=False)
+    can_export_data = Column(Boolean, default=True, nullable=False)
+    can_view_unassigned = Column(Boolean, default=True, nullable=False)
+
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

@@ -12,19 +12,32 @@ class Customer(Base):
     party_code = Column(String(50), unique=True, index=True, nullable=False)        # 1. Party Code
     party_name = Column(String(255), index=True, nullable=False)                     # 2. Party Name
     address_date = Column(String(50), nullable=True)                                 # 3. Address Date
+    # Master Address & Contact Columns (25-Column Universal Schema)
     address_line_1 = Column(String(255), nullable=True)                              # 4. Address Line 1
     address_line_2 = Column(String(255), nullable=True)                              # 5. Address Line 2
     address_line_3 = Column(String(255), nullable=True)                              # 6. Address Line 3
-    contact_person_1 = Column(String(255), index=True, nullable=True)                # 7. Contact Person 1
-    email_id_1 = Column(String(255), index=True, nullable=True)                      # 8. Email Id 1
-    country = Column(String(100), default="India", nullable=True)                    # 9. Country
-    state = Column(String(100), index=True, nullable=True)                           # 10. State
-    city = Column(String(100), index=True, nullable=True)                            # 11. City
+    country = Column(String(100), default="India", nullable=True)                    # 7. Country
+    state = Column(String(100), index=True, nullable=True)                           # 8. State
+    city = Column(String(100), index=True, nullable=True)                            # 10. City
     pincode = Column(String(20), nullable=True)                                      # 12. Pincode
-    phone_type_1 = Column(String(50), default="Mobile", nullable=True)               # 13. Phone Type 1
-    phone_1 = Column(String(50), nullable=False)                                     # 14. Phone 1 (Primary contact)
+    district = Column(String(100), nullable=True)                                    # 13. District
+    zone = Column(String(100), nullable=True)                                        # 14. Zone
+    company_website = Column(String(255), nullable=True)                             # 15. Company Website
+    sales_region_code = Column(String(100), nullable=True)                           # 16. Sales Region Code
+    
+    # 3 Contact Persons & Emails
+    contact_person_1 = Column(String(255), index=True, nullable=True)                # 17. Contact Person 1
+    email_id_1 = Column(String(255), index=True, nullable=True)                      # 18. Email Id 1
+    phone_type_1 = Column(String(50), default="Mobile", nullable=True)               
+    phone_1 = Column(String(50), nullable=False)                                     # 19. Phone Number 1 (Primary)
     phone_1_normalized = Column(String(50), index=True, nullable=False)             # Indexed for ultra-fast CTI lookup
-    status = Column(String(50), default="Active", index=True, nullable=False)        # 15. Status
+
+    contact_person_2 = Column(String(255), nullable=True)                           # 20. Contact Person 2
+    email_id_2 = Column(String(255), nullable=True)                                 # 21. Email-Id 2
+    contact_person_3 = Column(String(255), nullable=True)                           # 23. Contact Person 3
+    email_id_3 = Column(String(255), nullable=True)                                 # 24. Email-Id 3
+
+    status = Column(String(50), default="Active", index=True, nullable=False)
 
     # System & CRM Management Fields
     assigned_employee_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -111,6 +124,32 @@ class Customer(Base):
 
     @customer_type.setter
     def customer_type(self, val):
+        pass
+
+    @property
+    def phone_2(self):
+        if hasattr(self, "additional_phones") and self.additional_phones:
+            p2 = next((p for p in self.additional_phones if p.label == "Phone 2" or (not p.is_primary and p.label != "Phone 3")), None)
+            if p2:
+                return p2.phone_number
+        return None
+
+    @phone_2.setter
+    def phone_2(self, val):
+        pass
+
+    @property
+    def phone_3(self):
+        if hasattr(self, "additional_phones") and self.additional_phones:
+            p3 = next((p for p in self.additional_phones if p.label == "Phone 3"), None)
+            if not p3 and len(self.additional_phones) > 1:
+                p3 = [p for p in self.additional_phones if not p.is_primary][-1]
+            if p3:
+                return p3.phone_number
+        return None
+
+    @phone_3.setter
+    def phone_3(self, val):
         pass
 
     # Multi-column indexes for fast query execution

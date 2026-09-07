@@ -10,12 +10,15 @@ from backend.app.models.interaction import CustomerInteraction
 from backend.app.models.call import Call
 from backend.app.models.follow_up import FollowUp
 from backend.app.schemas.customer import (
-    CustomerCreate, CustomerUpdate, CustomerOut, CustomerSearchOut, CustomerListResponse
+    CustomerCreate, CustomerUpdate, CustomerOut, CustomerSearchOut, CustomerListResponse, AssignCustomerRequest
 )
 from backend.app.services.search_service import SearchService
 from backend.app.services.phone_normalizer import PhoneNormalizer
 from backend.app.services.audit_service import AuditService
+from backend.app.services.email_service import EmailService
+from backend.app.services.excel_service import ExcelService
 from backend.app.utils.security import get_current_user, get_current_admin_user
+
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -44,33 +47,54 @@ def search_customers(
 @router.get("", response_model=CustomerListResponse)
 def list_customers(
     page: int = Query(1, ge=1),
-    limit: int = Query(15, ge=1, le=100),
+    limit: int = Query(15, ge=1, le=500),
     status: Optional[str] = None,
     customer_type: Optional[str] = None,
+    category: Optional[str] = None,
     assigned_employee_id: Optional[int] = None,
+    assigned_role: Optional[str] = None,
     search: Optional[str] = None,
     include_archived: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List and filter customers with pagination."""
+    """List and filter customers with pagination and category permissions."""
     query = db.query(Customer).options(
-        joinedload(Customer.assigned_employee),
-        joinedload(Customer.calls),
-        joinedload(Customer.interactions),
-        joinedload(Customer.follow_ups)
+        joinedload(Customer.assigned_employee)
     )
 
     if not include_archived:
         query = query.filter(Customer.is_archived == False)
 
-    # Visibility: All active customers are visible to both admin and employees.
-    # Optional filter: Filter by assigned employee if explicitly provided.
-    if assigned_employee_id:
-        query = query.filter(Customer.assigned_employee_id == assigned_employee_id)
+    # Scoping by employee permissions
+    if current_user.role == "employee":
+        if not getattr(current_user, "can_view_unassigned", True) and assigned_employee_id in (-1, 0):
+            raise HTTPException(status_code=403, detail="You do not have permission to view the unassigned customer pool.")
+
+        if current_user.allowed_categories:
+            import json
+            try:
+                allowed = json.loads(current_user.allowed_categories) if isinstance(current_user.allowed_categories, str) else current_user.allowed_categories
+                if allowed and "*" not in allowed:
+                    query = query.filter(Customer.category.in_(allowed))
+            except Exception:
+                pass
+
+    if assigned_employee_id is not None:
+        if assigned_employee_id in (-1, 0):
+            emp_ids = [u.id for u in db.query(User.id).filter(User.is_active == True, User.role == "employee").all()]
+            if emp_ids:
+                query = query.filter(or_(Customer.assigned_employee_id == None, ~Customer.assigned_employee_id.in_(emp_ids)))
+        else:
+            query = query.filter(Customer.assigned_employee_id == assigned_employee_id)
+    elif assigned_role:
+        query = query.join(Customer.assigned_employee).filter(User.role == assigned_role)
 
     if status:
         query = query.filter(Customer.status == status)
+
+    if category:
+        query = query.filter(Customer.category == category)
 
     if search:
         s = f"%{search.strip()}%"
@@ -95,13 +119,7 @@ def list_customers(
         .all()
     )
 
-    out_items = []
-    for c in items:
-        out = CustomerOut.model_validate(c)
-        out.total_calls = len(c.calls)
-        out.total_interactions = len(c.interactions)
-        out.pending_followups = sum(1 for f in c.follow_ups if f.status in ["Pending", "In Progress"])
-        out_items.append(out)
+    out_items = [CustomerOut.model_validate(c) for c in items]
 
     return CustomerListResponse(
         items=out_items,
@@ -109,6 +127,180 @@ def list_customers(
         page=page,
         limit=limit,
         total_pages=math.ceil(total / limit) if total > 0 else 1
+    )
+
+@router.get("/purge-preview")
+def purge_preview(
+    category: Optional[str] = Query(None, description="Category to inspect or None for all"),
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Admin-only: Preview count of customers that would be purged for selected scope."""
+    cat_clean = (category or "").strip()
+    is_all = not cat_clean or cat_clean.upper() in ["ALL", "*"]
+    
+    protected_phone_norm = "7814749816"
+    query = db.query(Customer).filter(
+        ~Customer.phone_1_normalized.like(f"%{protected_phone_norm}%"),
+        ~Customer.party_name.ilike("%shivam%")
+    )
+    if not is_all:
+        query = query.filter(Customer.category == cat_clean)
+        
+    count = query.count()
+    norm_tag = cat_clean.upper().replace(" ", "-") if not is_all else "ALL"
+    expected_phrase = f"DELETE-{norm_tag}"
+    
+    return {
+        "category": cat_clean if not is_all else "ALL",
+        "is_all": is_all,
+        "customer_count": count,
+        "expected_confirmation": expected_phrase
+    }
+
+@router.delete("/purge-all")
+def purge_all_customers(
+    confirmation: Optional[str] = Query(None, description="Must match required confirmation phrase"),
+    confirm_phrase: Optional[str] = Query(None, description="Alternative param name"),
+    category: Optional[str] = Query(None, description="Specific Business Category to purge (or None for ALL)"),
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """
+    Admin-only: Permanently delete customers individually by Business Category or across all categories,
+    EXCEPT the protected demo customer: Shivam (Phone: 7814749816).
+    """
+    phrase = (confirmation or confirm_phrase or "").strip().upper()
+    cat_clean = (category or "").strip()
+    is_all = not cat_clean or cat_clean.upper() in ["ALL", "*"]
+    
+    norm_tag = cat_clean.upper().replace(" ", "-") if not is_all else "ALL"
+    expected_phrase = f"DELETE-{norm_tag}"
+
+    if phrase != expected_phrase:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Confirmation phrase '{expected_phrase}' is required to execute permanent deletion."
+        )
+
+    protected_phone_norm = "7814749816"
+
+    query = db.query(Customer).filter(
+        ~Customer.phone_1_normalized.like(f"%{protected_phone_norm}%"),
+        ~Customer.party_name.ilike("%shivam%")
+    )
+
+    if not is_all:
+        query = query.filter(Customer.category == cat_clean)
+
+    customers_to_delete = query.all()
+    deleted_count = len(customers_to_delete)
+    
+    for cust in customers_to_delete:
+        db.delete(cust)
+
+    db.commit()
+
+    action_label = f"CATEGORY_{norm_tag}_PURGED" if not is_all else "ALL_CUSTOMERS_PURGED"
+    AuditService.log(
+        db,
+        action=action_label,
+        entity_type="customer",
+        changes={"purged_count": deleted_count, "category": cat_clean if not is_all else "ALL", "preserved": "Shivam (7814749816)"},
+        user=admin_user
+    )
+
+    scope_name = f"category '{cat_clean}'" if not is_all else "all categories"
+    return {
+        "status": "success",
+        "category": cat_clean if not is_all else "ALL",
+        "purged_customers": deleted_count,
+        "deleted_customers": deleted_count,
+        "message": f"Successfully deleted {deleted_count} customer records in {scope_name}. Demo account 'Shivam' (7814749816) was safely preserved.",
+        "protected_customer_preserved": True
+    }
+
+@router.get("/export")
+def export_customers(
+    format: str = Query("xlsx", description="xlsx or csv"),
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+    assigned_employee_id: Optional[int] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export all customer records to official Excel (.xlsx) or CSV (.csv).
+    Includes all 25 master columns, intelligence category, rating, and assigned agent.
+    """
+    if current_user.role != "admin" and not getattr(current_user, "can_export_data", True):
+        raise HTTPException(status_code=403, detail="You do not have permission to export customer data.")
+
+    from backend.app.services.excel_service import ExcelService
+    from datetime import datetime
+
+    query = db.query(Customer).options(
+        joinedload(Customer.assigned_employee)
+    ).filter(Customer.is_archived == False)
+
+    if current_user.role == "employee" and current_user.allowed_categories:
+        import json
+        try:
+            allowed = json.loads(current_user.allowed_categories) if isinstance(current_user.allowed_categories, str) else current_user.allowed_categories
+            if allowed and "*" not in allowed:
+                query = query.filter(Customer.category.in_(allowed))
+        except Exception:
+            pass
+
+    if assigned_employee_id is not None:
+        if assigned_employee_id in (-1, 0):
+            emp_ids = [u.id for u in db.query(User.id).filter(User.is_active == True, User.role == "employee").all()]
+            if emp_ids:
+                query = query.filter(or_(Customer.assigned_employee_id == None, ~Customer.assigned_employee_id.in_(emp_ids)))
+        else:
+            query = query.filter(Customer.assigned_employee_id == assigned_employee_id)
+
+    if status:
+        query = query.filter(Customer.status == status)
+
+    if category:
+        query = query.filter(Customer.category == category)
+
+    if search:
+        s = f"%{search.strip()}%"
+        digits = PhoneNormalizer.clean_digits(search)
+        query = query.filter(
+            or_(
+                Customer.party_name.ilike(s),
+                Customer.party_code.ilike(s),
+                Customer.contact_person_1.ilike(s),
+                Customer.email_id_1.ilike(s),
+                Customer.city.ilike(s),
+                Customer.phone_1.like(s),
+                Customer.phone_1_normalized.like(f"%{digits}%") if digits else False
+            )
+        )
+
+    customers = query.order_by(desc(Customer.updated_at)).all()
+    timestamp_str = datetime.now().strftime("%Y-%m-%d")
+
+    if format.lower() == "csv":
+        file_bytes = ExcelService.generate_customers_csv_bytes(customers)
+        filename = f"Khandelia_Customers_Directory_{timestamp_str}.csv"
+        media_type = "text/csv; charset=utf-8"
+    else:
+        file_bytes = ExcelService.generate_customers_excel_bytes(customers)
+        filename = f"Khandelia_Customers_Directory_{timestamp_str}.xlsx"
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    return Response(
+        content=file_bytes,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
     )
 
 from backend.app.models.customer import Customer, CustomerPhoneNumber
@@ -406,21 +598,36 @@ def create_customer(
         address_line_1=customer_in.address_line_1 or customer_in.address,
         address_line_2=customer_in.address_line_2,
         address_line_3=customer_in.address_line_3,
-        contact_person_1=customer_in.contact_person_1 or raw_name,
-        email_id_1=customer_in.email_id_1 or customer_in.email,
         country=customer_in.country or "India",
         state=customer_in.state,
+        district=customer_in.district,
         city=customer_in.city,
         pincode=customer_in.pincode,
+        zone=customer_in.zone,
+        company_website=customer_in.company_website,
+        sales_region_code=customer_in.sales_region_code,
+        contact_person_1=customer_in.contact_person_1 or raw_name,
+        email_id_1=customer_in.email_id_1 or customer_in.email,
         phone_type_1=customer_in.phone_type_1 or "Mobile",
         phone_1=raw_phone,
         phone_1_normalized=phone_norm,
+        contact_person_2=customer_in.contact_person_2,
+        email_id_2=customer_in.email_id_2,
+        contact_person_3=customer_in.contact_person_3,
+        email_id_3=customer_in.email_id_3,
         status=customer_in.status or "Active",
+        category=customer_in.category or "General",
         assigned_employee_id=customer_in.assigned_employee_id or current_user.id,
         notes=customer_in.notes,
         is_archived=False
     )
     db.add(new_cust)
+    db.flush()
+
+    # Sync Phone 2 & Phone 3 if provided
+    if customer_in.phone_2 or customer_in.phone_3:
+        ExcelService._sync_customer_secondary_phones(db, new_cust.id, customer_in.phone_2, customer_in.phone_3, phone_norm)
+
     db.commit()
     db.refresh(new_cust)
 
@@ -455,7 +662,7 @@ def update_customer(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Update customer details."""
+    """Update customer details across all 25 master enterprise fields."""
     customer = db.query(Customer).options(joinedload(Customer.additional_phones)).filter(Customer.id == id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -494,14 +701,34 @@ def update_customer(
         customer.country = update_in.country
     if update_in.state is not None:
         customer.state = update_in.state
+    if update_in.district is not None:
+        customer.district = update_in.district
     if update_in.city is not None:
         customer.city = update_in.city
     if update_in.pincode is not None:
         customer.pincode = update_in.pincode
+    if update_in.zone is not None:
+        customer.zone = update_in.zone
+    if update_in.company_website is not None:
+        customer.company_website = update_in.company_website
+    if update_in.sales_region_code is not None:
+        customer.sales_region_code = update_in.sales_region_code
+    if update_in.contact_person_2 is not None:
+        customer.contact_person_2 = update_in.contact_person_2
+    if update_in.email_id_2 is not None:
+        customer.email_id_2 = update_in.email_id_2
+    if update_in.contact_person_3 is not None:
+        customer.contact_person_3 = update_in.contact_person_3
+    if update_in.email_id_3 is not None:
+        customer.email_id_3 = update_in.email_id_3
     if update_in.phone_type_1 is not None:
         customer.phone_type_1 = update_in.phone_type_1
     if update_in.status is not None:
         customer.status = update_in.status
+    if update_in.category is not None:
+        changes["category"] = {"old": customer.category, "new": update_in.category}
+        customer.category = update_in.category
+    old_assigned_employee_id = customer.assigned_employee_id
     if update_in.assigned_employee_id is not None:
         customer.assigned_employee_id = update_in.assigned_employee_id
     if update_in.notes is not None:
@@ -509,8 +736,29 @@ def update_customer(
     if update_in.is_archived is not None:
         customer.is_archived = update_in.is_archived
 
+    if update_in.phone_2 is not None or update_in.phone_3 is not None:
+        ExcelService._sync_customer_secondary_phones(db, customer.id, update_in.phone_2, update_in.phone_3, customer.phone_1_normalized)
+
     db.commit()
     db.refresh(customer)
+
+    # If assigned employee changed via update, trigger email notification
+    if update_in.assigned_employee_id is not None and update_in.assigned_employee_id != old_assigned_employee_id:
+        emp = db.query(User).filter(User.id == update_in.assigned_employee_id).first()
+        if emp:
+            try:
+                EmailService.send_assignment_notification(
+                    employee_email=emp.email,
+                    employee_name=emp.full_name,
+                    customer_name=customer.party_name,
+                    customer_code=customer.party_code,
+                    customer_phone=customer.phone_1,
+                    assigned_by=current_user.full_name,
+                    instruction_notes=update_in.notes,
+                    priority_level="Special Attention"
+                )
+            except Exception as e:
+                print(f"Error sending assignment email on update: {e}")
 
     AuditService.log(
         db,
@@ -524,6 +772,96 @@ def update_customer(
     out = CustomerOut.model_validate(customer)
     out.phone_numbers = get_customer_all_phones(customer)
     return out
+
+@router.post("/{id}/assign", response_model=CustomerOut)
+def assign_customer(
+    id: int,
+    assign_in: AssignCustomerRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Assign or re-assign customer to an employee with optional instruction notes and priority level.
+    Sends automated priority email notification via SMTP.
+    """
+    customer = db.query(Customer).options(
+        joinedload(Customer.assigned_employee),
+        joinedload(Customer.additional_phones)
+    ).filter(Customer.id == id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    employee = db.query(User).filter(User.id == assign_in.employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    old_employee_id = customer.assigned_employee_id
+    customer.assigned_employee_id = employee.id
+
+    # Append note if provided
+    if assign_in.instruction_notes and assign_in.instruction_notes.strip():
+        new_note = f"[{assign_in.priority_level or 'High Attention'}] {assign_in.instruction_notes.strip()}"
+        if customer.notes:
+            customer.notes = f"{new_note}\n\n---\n{customer.notes}"
+        else:
+            customer.notes = new_note
+
+    # Create a timeline interaction log
+    interaction = CustomerInteraction(
+        customer_id=customer.id,
+        user_id=current_user.id,
+        interaction_type="note",
+        direction="internal",
+        subject=f"🎯 Assigned to {employee.full_name} ({assign_in.priority_level or 'High Attention'})",
+        content=(
+            f"Assigned by {current_user.full_name}.\n"
+            f"Priority: {assign_in.priority_level or 'High Attention'}\n"
+            f"Instructions: {assign_in.instruction_notes.strip() if assign_in.instruction_notes else 'Pay special focus and high attention to this customer profile.'}"
+        ),
+        meta_info={
+            "assigned_by": current_user.full_name,
+            "assigned_to": employee.full_name,
+            "priority": assign_in.priority_level or "High Attention",
+            "notes": assign_in.instruction_notes
+        }
+    )
+    db.add(interaction)
+    db.commit()
+    db.refresh(customer)
+
+    # Send email notification
+    try:
+        EmailService.send_assignment_notification(
+            employee_email=employee.email,
+            employee_name=employee.full_name,
+            customer_name=customer.party_name,
+            customer_code=customer.party_code,
+            customer_phone=customer.phone_1,
+            assigned_by=current_user.full_name,
+            instruction_notes=assign_in.instruction_notes,
+            priority_level=assign_in.priority_level or "High Attention"
+        )
+    except Exception as e:
+        print(f"Failed to send assignment notification email: {e}")
+
+    AuditService.log(
+        db,
+        action="CUSTOMER_ASSIGNED",
+        entity_type="customer",
+        entity_id=str(customer.id),
+        changes={
+            "old_employee_id": old_employee_id,
+            "new_employee_id": employee.id,
+            "employee_name": employee.full_name,
+            "priority": assign_in.priority_level
+        },
+        user=current_user
+    )
+
+    out = CustomerOut.model_validate(customer)
+    out.phone_numbers = get_customer_all_phones(customer)
+    return out
+
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
 def delete_customer(

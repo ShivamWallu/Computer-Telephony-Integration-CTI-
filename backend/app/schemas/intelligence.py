@@ -24,6 +24,8 @@ class CustomerIntelligenceItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+from typing import Optional, List, Dict
+
 class IntelligenceKPIs(BaseModel):
     total_customers: int
     average_rating: float
@@ -33,6 +35,7 @@ class IntelligenceKPIs(BaseModel):
     new_customers: int
     potential_customers: int
     needs_attention: int
+    category_counts: Optional[Dict[str, int]] = {}
 
 class CustomerIntelligenceListResponse(BaseModel):
     items: List[CustomerIntelligenceItem]

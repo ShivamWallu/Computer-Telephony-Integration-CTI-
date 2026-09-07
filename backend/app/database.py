@@ -17,12 +17,26 @@ if "channel_binding=" in db_url:
     if '?' not in db_url and '&' in db_url:
         db_url = db_url.replace('&', '?', 1)
 
+from sqlalchemy import event
+
 # Connection pooling configurations based on dialect
 if db_url.startswith("sqlite"):
     engine = create_engine(
         db_url,
         connect_args={"check_same_thread": False, "timeout": 30}
     )
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=-64000")  # 64MB page cache
+            cursor.execute("PRAGMA temp_store=MEMORY")
+            cursor.execute("PRAGMA mmap_size=268435456")  # 256MB Memory-Mapped I/O
+        finally:
+            cursor.close()
 else:
     # PostgreSQL configuration with connection pooling, timeout, and health check
     engine = create_engine(
@@ -67,6 +81,24 @@ def ensure_schema_columns(target_engine):
                     conn.execute(text("ALTER TABLE users ADD COLUMN tcs_username VARCHAR(255)"))
                 if "tcs_password" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN tcs_password VARCHAR(255)"))
+                if "allowed_categories" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN allowed_categories VARCHAR(500) DEFAULT '[\"*\"]'"))
+                if "can_add_customer" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_add_customer BOOLEAN DEFAULT 1"))
+                if "can_edit_customer" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_edit_customer BOOLEAN DEFAULT 1"))
+                if "can_delete_customer" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_delete_customer BOOLEAN DEFAULT 0"))
+                if "can_rate_customer" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_rate_customer BOOLEAN DEFAULT 1"))
+                if "can_make_calls" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_make_calls BOOLEAN DEFAULT 1"))
+                if "can_listen_recordings" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_listen_recordings BOOLEAN DEFAULT 1"))
+                if "can_export_data" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_export_data BOOLEAN DEFAULT 1"))
+                if "can_view_unassigned" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN can_view_unassigned BOOLEAN DEFAULT 1"))
                 conn.commit()
 
             # 2. calls table
@@ -91,13 +123,24 @@ def ensure_schema_columns(target_engine):
                         conn.execute(text(f"ALTER TABLE calls ADD COLUMN {col_name} {col_type}"))
                 conn.commit()
 
-            # 3. customers table (Customer Intelligence)
+            # 3. customers table (Customer Intelligence & 25-Column Universal Schema)
             if "customers" in tables:
                 cust_cols = [c["name"] for c in inspector.get_columns("customers")]
-                if "rating" not in cust_cols:
-                    conn.execute(text("ALTER TABLE customers ADD COLUMN rating INTEGER DEFAULT 0"))
-                if "category" not in cust_cols:
-                    conn.execute(text("ALTER TABLE customers ADD COLUMN category VARCHAR(50) DEFAULT 'Regular'"))
+                new_cust_cols = {
+                    "rating": "INTEGER DEFAULT 0",
+                    "category": "VARCHAR(50) DEFAULT 'Regular'",
+                    "district": "VARCHAR(100)",
+                    "zone": "VARCHAR(100)",
+                    "company_website": "VARCHAR(255)",
+                    "sales_region_code": "VARCHAR(100)",
+                    "contact_person_2": "VARCHAR(255)",
+                    "email_id_2": "VARCHAR(255)",
+                    "contact_person_3": "VARCHAR(255)",
+                    "email_id_3": "VARCHAR(255)"
+                }
+                for col_name, col_type in new_cust_cols.items():
+                    if col_name not in cust_cols:
+                        conn.execute(text(f"ALTER TABLE customers ADD COLUMN {col_name} {col_type}"))
                 conn.commit()
 
             # 4. customer_rating_history table

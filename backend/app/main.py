@@ -74,6 +74,11 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": f"Internal Server Error: {str(exc)}", "path": request.url.path}
     )
 
+from fastapi.middleware.gzip import GZipMiddleware
+
+# GZip Compression for ultra-fast JSON & static delivery (over 2x faster payload transfer)
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,

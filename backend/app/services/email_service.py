@@ -219,114 +219,145 @@ class EmailService:
         employee_name: str,
         assigned_customers: List[Any],
         admin_name: str = "System Administrator",
-        employee_password: Optional[str] = None
+        employee_password: Optional[str] = None,
+        instruction_notes: Optional[str] = None,
+        priority_level: Optional[str] = "High Attention"
     ) -> Dict[str, Any]:
         """
-        Send automatic email notification to employee when customers are assigned/reassigned.
-        Includes employee credentials info (name, email, password), assigned customers table, and CRM login guidance.
+        Send an assignment-notification copy to the configured test inbox (khandelia@yopmail.com).
+        Formats customer details, priority level, instruction notes, and CRM portal access details.
         """
-        # User Safety Directive: Do NOT send assignment emails to employee email addresses
-        logger.info(f"[EMAIL POLICY] Assignment email dispatch to employee {employee_email} bypassed per user directive.")
-        return {
-            "status": "bypassed",
-            "recipient": employee_email,
-            "count": len(assigned_customers),
-            "message": "Email dispatch to employee email bypassed per user directive."
-        }
+        notification_recipient = settings.ASSIGNMENT_NOTIFICATION_TEST_RECIPIENT.strip().lower()
+        if not cls.is_safe_deliverable_address(notification_recipient):
+            return {
+                "status": "failed",
+                "recipient": notification_recipient,
+                "count": len(assigned_customers),
+                "message": "The assignment test recipient is not a valid deliverable email address."
+            }
 
         count = len(assigned_customers)
-        subject = f"🔔 CRM Assignment Update: {count} Customer(s) Assigned to You ({employee_name})"
-        pwd_display = employee_password or (employee_email.split('@')[0] if employee_email else "admin")
+        first_cust = assigned_customers[0] if assigned_customers else None
+        first_name = getattr(first_cust, 'party_name', None) or getattr(first_cust, 'name', 'Customer') if first_cust else 'Customer'
+        first_code = getattr(first_cust, 'party_code', None) or getattr(first_cust, 'customer_id', '') if first_cust else ''
+
+        if count == 1:
+            subject = f"🎯 Priority Customer Assigned: {first_name} ({first_code}) — Special Focus ({employee_name})"
+        else:
+            subject = f"🎯 CRM Portfolio Assignment: {count} Priority Customers Assigned to You ({employee_name})"
+
+        pwd_display = employee_password or "12345678"
 
         # Build customer details table
         cust_rows_text = ""
         cust_rows_html = ""
-        for idx, c in enumerate(assigned_customers, 1):
-            c_name = getattr(c, 'name', 'N/A')
-            c_company = getattr(c, 'company', 'Individual') or 'Individual'
-            c_mobile = getattr(c, 'mobile', 'N/A')
-            c_type = getattr(c, 'customer_type', 'Standard')
+        for idx, c in enumerate(assigned_customers[:50], 1):
+            c_name = getattr(c, 'party_name', None) or getattr(c, 'name', 'N/A')
+            c_code = getattr(c, 'party_code', None) or getattr(c, 'customer_id', 'N/A')
+            c_contact = getattr(c, 'contact_person_1', None) or getattr(c, 'name', '—')
+            c_mobile = getattr(c, 'phone_1', None) or getattr(c, 'mobile', 'N/A')
+            c_type = getattr(c, 'category', None) or getattr(c, 'customer_type', 'Standard')
             c_status = getattr(c, 'status', 'Active')
             c_loc = f"{getattr(c, 'city', '')}, {getattr(c, 'state', '')}".strip(', ') or 'India'
 
-            cust_rows_text += f"{idx}. {c_name} ({c_company}) | Phone: {c_mobile} | Tier: {c_type} | Status: {c_status} | Location: {c_loc}\n"
+            cust_rows_text += f"{idx}. [{c_code}] {c_name} | Contact: {c_contact} | Phone: {c_mobile} | Tier: {c_type} | Location: {c_loc}\n"
             cust_rows_html += f"""
                 <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 10px 12px; font-weight: 600; color: #1e293b;">{c_name}</td>
-                    <td style="padding: 10px 12px; color: #475569;">{c_company}</td>
-                    <td style="padding: 10px 12px; color: #4f46e5; font-weight: 700;">{c_mobile}</td>
-                    <td style="padding: 10px 12px;"><span style="background: #eef2ff; color: #4f46e5; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">{c_type}</span></td>
-                    <td style="padding: 10px 12px; color: #10b981; font-weight: 600;">{c_status}</td>
-                    <td style="padding: 10px 12px; color: #64748b;">{c_loc}</td>
+                    <td style="padding: 10px 12px; font-weight: 700; color: #1e293b;">
+                        <span style="font-family: monospace; font-size: 11px; background: #f1f5f9; padding: 2px 5px; border-radius: 3px; color: #64748b;">{c_code}</span><br>
+                        {c_name}
+                    </td>
+                    <td style="padding: 10px 12px; color: #475569;">{c_contact}</td>
+                    <td style="padding: 10px 12px; color: #4f46e5; font-weight: 700; font-family: monospace;">{c_mobile}</td>
+                    <td style="padding: 10px 12px;"><span style="background: #eef2ff; color: #4f46e5; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">{c_type}</span></td>
+                    <td style="padding: 10px 12px;"><span style="background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">{c_status}</span></td>
+                    <td style="padding: 10px 12px; color: #64748b; font-size: 12px;">{c_loc}</td>
                 </tr>
             """
 
+        instructions_block_text = f"\nSPECIAL MANAGEMENT INSTRUCTIONS:\nPriority Level: {priority_level}\nNotes: {instruction_notes}\n" if instruction_notes else f"\nPriority Level: {priority_level}\n"
+        instructions_block_html = f"""
+            <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-left: 5px solid #f59e0b; border-radius: 8px; padding: 14px 18px; margin: 18px 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 800; color: #b45309; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">⭐ Special Focus Instructions from Management:</span>
+                    <span style="background: #fef3c7; color: #92400e; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 12px; border: 1px solid #fcd34d;">{priority_level}</span>
+                </div>
+                <p style="margin: 0; font-size: 13.5px; color: #78350f; line-height: 1.5; font-weight: 500;">
+                    {instruction_notes or "Please review this customer profile, ensure proactive follow-up, and log all interaction notes and call updates."}
+                </p>
+            </div>
+        """
+
         body_text = f"""Hello {employee_name},
 
-Administrator ({admin_name}) has assigned {count} customer(s) to your CRM account.
+Administrator ({admin_name}) has assigned {count} priority customer(s) to your dedicated CRM portfolio.
 
+{instructions_block_text}
 LOGIN & ACCESS INFORMATION:
 - Employee Name: {employee_name}
 - Registered Email / Login ID: {employee_email}
 - Login Password: {pwd_display}
 - CRM Portal URL: http://localhost:8000
 
-ASSIGNED CUSTOMERS PORTFOLIO ({count} Total):
+ASSIGNED CUSTOMERS ({count} Total):
 {cust_rows_text}
 
-HOW TO ACCESS:
+HOW TO PROCEED:
 1. Open http://localhost:8000 in your browser.
-2. Sign in with your email ({employee_email}) and password ({pwd_display}).
-3. Open the 'Customers' tab to manage profiles, initiate calls, and schedule follow-ups.
+2. Sign in with your Allowed Caller ID or Email ({employee_email}) and password ({pwd_display}).
+3. Open the 'Customers' tab and switch to 'Special Focus / Assigned to Me' to view and manage these priority accounts.
 
 Best regards,
 KOGM CTI & Customer Management System
 """
 
         body_html = f"""
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
-            <div style="background: #1e1b4b; padding: 24px; text-align: center; color: #ffffff;">
-                <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">KOGM Customer Management CRM</h2>
-                <p style="margin: 6px 0 0 0; color: #a5b4fc; font-size: 14px;">Customer Portfolio Assignment Notification</p>
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.07);">
+            <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); padding: 26px; text-align: center; color: #ffffff;">
+                <div style="display: inline-block; background: rgba(255,255,255,0.12); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">KOGM Enterprise CRM • Focus Alert</div>
+                <h2 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;">Priority Customer Portfolio Assigned</h2>
+                <p style="margin: 6px 0 0 0; color: #c7d2fe; font-size: 13.5px;">Proactive Relationship & Account Delegation</p>
             </div>
             
             <div style="padding: 24px;">
                 <p style="font-size: 15px; color: #1e293b; margin-top: 0;">Hello <strong>{employee_name}</strong>,</p>
                 <p style="font-size: 14px; color: #475569; line-height: 1.6;">
-                    Administrator <strong>{admin_name}</strong> has assigned <strong>{count} customer profile(s)</strong> to your CRM account. You now have full access to view, call, email, and manage follow-ups for these customers.
+                    Administrator <strong>{admin_name}</strong> has assigned <strong>{count} customer profile(s)</strong> to your dedicated attention list. Please prioritize proactive engagement, follow-up calls, and updates for this account.
                 </p>
+
+                {instructions_block_html}
 
                 <!-- Employee Credentials & Setup Card -->
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #4f46e5; border-radius: 6px; padding: 16px; margin: 20px 0;">
-                    <div style="font-weight: 700; color: #1e293b; font-size: 14px; margin-bottom: 10px;">🔐 Your CRM Login Credentials & Portal Info:</div>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 13px; margin-bottom: 10px;">🔐 Your CRM Login Credentials & Portal Info:</div>
                     <table style="font-size: 13px; color: #334155; width: 100%; border-collapse: collapse;">
                         <tr>
-                            <td style="padding: 6px 0; font-weight: 600; width: 160px;">Employee Name:</td>
-                            <td style="padding: 6px 0; font-weight: 600; color: #1e293b;">{employee_name}</td>
+                            <td style="padding: 5px 0; font-weight: 600; width: 160px; color: #64748b;">Employee Name:</td>
+                            <td style="padding: 5px 0; font-weight: 700; color: #1e293b;">{employee_name}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 6px 0; font-weight: 600;">Registered Email / ID:</td>
-                            <td style="padding: 6px 0; color: #4f46e5; font-weight: 700;">{employee_email}</td>
+                            <td style="padding: 5px 0; font-weight: 600; color: #64748b;">Login ID / Email:</td>
+                            <td style="padding: 5px 0; color: #4f46e5; font-weight: 700;">{employee_email}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 6px 0; font-weight: 600;">Login Password:</td>
-                            <td style="padding: 6px 0; color: #0f172a; font-weight: 700; font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; display: inline-block;">{pwd_display}</td>
+                            <td style="padding: 5px 0; font-weight: 600; color: #64748b;">Login Password:</td>
+                            <td style="padding: 5px 0; color: #0f172a; font-weight: 700; font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; display: inline-block;">{pwd_display}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 6px 0; font-weight: 600;">CRM Portal Link:</td>
-                            <td style="padding: 6px 0;"><a href="http://localhost:8000" style="color: #4f46e5; font-weight: 600; text-decoration: underline;">http://localhost:8000</a></td>
+                            <td style="padding: 5px 0; font-weight: 600; color: #64748b;">CRM Portal Link:</td>
+                            <td style="padding: 5px 0;"><a href="http://localhost:8000" style="color: #4f46e5; font-weight: 700; text-decoration: underline;">http://localhost:8000</a></td>
                         </tr>
                     </table>
                 </div>
 
-                <h4 style="margin: 22px 0 10px 0; color: #0f172a; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Assigned Customers List ({count} Total):</h4>
+                <h4 style="margin: 22px 0 10px 0; color: #0f172a; font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Assigned Customer Details ({count} Total):</h4>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 6px;">
                         <thead>
                             <tr style="background: #f1f5f9; text-align: left; color: #475569; border-bottom: 2px solid #cbd5e1;">
                                 <th style="padding: 10px 12px;">Customer</th>
-                                <th style="padding: 10px 12px;">Company</th>
-                                <th style="padding: 10px 12px;">Mobile</th>
+                                <th style="padding: 10px 12px;">Contact</th>
+                                <th style="padding: 10px 12px;">Phone</th>
                                 <th style="padding: 10px 12px;">Tier</th>
                                 <th style="padding: 10px 12px;">Status</th>
                                 <th style="padding: 10px 12px;">Location</th>
@@ -339,24 +370,23 @@ KOGM CTI & Customer Management System
                 </div>
 
                 <div style="text-align: center; margin: 25px 0 15px 0;">
-                    <a href="http://localhost:8000" style="background: #4f46e5; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">
-                        🚀 Open CRM Dashboard
+                    <a href="http://localhost:8000" style="background: #4f46e5; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(79,70,229,0.3);">
+                        🚀 Open Assigned Portfolio in CRM
                     </a>
                 </div>
             </div>
 
             <div style="background: #f8fafc; padding: 14px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
-                KOGM Enterprise CTI & Customer Management System • Automated Dispatch
+                KOGM Enterprise CTI & Customer Management System • Automated Management Dispatch
             </div>
         </div>
         """
 
-        provider = settings.EMAIL_PROVIDER.lower()
         try:
-            if provider == "smtp" and settings.SMTP_USER and settings.SMTP_PASSWORD and cls.is_safe_deliverable_address(employee_email):
+            if settings.ASSIGNMENT_NOTIFICATION_TEST_SMTP_ENABLED and settings.SMTP_USER and settings.SMTP_PASSWORD:
                 msg = MIMEMultipart("alternative")
                 msg["From"] = settings.EMAIL_FROM or settings.SMTP_USER
-                msg["To"] = employee_email
+                msg["To"] = notification_recipient
                 msg["Subject"] = subject
                 msg.attach(MIMEText(body_text, "plain"))
                 msg.attach(MIMEText(body_html, "html"))
@@ -365,15 +395,16 @@ KOGM CTI & Customer Management System
                 if settings.SMTP_TLS:
                     server.starttls()
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.sendmail(settings.EMAIL_FROM or settings.SMTP_USER, [employee_email], msg.as_string())
+                server.sendmail(settings.EMAIL_FROM or settings.SMTP_USER, [notification_recipient], msg.as_string())
                 server.quit()
-                logger.info(f"Assignment notification email sent successfully to {employee_email}")
+                logger.info(f"Assignment notification test email sent successfully to {notification_recipient} for {employee_name}")
+                return {"status": "sent", "recipient": notification_recipient, "intended_employee": employee_email, "count": count}
             else:
-                logger.info(f"[SIMULATED ASSIGNMENT EMAIL (Bypass Real SMTP)] To: {employee_email} | Customers: {count}")
-            return {"status": "sent", "recipient": employee_email, "count": count}
+                logger.info(f"[SIMULATED ASSIGNMENT TEST EMAIL] To: {notification_recipient} | Customers: {count}")
+                return {"status": "simulated", "recipient": notification_recipient, "intended_employee": employee_email, "count": count}
         except Exception as e:
-            logger.warning(f"Could not deliver assignment email to {employee_email}: {e}")
-            return {"status": "failed", "error": str(e)}
+            logger.warning(f"Could not deliver assignment test email to {notification_recipient}: {e}")
+            return {"status": "failed", "recipient": notification_recipient, "intended_employee": employee_email, "error": str(e)}
 
     @classmethod
     def send_employee_welcome_email(
@@ -710,5 +741,3 @@ Customer Relations & Management System
         except Exception as e:
             logger.warning(f"Could not deliver registration confirmation email to {employee_email}: {e}")
             return {"status": "failed", "error": str(e)}
-
-

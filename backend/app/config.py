@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     SMTP_USER: str = os.getenv("SMTP_USER", "itchd.kogm@gmail.com")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "otiuncukbgbskxfk")
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "true").lower() == "true"
+    ASSIGNMENT_NOTIFICATION_TEST_RECIPIENT: str = os.getenv("ASSIGNMENT_NOTIFICATION_TEST_RECIPIENT", "khandelia@yopmail.com")
+    ASSIGNMENT_NOTIFICATION_TEST_SMTP_ENABLED: bool = os.getenv("ASSIGNMENT_NOTIFICATION_TEST_SMTP_ENABLED", "true").lower() == "true"
 
     # TCS iON ERP Automation Configuration
     TCSION_LOGIN_URL: str = os.getenv("TCSION_LOGIN_URL", "https://training.tcsion.com/Login/Login.html")

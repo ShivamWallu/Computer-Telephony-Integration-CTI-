@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional
+from typing import Optional, Union, List, Any
 from datetime import datetime
 
 class UserBase(BaseModel):
@@ -15,6 +15,16 @@ class UserBase(BaseModel):
     tcs_username: Optional[str] = None
     tcs_password: Optional[str] = None
     is_active: bool = True
+    allowed_categories: Optional[Union[str, List[str], Any]] = '["*"]'
+    allowed_upload_categories: Optional[Union[str, List[str], Any]] = '[]'
+    can_add_customer: bool = True
+    can_edit_customer: bool = True
+    can_delete_customer: bool = False
+    can_rate_customer: bool = True
+    can_make_calls: bool = True
+    can_listen_recordings: bool = True
+    can_export_data: bool = True
+    can_view_unassigned: bool = True
 
 class UserCreate(UserBase):
     password: str
@@ -33,6 +43,28 @@ class UserUpdate(BaseModel):
     tcs_password: Optional[str] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
+    allowed_categories: Optional[Union[str, List[str], Any]] = None
+    allowed_upload_categories: Optional[Union[str, List[str], Any]] = None
+    can_add_customer: Optional[bool] = None
+    can_edit_customer: Optional[bool] = None
+    can_delete_customer: Optional[bool] = None
+    can_rate_customer: Optional[bool] = None
+    can_make_calls: Optional[bool] = None
+    can_listen_recordings: Optional[bool] = None
+    can_export_data: Optional[bool] = None
+    can_view_unassigned: Optional[bool] = None
+
+class UserPermissionsUpdate(BaseModel):
+    allowed_categories: Optional[Union[str, List[str], Any]] = None
+    allowed_upload_categories: Optional[Union[str, List[str], Any]] = None
+    can_add_customer: Optional[bool] = None
+    can_edit_customer: Optional[bool] = None
+    can_delete_customer: Optional[bool] = None
+    can_rate_customer: Optional[bool] = None
+    can_make_calls: Optional[bool] = None
+    can_listen_recordings: Optional[bool] = None
+    can_export_data: Optional[bool] = None
+    can_view_unassigned: Optional[bool] = None
 
 class UserOut(UserBase):
     id: int

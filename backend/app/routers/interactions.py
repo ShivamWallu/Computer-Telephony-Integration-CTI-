@@ -38,6 +38,7 @@ def create_interaction(
     db.add(interaction)
 
     # Optional: Automatically create a follow-up task if requested
+    follow_up = None
     if interaction_in.create_follow_up and interaction_in.follow_up_due_date:
         follow_up = FollowUp(
             customer_id=customer.id,
@@ -61,6 +62,16 @@ def create_interaction(
         changes={"type": interaction.interaction_type, "customer_id": customer.id},
         user=current_user
     )
+
+    if follow_up:
+        AuditService.log(
+            db,
+            action="FOLLOWUP_CREATED",
+            entity_type="follow_up",
+            entity_id=str(follow_up.id),
+            changes={"customer_id": customer.id},
+            user=current_user
+        )
 
     return InteractionOut.model_validate(interaction)
 

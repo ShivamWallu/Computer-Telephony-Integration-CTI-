@@ -20,6 +20,16 @@ class CustomerBase(BaseModel):
     phone_1: str = Field(..., min_length=5, max_length=50)
     status: str = "Active"
     notes: Optional[str] = None
+    district: Optional[str] = None
+    zone: Optional[str] = None
+    company_website: Optional[str] = None
+    sales_region_code: Optional[str] = None
+    contact_person_2: Optional[str] = None
+    email_id_2: Optional[str] = None
+    phone_2: Optional[str] = None
+    contact_person_3: Optional[str] = None
+    email_id_3: Optional[str] = None
+    phone_3: Optional[str] = None
     rating: Optional[int] = 0
     category: Optional[str] = "Regular"
 
@@ -65,6 +75,16 @@ class CustomerUpdate(BaseModel):
     state: Optional[str] = None
     city: Optional[str] = None
     pincode: Optional[str] = None
+    district: Optional[str] = None
+    zone: Optional[str] = None
+    company_website: Optional[str] = None
+    sales_region_code: Optional[str] = None
+    contact_person_2: Optional[str] = None
+    email_id_2: Optional[str] = None
+    phone_2: Optional[str] = None
+    contact_person_3: Optional[str] = None
+    email_id_3: Optional[str] = None
+    phone_3: Optional[str] = None
     phone_type_1: Optional[str] = None
     phone_1: Optional[str] = None
     status: Optional[str] = None
@@ -190,3 +210,9 @@ class CustomerListResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+class AssignCustomerRequest(BaseModel):
+    employee_id: int
+    instruction_notes: Optional[str] = None
+    priority_level: Optional[str] = "High Attention"
+

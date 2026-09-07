@@ -1,12 +1,85 @@
 /**
- * Excel / CSV Importer with Strict 15-Column Sequence Validation & Error Reporting
+ * Excel / CSV Importer with 25-Column Sequence Validation, Permission Enforcement & Duplicate Protection
  */
 const excelImport = {
     selectedFile: null,
 
+    canUploadToCategory(category) {
+        const user = (typeof api !== 'undefined' && api.getCurrentUser) ? api.getCurrentUser() : null;
+        if (!user) return false;
+        if (user.role === 'admin' || user.role === 'ADMIN') return true;
+
+        let allowed = [];
+        let raw = user.allowed_upload_categories;
+        if (Array.isArray(raw)) {
+            allowed = raw.map(c => String(c).trim().toUpperCase());
+        } else if (typeof raw === 'string') {
+            let s = raw.replace(/[\[\]\'\"]/g, '').trim();
+            if (s) allowed = s.split(',').map(c => c.trim().toUpperCase());
+        }
+
+        if (allowed.includes('*') || allowed.includes('ALL') || allowed.length >= 10) return true;
+        if (!category || category === 'auto') {
+            return allowed.length > 0;
+        }
+        return allowed.includes(category.toUpperCase());
+    },
+
+    checkUploadAccess() {
+        const catSelect = document.getElementById('excel-import-category-select');
+        const selectedCat = catSelect ? catSelect.value : 'auto';
+        const isAllowed = this.canUploadToCategory(selectedCat);
+
+        const alertBox = document.getElementById('import-permission-alert');
+        const dropzone = document.getElementById('excel-dropzone');
+        const fileInput = document.getElementById('excel-file-input');
+        const btnImport = document.getElementById('btn-execute-import');
+
+        if (!isAllowed) {
+            if (alertBox) {
+                alertBox.style.display = 'block';
+                alertBox.innerHTML = `
+                    <div style="background: rgba(239,68,68,0.12); border: 1.5px solid var(--danger); border-radius: var(--radius-md); padding: 0.85rem 1rem; color: var(--danger); display: flex; align-items: flex-start; gap: 0.6rem;">
+                        <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0; margin-top: 2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.875rem;">🔒 Upload Permission Restricted</div>
+                            <div style="font-size: 0.8125rem; margin-top: 2px; line-height: 1.4;">
+                                New data upload access is restricted by default. You do not have permission to upload data for <strong>${selectedCat === 'auto' ? 'this category' : selectedCat}</strong>. Please contact your System Administrator to request category upload permissions.
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            if (dropzone) {
+                dropzone.style.opacity = '0.5';
+                dropzone.style.pointerEvents = 'none';
+            }
+            if (fileInput) fileInput.disabled = true;
+            if (btnImport) btnImport.disabled = true;
+        } else {
+            if (alertBox) {
+                alertBox.style.display = 'none';
+            }
+            if (dropzone) {
+                dropzone.style.opacity = '1';
+                dropzone.style.pointerEvents = 'auto';
+            }
+            if (fileInput) fileInput.disabled = false;
+            if (btnImport) btnImport.disabled = false;
+        }
+        return isAllowed;
+    },
+
     init() {
         const dropzone = document.getElementById('excel-dropzone');
         const fileInput = document.getElementById('excel-file-input');
+        const catSelect = document.getElementById('excel-import-category-select');
+
+        if (catSelect) {
+            catSelect.addEventListener('change', () => {
+                this.checkUploadAccess();
+            });
+        }
 
         if (dropzone && fileInput) {
             dropzone.addEventListener('dragover', (e) => {
@@ -35,11 +108,22 @@ const excelImport = {
         document.getElementById('btn-execute-import')?.addEventListener('click', () => {
             this.executeImport();
         });
+
+        // Initialize Quick Permissions Employee Dropdown if present
+        this.populateQuickPermEmployees();
+
+        // Check current upload permissions
+        this.checkUploadAccess();
     },
 
     async handleFileSelect(file) {
         if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
             api.toast("Please upload a valid Excel (.xlsx) or CSV file", "error");
+            return;
+        }
+
+        if (!this.checkUploadAccess()) {
+            api.toast("🔒 You do not have permission to upload new data files for this category.", "error");
             return;
         }
 
@@ -75,7 +159,7 @@ const excelImport = {
                     </div>
                     <div style="font-size: 0.8125rem; line-height: 1.5;">${errorMessage}</div>
                     <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);">
-                        Please ensure your file has exactly 15 columns matching the exact sequence. You can download the official sample template above.
+                        Please ensure your file adheres to the 25-column schema where <strong>Address Code*</strong> is mandatory. You can download the official sample template above.
                     </div>
                 </div>
             `;
@@ -97,7 +181,7 @@ const excelImport = {
                 <div style="background: var(--success-subtle); border: 1px solid var(--success); border-radius: var(--radius-md); padding: 0.75rem 1rem; color: var(--success); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
                     <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem;">
                         ${Icons.get('check', { size: 16 })}
-                        <span><strong>Schema Validation Passed:</strong> File contains all 15 required columns in exact sequence!</span>
+                        <span><strong>Schema Validation Passed:</strong> File contains all required columns and Address Code* is valid!</span>
                     </div>
                     <span class="badge badge-active">${previewData.total_detected_rows} Rows Ready</span>
                 </div>
@@ -133,14 +217,23 @@ const excelImport = {
             return;
         }
 
+        if (!this.checkUploadAccess()) {
+            api.toast("🔒 Upload permission denied for selected category.", "error");
+            return;
+        }
+
         const btn = document.getElementById('btn-execute-import');
         const origText = btn ? btn.innerHTML : "Execute Import";
 
-        const importMode = document.querySelector('input[name="import-mode"]:checked')?.value || "update";
+        const importMode = document.querySelector('input[name="import-mode"]:checked')?.value || "skip_duplicates";
+        const catSelect = document.getElementById('excel-import-category-select');
 
         const formData = new FormData();
         formData.append("file", this.selectedFile);
         formData.append("import_mode", importMode);
+        if (catSelect && catSelect.value && catSelect.value !== 'auto') {
+            formData.append("category", catSelect.value);
+        }
 
         if (btn) {
             btn.disabled = true;
@@ -161,7 +254,9 @@ const excelImport = {
             if (typeof customer !== 'undefined') {
                 customer.loadCustomers();
             }
-            app.refreshDashboard();
+            if (window.app && typeof app.refreshDashboard === 'function') {
+                app.refreshDashboard();
+            }
             api.toast(`Synchronized ${result.total_rows} records in ${durationMs}ms!`, "success");
         } catch (err) {
             api.toast(`Import failed: ${err.message}`, "error");
@@ -185,7 +280,7 @@ const excelImport = {
                 <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
                     <div class="card-title" style="color: var(--success); display: flex; align-items: center; gap: 0.4rem;">
                         ${Icons.get('check', { size: 16 })}
-                        <span>Import Synchronization Completed: ${res.filename}</span>
+                        <span>Import Completed: ${res.filename}</span>
                     </div>
                     <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
                         ${res.updated_count > 0 ? `
@@ -203,7 +298,7 @@ const excelImport = {
                     </div>
                 </div>
 
-                <div class="grid-4" style="margin-bottom: 1rem;">
+                <div class="grid-4" style="margin-bottom: 1rem; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
                     <div class="kpi-card" style="padding: 0.75rem 1rem;">
                         <span class="meta-label">Total File Rows</span>
                         <div class="kpi-value" style="font-size: 1.35rem;">${res.total_rows}</div>
@@ -212,10 +307,16 @@ const excelImport = {
                         <span class="meta-label" style="color: var(--success);">New Inserted</span>
                         <div class="kpi-value" style="font-size: 1.35rem; color: var(--success);">${res.imported_count}</div>
                     </div>
-                    <div class="kpi-card" style="padding: 0.75rem 1rem; cursor: pointer;" onclick="excelImport.openJobUpdatesModal(${res.job_id}, '${safeFilename}', ${res.total_rows}, ${res.imported_count}, ${res.updated_count}, ${res.error_count})">
-                        <span class="meta-label" style="color: var(--primary);">Synchronized (Updated)</span>
-                        <div class="kpi-value" style="font-size: 1.35rem; color: var(--primary);">
-                            ${res.updated_count}
+                    ${(res.updated_count > 0 || res.import_mode === 'update') ? `
+                    <div class="kpi-card" style="padding: 0.75rem 1rem;">
+                        <span class="meta-label" style="color: var(--primary);">Existing Updated</span>
+                        <div class="kpi-value" style="font-size: 1.35rem; color: var(--primary);">${res.updated_count || 0}</div>
+                    </div>
+                    ` : ''}
+                    <div class="kpi-card" style="padding: 0.75rem 1rem;">
+                        <span class="meta-label" style="color: #d97706;">Duplicates Skipped</span>
+                        <div class="kpi-value" style="font-size: 1.35rem; color: #d97706;">
+                            ${res.duplicate_count || (res.duplicate_records ? res.duplicate_records.length : 0)}
                         </div>
                     </div>
                     <div class="kpi-card" style="padding: 0.75rem 1rem;">
@@ -223,6 +324,41 @@ const excelImport = {
                         <div class="kpi-value" style="font-size: 1.35rem; color: var(--danger);">${res.error_count}</div>
                     </div>
                 </div>
+
+                ${res.duplicate_records && res.duplicate_records.length > 0 ? `
+                    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-md); padding: 0.875rem; margin-top: 0.75rem;">
+                        <div style="font-weight: 600; color: #b45309; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;">
+                            <span>${res.duplicate_records.length} Duplicate Record(s) Skipped (Unchanged):</span>
+                            <span class="badge badge-warning" style="background: rgba(245, 158, 11, 0.2); color: #b45309; font-weight: 700;">This data already exists</span>
+                        </div>
+                        <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+                            <table class="table" style="font-size: 0.8125rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Excel Row #</th>
+                                        <th>Address Code</th>
+                                        <th>Party Name</th>
+                                        <th>Validation Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${res.duplicate_records.map(d => `
+                                        <tr>
+                                            <td><span class="badge badge-standard">Row ${d.row_number || '—'}</span></td>
+                                            <td><code style="color: #b45309; font-weight: 700;">${d.address_code || '—'}</code></td>
+                                            <td><strong>${d.party_name || '—'}</strong></td>
+                                            <td>
+                                                <span class="badge badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #b45309; font-size: 0.72rem; font-weight: 600;">
+                                                    This data already exists
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ` : ''}
 
                 ${res.errors && res.errors.length > 0 ? `
                     <div style="background: var(--danger-subtle); border: 1px solid var(--danger); border-radius: var(--radius-md); padding: 0.875rem; margin-top: 0.75rem;">
@@ -245,11 +381,11 @@ const excelImport = {
                                         <tr>
                                             <td><span class="badge badge-standard">Row ${e.row_number}</span></td>
                                             <td><strong>${e.customer_name}</strong></td>
-                                            <td><code style="color: var(--danger); background: rgba(239,68,68,0.1); padding: 2px 6px; border-radius: 4px;">${e.mobile}</code></td>
+                                            <td><code style="color: var(--danger); background: rgba(239,68,68,0.1); padding: 2px 6px; border-radius: 4px;">${e.mobile || '—'}</code></td>
                                             <td>
                                                 <div style="color: var(--danger); font-weight: 600; margin-bottom: 2px;">${e.error}</div>
                                                 <div style="font-size: 0.75rem; color: var(--text-muted);">
-                                                    Fix: Provide a valid 10-digit mobile number in Excel Row ${e.row_number} and re-upload.
+                                                    Fix: Check row ${e.row_number} and re-upload.
                                                 </div>
                                             </td>
                                         </tr>
@@ -258,7 +394,7 @@ const excelImport = {
                             </table>
                         </div>
                     </div>
-                ` : '<div class="badge badge-active" style="padding: 0.5rem 0.85rem; font-size: 0.8125rem;">All customer rows processed cleanly without any validation errors!</div>'}
+                ` : ''}
             </div>
         `;
     },
@@ -276,9 +412,9 @@ const excelImport = {
 
             tbody.innerHTML = history.map(j => {
                 const safeFilename = (j.filename || '').replace(/'/g, "\\'");
-                const dateStr = j.created_at ? new Date(j.created_at).toLocaleString('en-IN', {
-                    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                }) : '—';
+                const dateStr = (window.app && typeof app.formatDateTime === 'function')
+                    ? app.formatDateTime(j.created_at)
+                    : (j.created_at ? new Date(j.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '—');
 
                 return `
                 <tr>
@@ -341,7 +477,9 @@ const excelImport = {
             tbodyEl.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 1.5rem; color: var(--text-muted);">Loading row error log...</td></tr>`;
         }
 
-        app.openModal('modal-import-job-errors');
+        if (window.app && typeof app.openModal === 'function') {
+            app.openModal('modal-import-job-errors');
+        }
 
         try {
             const errors = await api.get(`/imports/${jobId}/errors`);
@@ -413,7 +551,9 @@ const excelImport = {
             searchInput.value = '';
         }
 
-        app.openModal('modal-import-job-updates');
+        if (window.app && typeof app.openModal === 'function') {
+            app.openModal('modal-import-job-updates');
+        }
 
         try {
             const updates = await api.get(`/imports/${jobId}/updates`);
@@ -459,9 +599,9 @@ const excelImport = {
         }
 
         tbodyEl.innerHTML = updates.map(u => {
-            const dateStr = u.created_at ? new Date(u.created_at).toLocaleString('en-IN', {
-                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
-            }) : '—';
+            const dateStr = (window.app && typeof app.formatDateTime === 'function')
+                ? app.formatDateTime(u.created_at)
+                : (u.created_at ? new Date(u.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '—');
 
             let fieldsBadges = '—';
             if (Array.isArray(u.changed_fields) && u.changed_fields.length > 0) {
@@ -498,6 +638,196 @@ const excelImport = {
                 </tr>
             `;
         }).join('');
+    },
+
+    quickPermEmployees: [],
+
+    async populateQuickPermEmployees() {
+        const empSelect = document.getElementById('quick-perm-emp-select');
+        if (!empSelect) return;
+
+        try {
+            const employees = await api.get('/employees');
+            this.quickPermEmployees = employees || [];
+
+            if (this.quickPermEmployees.length === 0) {
+                empSelect.innerHTML = '<option value="">No employees found</option>';
+                return;
+            }
+
+            empSelect.innerHTML = this.quickPermEmployees.map(emp =>
+                `<option value="${emp.id}">${emp.full_name || emp.email} (${(emp.role || 'employee').toUpperCase()})</option>`
+            ).join('');
+
+            // Automatically select first employee and render permissions
+            if (this.quickPermEmployees.length > 0) {
+                empSelect.value = this.quickPermEmployees[0].id;
+                this.handleQuickPermEmployeeChange(this.quickPermEmployees[0].id);
+            }
+        } catch (err) {
+            console.error("Failed to load employees for quick permissions:", err);
+            if (empSelect) empSelect.innerHTML = '<option value="">Error loading employees</option>';
+        }
+    },
+
+    handleQuickPermEmployeeChange(empId) {
+        if (!empId) return;
+        const emp = this.quickPermEmployees.find(e => String(e.id) === String(empId));
+        if (!emp) return;
+
+        // Update employee summary card
+        const nameEl = document.getElementById('quick-perm-emp-name');
+        const emailEl = document.getElementById('quick-perm-emp-email');
+        const roleEl = document.getElementById('quick-perm-emp-role');
+
+        if (nameEl) nameEl.textContent = emp.full_name || 'Unnamed Employee';
+        if (emailEl) emailEl.textContent = emp.email || '—';
+        if (roleEl) {
+            roleEl.textContent = (emp.role || 'EMPLOYEE').toUpperCase();
+            roleEl.className = emp.role === 'admin' ? 'badge badge-vip' : 'badge badge-standard';
+        }
+
+        // Parse allowed_categories
+        let allowedCats = [];
+        if (Array.isArray(emp.allowed_categories)) {
+            allowedCats = emp.allowed_categories.map(c => String(c).trim().toUpperCase());
+        } else if (typeof emp.allowed_categories === 'string' && emp.allowed_categories.trim()) {
+            allowedCats = emp.allowed_categories.split(',').map(c => c.trim().toUpperCase());
+        }
+
+        // Update category checkboxes
+        document.querySelectorAll('.chk-quick-cat').forEach(chk => {
+            chk.checked = allowedCats.includes(chk.value.toUpperCase()) || allowedCats.includes('ALL');
+        });
+
+        // Update action permissions
+        const setCheck = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = Boolean(val);
+        };
+
+        setCheck('chk-quick-perm-add', emp.can_add_customer !== false);
+        setCheck('chk-quick-perm-edit', emp.can_edit_customer !== false);
+        setCheck('chk-quick-perm-delete', Boolean(emp.can_delete_customer));
+        setCheck('chk-quick-perm-rate', emp.can_rate_customer !== false);
+        setCheck('chk-quick-perm-calls', emp.can_make_calls !== false);
+        setCheck('chk-quick-perm-recordings', emp.can_listen_recordings !== false);
+        setCheck('chk-quick-perm-export', emp.can_export_data !== false);
+        setCheck('chk-quick-perm-unassigned', emp.can_view_unassigned !== false);
+    },
+
+    toggleQuickPermAllCategories() {
+        const checkboxes = document.querySelectorAll('.chk-quick-cat');
+        const allChecked = Array.from(checkboxes).every(c => c.checked);
+        checkboxes.forEach(c => { c.checked = !allChecked; });
+    },
+
+    async saveQuickPermissions() {
+        const empSelect = document.getElementById('quick-perm-emp-select');
+        const empId = empSelect ? empSelect.value : null;
+        if (!empId) {
+            api.toast("Please select an employee first", "warning");
+            return;
+        }
+
+        const btn = document.getElementById('btn-save-quick-perms');
+        const origHtml = btn ? btn.innerHTML : "Save Employee Permissions";
+
+        // Collect selected categories
+        const checkedCats = [];
+        document.querySelectorAll('.chk-quick-cat:checked').forEach(c => {
+            checkedCats.push(c.value);
+        });
+
+        // Collect feature flags
+        const getCheck = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.checked : false;
+        };
+
+        const payload = {
+            allowed_categories: checkedCats,
+            can_add_customer: getCheck('chk-quick-perm-add'),
+            can_edit_customer: getCheck('chk-quick-perm-edit'),
+            can_delete_customer: getCheck('chk-quick-perm-delete'),
+            can_rate_customer: getCheck('chk-quick-perm-rate'),
+            can_make_calls: getCheck('chk-quick-perm-calls'),
+            can_listen_recordings: getCheck('chk-quick-perm-recordings'),
+            can_export_data: getCheck('chk-quick-perm-export'),
+            can_view_unassigned: getCheck('chk-quick-perm-unassigned')
+        };
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 0.4rem;">Updating Permissions...</span>`;
+        }
+
+        try {
+            const updated = await api.put(`/employees/${empId}/permissions`, payload);
+
+            // Update local cache
+            const idx = this.quickPermEmployees.findIndex(e => String(e.id) === String(empId));
+            if (idx !== -1) {
+                this.quickPermEmployees[idx] = { ...this.quickPermEmployees[idx], ...updated };
+            }
+
+            api.toast(`Permissions updated successfully for ${updated.full_name || 'Employee'}!`, "success");
+        } catch (err) {
+            api.toast(`Failed to save permissions: ${err.message}`, "error");
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    },
+
+    /**
+     * Apply active employee upload permissions and category scoping to Excel Import View
+     */
+    applyUserUploadScoping(user) {
+        if (!user) return;
+        const isAdmin = user.role === 'admin' || user.role === 'ADMIN';
+
+        let uploadCats = [];
+        if (user.allowed_upload_categories) {
+            const raw = user.allowed_upload_categories;
+            if (Array.isArray(raw)) {
+                uploadCats = raw.map(c => String(c).trim().toUpperCase()).filter(c => c && c !== '***');
+            } else if (typeof raw === 'string') {
+                const s = raw.replace(/[\[\]\'\"]/g, '').trim();
+                if (s && s !== '***') uploadCats = s.split(',').map(c => c.trim().toUpperCase());
+            }
+        }
+
+        const hasAllUpload = isAdmin || uploadCats.includes('*') || uploadCats.includes('ALL') || uploadCats.length >= 10;
+        const canUploadAny = hasAllUpload || uploadCats.length > 0;
+
+        const dropzone = document.getElementById('import-dropzone');
+        const fileInput = document.getElementById('excel-file-input');
+        const uploadBtn = document.getElementById('btn-upload-file');
+        const lockedNotice = document.getElementById('import-locked-banner');
+
+        if (!canUploadAny) {
+            if (dropzone) {
+                dropzone.style.pointerEvents = 'none';
+                dropzone.style.opacity = '0.5';
+            }
+            if (fileInput) fileInput.disabled = true;
+            if (uploadBtn) uploadBtn.disabled = true;
+            if (lockedNotice) {
+                lockedNotice.style.display = 'block';
+                lockedNotice.innerHTML = `🔒 <strong>Upload Access Restricted:</strong> Your employee account does not have permission to upload Excel/CSV customer records. Please contact your system administrator.`;
+            }
+        } else {
+            if (dropzone) {
+                dropzone.style.pointerEvents = '';
+                dropzone.style.opacity = '';
+            }
+            if (fileInput) fileInput.disabled = false;
+            if (uploadBtn) uploadBtn.disabled = false;
+            if (lockedNotice) lockedNotice.style.display = 'none';
+        }
     }
 };
 

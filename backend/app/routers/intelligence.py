@@ -28,6 +28,18 @@ from backend.app.utils.security import get_current_user
 router = APIRouter(prefix="/intelligence", tags=["Customer Intelligence"])
 
 VALID_CATEGORIES = {
+    # 10 Universal Business Product Categories
+    "By Product",
+    "DOC",
+    "MCK",
+    "MRO",
+    "SAS",
+    "HUSK",
+    "MSD",
+    "MOL",
+    "MOMT",
+    "General",
+    # Customer Loyalty / Performance Tiers
     "Top Customer",
     "Premium",
     "Regular",
@@ -37,7 +49,7 @@ VALID_CATEGORIES = {
 }
 
 def get_intelligence_kpis(db: Session) -> IntelligenceKPIs:
-    """Compute aggregate Customer Intelligence KPIs across active customers."""
+    """Compute aggregate Customer Intelligence KPIs and category breakdowns across active customers."""
     base = db.query(Customer).filter(Customer.is_archived == False)
     total = base.count()
     
@@ -48,12 +60,16 @@ def get_intelligence_kpis(db: Session) -> IntelligenceKPIs:
     ).first()
     avg_rating = round(float(avg_tuple[0] or 0), 1)
 
-    top_count = base.filter(Customer.category == "Top Customer").count()
-    prem_count = base.filter(Customer.category == "Premium").count()
-    reg_count = base.filter(Customer.category == "Regular").count()
+    top_count = base.filter((Customer.category == "Top Customer") | (Customer.rating == 5)).count()
+    prem_count = base.filter((Customer.category == "Premium") | (Customer.rating == 4)).count()
+    reg_count = base.filter((Customer.category == "Regular") | (Customer.rating == 3)).count()
     new_count = base.filter(Customer.category == "New Customer").count()
-    pot_count = base.filter(Customer.category == "Potential").count()
-    needs_att = base.filter(Customer.category == "Needs Attention").count()
+    pot_count = base.filter((Customer.category == "Potential") | (Customer.rating == 2)).count()
+    needs_att = base.filter((Customer.category == "Needs Attention") | (Customer.rating == 1)).count()
+
+    # Dynamic Category breakdown for all active business categories
+    cat_counts_raw = db.query(Customer.category, func.count(Customer.id)).filter(Customer.is_archived == False).group_by(Customer.category).all()
+    category_counts = {str(c or 'General').strip(): count for c, count in cat_counts_raw if c}
 
     return IntelligenceKPIs(
         total_customers=total,
@@ -63,7 +79,8 @@ def get_intelligence_kpis(db: Session) -> IntelligenceKPIs:
         regular_customers=reg_count,
         new_customers=new_count,
         potential_customers=pot_count,
-        needs_attention=needs_att
+        needs_attention=needs_att,
+        category_counts=category_counts
     )
 
 @router.get("/stats", response_model=IntelligenceKPIs)

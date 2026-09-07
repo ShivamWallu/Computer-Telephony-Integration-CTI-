@@ -8,10 +8,12 @@ from backend.app.models.customer import Customer
 from backend.app.models.call import Call
 from backend.app.models.interaction import CustomerInteraction
 from backend.app.models.follow_up import FollowUp
+from backend.app.models.audit_log import AuditLog
 from backend.app.schemas.stats import (
     DashboardStatsResponse, KPICards, EmployeePerformance,
     TodayCallingSummary, EmployeeCallingPerformance
 )
+from backend.app.services.phone_normalizer import PhoneNormalizer
 from backend.app.utils.security import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard & Analytics"])
@@ -152,6 +154,7 @@ def get_dashboard_stats(
             "phone_number": c.phone_number,
             "customer_name": c.customer.party_name if (c.customer and hasattr(c.customer, 'party_name')) else "Unknown Caller",
             "customer_id": c.customer.id if c.customer else None,
+            "customer_category": c.customer.category if (c.customer and hasattr(c.customer, 'category')) else None,
             "direction": c.direction,
             "status": c.status,
             "duration": f"{(c.duration_seconds or 0) // 60:02d}:{(c.duration_seconds or 0) % 60:02d}",
@@ -225,7 +228,10 @@ def get_dashboard_stats(
     all_users = db.query(User).filter(User.is_active == True).order_by(User.full_name).all() if is_admin else [current_user]
 
     # Fast 1-shot aggregations across whole database
-    cust_counts = dict(
+    all_customers_count = db.query(func.count(Customer.id)).filter(
+        Customer.is_archived == False
+    ).scalar() or 0
+    assigned_counts = dict(
         db.query(Customer.assigned_employee_id, func.count(Customer.id))
         .filter(Customer.is_archived == False, Customer.assigned_employee_id.isnot(None))
         .group_by(Customer.assigned_employee_id)
@@ -244,17 +250,21 @@ def get_dashboard_stats(
         .all()
     )
     fu_counts = dict(
-        db.query(FollowUp.assigned_user_id, func.count(FollowUp.id))
-        .filter(FollowUp.status == "Completed", FollowUp.assigned_user_id.isnot(None))
-        .group_by(FollowUp.assigned_user_id)
+        db.query(AuditLog.user_id, func.count(AuditLog.id))
+        .filter(
+            AuditLog.action == "FOLLOWUP_CREATED",
+            AuditLog.entity_type == "follow_up",
+            AuditLog.user_id.isnot(None)
+        )
+        .group_by(AuditLog.user_id)
         .all()
     )
 
     for emp in all_users:
-        assigned_count = cust_counts.get(emp.id, 0)
+        emp_customers_count = assigned_counts.get(emp.id, 0)
         calls_count = call_counts.get(emp.id, 0)
         inter_count = inter_counts.get(emp.id, 0)
-        fu_done = fu_counts.get(emp.id, 0)
+        followups_count = fu_counts.get(emp.id, 0)
         desig = emp.designation if (emp.designation and emp.designation != "NA") else ("Admin" if emp.role == "admin" else "Employee")
 
         team_activity.append(EmployeePerformance(
@@ -265,10 +275,10 @@ def get_dashboard_stats(
             phone=emp.phone,
             allowed_caller_id=emp.allowed_caller_id or emp.vid,
             designation=desig,
-            assigned_customers_count=assigned_count,
+            customers_count=emp_customers_count,
             calls_logged=calls_count,
             interactions_logged=inter_count,
-            followups_completed=fu_done
+            followups_count=followups_count
         ))
 
     # 6. TODAY'S EMPLOYEE-WISE CALLING PERFORMANCE (In-Memory instant calculation from today_calls_list)
@@ -411,6 +421,114 @@ def get_dashboard_stats(
             "calls": cnt
         })
 
+    # 9. Business Category Call Distribution & Volume
+    cat_meta = {
+        "DOC": "Global Logistics",
+        "HUSK": "Rice Husk & Biomass",
+        "SAS": "Automation & Power Corp",
+        "MRO": "Industrial Supplies",
+        "MCK": "Precision Machinery",
+        "MSD": "Steels & Fasteners",
+        "MOL": "Oils & Agro Extracts",
+        "MOMT": "Heavy Tools & Dies",
+        "By Product": "By Product (All Lines)",
+        "General": "General Accounts"
+    }
+    
+    cat_stats_map = {k: {"total": 0, "inbound": 0, "outbound": 0, "connected": 0, "missed": 0, "talk_seconds": 0} for k in cat_meta}
+    
+    # Pre-cache phone to customer category mapping for unlinked calls
+    phone_cat_lookup = {}
+    for cust in db.query(Customer).filter(Customer.is_archived == False).all():
+        cat = cust.category or "General"
+        if cust.phone_1_normalized:
+            phone_cat_lookup[cust.phone_1_normalized] = (cat, cust.party_name)
+        if hasattr(cust, "additional_phones") and cust.additional_phones:
+            for p in cust.additional_phones:
+                if p.phone_normalized:
+                    phone_cat_lookup[p.phone_normalized] = (cat, cust.party_name)
+
+    all_dashboard_calls = call_query.outerjoin(Customer, Call.customer_id == Customer.id).with_entities(
+        Customer.category,
+        Customer.party_name,
+        Call.direction,
+        Call.status,
+        Call.duration_seconds,
+        Call.call_to_number,
+        Call.agent_number
+    ).all()
+
+    total_cat_calls = len(all_dashboard_calls)
+
+    for cust_cat, party_name, direction, status, dur, to_num, agent_num in all_dashboard_calls:
+        resolved_cat = None
+        
+        # 1. Direct customer category match
+        if cust_cat and cust_cat.strip() in cat_stats_map:
+            resolved_cat = cust_cat.strip()
+        elif cust_cat and cust_cat.strip() in ["Regular", "General", "Standard", "VIP", "Lead", "New Customer"]:
+            # If name has category hint
+            p_name = party_name or ""
+            p_upper = p_name.upper()
+            matched_code = next((k for k in cat_meta if k.upper() in p_upper), None)
+            resolved_cat = matched_code if matched_code else "General"
+        
+        # 2. Lookup by phone if still not resolved
+        if not resolved_cat:
+            clean_to = PhoneNormalizer.clean_digits(to_num or "")
+            clean_agent = PhoneNormalizer.clean_digits(agent_num or "")
+            
+            for digits in [clean_to[-10:] if len(clean_to) >= 10 else None, clean_agent[-10:] if len(clean_agent) >= 10 else None]:
+                if digits:
+                    for norm_k, (c_cat, c_name) in phone_cat_lookup.items():
+                        if digits in norm_k:
+                            if c_cat in cat_stats_map:
+                                resolved_cat = c_cat
+                            else:
+                                c_upper = (c_name or "").upper()
+                                matched_code = next((k for k in cat_meta if k.upper() in c_upper), None)
+                                resolved_cat = matched_code if matched_code else "General"
+                            break
+                if resolved_cat:
+                    break
+
+        if not resolved_cat or resolved_cat not in cat_stats_map:
+            resolved_cat = "General"
+
+        target = cat_stats_map[resolved_cat]
+        target["total"] += 1
+        if (direction or "").lower() in ["incoming", "inbound"]:
+            target["inbound"] += 1
+        else:
+            target["outbound"] += 1
+            
+        dur_sec = dur or 0
+        if status in ["completed", "answered"] or dur_sec > 0:
+            target["connected"] += 1
+            target["talk_seconds"] += dur_sec
+        elif status in ["missed", "failed", "rejected"]:
+            target["missed"] += 1
+
+    category_call_distribution = []
+    for code, info in cat_meta.items():
+        st = cat_stats_map[code]
+        pct = round((st["total"] / max(1, total_cat_calls)) * 100, 1) if total_cat_calls > 0 else 0.0
+        conn_rate = round((st["connected"] / max(1, st["total"])) * 100, 1) if st["total"] > 0 else 100.0
+        category_call_distribution.append({
+            "category": code,
+            "category_name": info,
+            "total_calls": st["total"],
+            "inbound_calls": st["inbound"],
+            "outbound_calls": st["outbound"],
+            "connected_calls": st["connected"],
+            "missed_calls": st["missed"],
+            "connect_rate_percent": conn_rate,
+            "total_talk_seconds": st["talk_seconds"],
+            "percentage": pct
+        })
+    
+    category_call_distribution.sort(key=lambda x: x["total_calls"], reverse=True)
+
     from backend.app.services.token_service import SmartfloTokenService
     token_meta = SmartfloTokenService.get_token_metadata() if current_user.role == "admin" else None
 
@@ -426,5 +544,6 @@ def get_dashboard_stats(
         call_trends=call_trends,
         calling_summary_today=calling_summary_today,
         employee_calling_today=employee_calling_today,
+        category_call_distribution=category_call_distribution,
         smartflo_token=token_meta
     )

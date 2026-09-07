@@ -7,17 +7,116 @@ const cti = {
     dismissTimeouts: new Map(),
     processedCallKeys: new Set(),
     dismissedCallKeys: new Set(),
-    selectedCallKey: null,
-    eventSource: null,
-    pollingInterval: null,
+    adminPopupCategoryFilter: localStorage.getItem('admin_popup_cat_filter') || 'ALL',
 
     init() {
+        // Sync Admin Call Popup Filter dropdown state if present
+        const adminFilterSel = document.getElementById('admin-popup-cat-filter');
+        if (adminFilterSel) {
+            adminFilterSel.value = this.adminPopupCategoryFilter || 'ALL';
+        }
+
         // 1. Bind global telephony buttons
         this.bindEvents();
 
         // 2. Start Real-time SSE Stream & Polling fallback
         this.startRealtimeCallStream();
         this.startActiveCallPolling();
+    },
+
+    /**
+     * Admin-only frontend control to focus Call Popups on All Categories or a Specific Business Category
+     */
+    setAdminPopupCategoryFilter(catCode) {
+        const val = String(catCode || 'ALL').trim();
+        this.adminPopupCategoryFilter = val;
+        try {
+            localStorage.setItem('admin_popup_cat_filter', val);
+        } catch (e) {}
+
+        const adminFilterSel = document.getElementById('admin-popup-cat-filter');
+        if (adminFilterSel && adminFilterSel.value !== val) {
+            adminFilterSel.value = val;
+        }
+
+        // Re-evaluate currently open call cards and remove cards that don't match the new category
+        for (const [key, call] of this.activeCalls.entries()) {
+            if (!this.isCallPopupAllowed(call)) {
+                const card = document.getElementById(`cti-card-${key}`);
+                if (card) card.remove();
+                this.activeCalls.delete(key);
+            }
+        }
+
+        if (typeof api !== 'undefined' && api.toast) {
+            api.toast(`Admin Call Popups Filter: ${val === 'ALL' ? 'All Categories (Full Feed)' : val + ' Line Only'}`, "info");
+        }
+    },
+
+    /**
+     * Extract normalized allowed category codes for a user
+     */
+    getUserAllowedCategories(user) {
+        if (!user) return [];
+        let raw = user.allowed_categories;
+        if (!raw) return [];
+        if (Array.isArray(raw)) {
+            return raw.map(c => String(c).trim().toUpperCase()).filter(c => c && c !== '***');
+        }
+        if (typeof raw === 'string') {
+            let s = raw.replace(/[\[\]\'\"]/g, '').trim();
+            if (!s || s === '***') return [];
+            return s.split(',').map(c => c.trim().toUpperCase()).filter(c => c && c !== '***');
+        }
+        return [];
+    },
+
+    /**
+     * Strict Category Scoping Check:
+     * - Admin sees all call popups (or filtered by adminPopupCategoryFilter if custom selected).
+     * - Employees ONLY see call popups for customer data belonging to their admin-assigned categories!
+     */
+    isCallPopupAllowed(callData) {
+        if (!callData) return false;
+        const currentUser = (typeof api !== 'undefined' && api.getCurrentUser) ? api.getCurrentUser() : null;
+        if (!currentUser) return true;
+
+        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'ADMIN';
+
+        // Extract call category
+        const custCategory = (
+            callData.customer?.category ||
+            callData.customer_category ||
+            callData.category ||
+            (callData.customer_found ? 'Regular' : 'General')
+        ).toUpperCase().trim();
+
+        if (isAdmin) {
+            // Admin frontend category selector check
+            if (this.adminPopupCategoryFilter && this.adminPopupCategoryFilter.toUpperCase() !== 'ALL') {
+                const filterUpper = this.adminPopupCategoryFilter.toUpperCase();
+                return custCategory === filterUpper;
+            }
+            return true;
+        } else {
+            // Employee check: Must belong to employee's allowed business categories
+            const allowedCats = this.getUserAllowedCategories(currentUser);
+            const hasAllCategories = (
+                allowedCats.length === 0 ||
+                allowedCats.includes('*') ||
+                allowedCats.includes('ALL') ||
+                allowedCats.length >= 10
+            );
+
+            if (hasAllCategories) return true;
+
+            // If caller is unknown (not in CRM) and employee has General allowed, permit
+            if (!callData.customer_found) {
+                return allowedCats.includes('GENERAL');
+            }
+
+            return allowedCats.includes(custCategory);
+        }
     },
 
     bindEvents() {
@@ -135,13 +234,22 @@ const cti = {
             if (!token) return;
 
             try {
-                const res = await api.get('/calls/active');
+                const currentUser = (typeof api !== 'undefined' && api.getCurrentUser) ? api.getCurrentUser() : null;
+                const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ADMIN');
+                const params = new URLSearchParams();
+                if (isAdmin && this.adminPopupCategoryFilter && this.adminPopupCategoryFilter !== 'ALL') {
+                    params.set('admin_category_filter', this.adminPopupCategoryFilter);
+                }
+                const url = '/calls/active' + (params.toString() ? `?${params.toString()}` : '');
+                const res = await api.get(url);
+
                 if (res && res.active_calls && Array.isArray(res.active_calls)) {
                     const serverActiveKeys = new Set();
                     
                     res.active_calls.forEach(call => {
                         const callKey = (call.uuid || call.call_id || '').trim();
                         if (!callKey || this.dismissedCallKeys.has(callKey)) return;
+                        if (!this.isCallPopupAllowed(call)) return;
                         serverActiveKeys.add(callKey);
                         if (!this.activeCalls.has(callKey)) {
                             this.handleIncomingCallEvent(call);
@@ -232,6 +340,11 @@ const cti = {
         const callKey = (callData.uuid || callData.call_id || '').trim();
         if (!callKey || this.dismissedCallKeys.has(callKey)) return;
 
+        // Strict RBAC & Business Category Scoping Check
+        if (!this.isCallPopupAllowed(callData)) {
+            return;
+        }
+
         const isNewCall = !this.activeCalls.has(callKey);
         const existing = this.activeCalls.get(callKey) || {};
         const merged = { ...existing, ...callData };
@@ -299,6 +412,7 @@ const cti = {
         const assignedEmployee = callData.assigned_employee_name || callData.agent_name || 'System';
 
         const isCustomerFound = Boolean(callData.customer_found && callData.customer);
+        const categoryName = callData.customer?.category || callData.customer_category || callData.category || (isCustomerFound ? 'Regular' : 'General');
 
         // Parse start timestamp for display
         let startEpoch = Date.now();
@@ -323,13 +437,17 @@ const cti = {
 
         card.innerHTML = `
             <div class="cti-header">
-                <div style="display: flex; align-items: center; gap: 0.4rem; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; min-width: 0; flex-wrap: wrap;">
                     <div class="cti-status-pill" id="cti-status-pill-${callKey}" style="${isOutgoing ? 'background: var(--primary-subtle); color: var(--primary); border-color: rgba(79, 70, 229, 0.3);' : ''}">
                         <span class="pulse-ring"></span>
                         <span id="cti-status-label-${callKey}">${isOutgoing ? 'LIVE OUTBOUND' : 'LIVE INCOMING'}</span>
                     </div>
                     <span class="badge badge-standard" style="font-size: 0.75rem;" title="${isOutgoing ? 'Calling via Configured DID' : 'Dialed DID / Virtual Number'}">
                         ${vid}
+                    </span>
+                    <span class="badge" style="font-size: 0.72rem; padding: 0.08rem 0.45rem; background: rgba(79, 70, 229, 0.12); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Business Category: ${categoryName}">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        <span>${categoryName}</span>
                     </span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
@@ -343,8 +461,14 @@ const cti = {
 
             <!-- DID / Routing Metadata Banner -->
             <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface-elevated); padding: 0.35rem 0.65rem; border-radius: var(--radius-xs); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.65rem; border: 1px solid var(--border-color);">
-                <span style="display: inline-flex; align-items: center; gap: 4px;">📡 ${operatorCircle}</span>
-                <span style="font-weight: 600; color: var(--primary);">👤 Agent: ${assignedEmployee}</span>
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                    <span>${operatorCircle}</span>
+                </span>
+                <span style="font-weight: 600; color: var(--primary); display: inline-flex; align-items: center; gap: 4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Agent: ${assignedEmployee}</span>
+                </span>
             </div>
 
             <!-- Customer & Caller Info Box -->
@@ -419,6 +543,13 @@ const cti = {
             api.toast("Please specify a valid phone number to call", "error");
             return;
         }
+
+        const currentUser = (typeof api !== 'undefined' && api.getCurrentUser) ? api.getCurrentUser() : null;
+        if (currentUser && currentUser.role !== 'admin' && currentUser.can_make_calls === false) {
+            api.toast("🔒 Outbound calls are restricted for your employee account. Contact administrator.", "warning");
+            return;
+        }
+
         const rawPhone = String(phoneNumber).trim();
         const cleanDigits = rawPhone.replace(/\D/g, '');
         if (cleanDigits.length < 5) {

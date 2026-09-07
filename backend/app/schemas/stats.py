@@ -32,10 +32,10 @@ class EmployeePerformance(BaseModel):
     phone: Optional[str] = None
     allowed_caller_id: Optional[str] = None
     designation: Optional[str] = "Employee"
-    assigned_customers_count: int
+    customers_count: int
     calls_logged: int
     interactions_logged: int
-    followups_completed: int
+    followups_count: int
 
 class EmployeeCallingPerformance(BaseModel):
     user_id: int
@@ -82,6 +82,7 @@ class DashboardStatsResponse(BaseModel):
     call_trends: Optional[List[Dict[str, Any]]] = None
     calling_summary_today: Optional[TodayCallingSummary] = None
     employee_calling_today: Optional[List[EmployeeCallingPerformance]] = None
+    category_call_distribution: Optional[List[Dict[str, Any]]] = None
     smartflo_token: Optional[Dict[str, Any]] = None
 
 class ImportSummaryResponse(BaseModel):
@@ -91,6 +92,7 @@ class ImportSummaryResponse(BaseModel):
     imported_count: int
     updated_count: int
     duplicate_count: int
+    duplicate_records: Optional[List[Dict[str, Any]]] = None
     error_count: int
     errors: List[Dict[str, Any]]
     status: str

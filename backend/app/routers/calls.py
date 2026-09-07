@@ -799,21 +799,25 @@ async def call_events_sse(request: Request):
 
 @router.get("/active")
 def get_active_ringing_calls(
+    admin_category_filter: Optional[str] = Query(None),
     current_user: Optional[User] = Depends(get_optional_current_user)
 ):
     """
-    Returns currently ringing / active calls filtered by user role & Allowed Caller ID:
-    - Admin sees all active calls across all Smartflo Allowed Caller IDs.
-    - Employee sees only active calls routed to their Allowed Caller ID / assigned user ID.
+    Returns currently ringing / active calls filtered by user role, Allowed Caller ID, and Business Category Scoping:
+    - Admin sees all active calls (or filtered by admin_category_filter if specified).
+    - Employee sees only active calls routed to their Allowed Caller ID AND belonging to their permitted business categories.
     """
     is_admin = current_user.role == "admin" if current_user else True
     user_id = current_user.id if current_user else None
     user_cid = (current_user.allowed_caller_id or current_user.vid) if current_user else None
+    allowed_cats = current_user.allowed_categories if current_user else None
 
     active_calls = broadcast_manager.get_all_active_calls(
         user_id=user_id,
         allowed_caller_id=user_cid,
+        allowed_categories=allowed_cats,
         is_admin=is_admin,
+        admin_category_filter=admin_category_filter,
         max_age_seconds=120
     )
     return {
@@ -1087,11 +1091,12 @@ def list_calls(
     customer_id: Optional[int] = None,
     user_id: Optional[int] = None,
     direction: Optional[str] = None,
+    category: Optional[str] = None,
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Fetch call history logs with role-based access isolation."""
+    """Fetch call history logs with role-based access isolation and category filtering."""
     query = db.query(Call).options(joinedload(Call.customer), joinedload(Call.user))
 
     # RBAC: Employee only sees calls routed to their Allowed Caller ID, initiated by them, or assigned to them
@@ -1116,6 +1121,8 @@ def list_calls(
         query = query.filter(Call.customer_id == customer_id)
     if direction:
         query = query.filter(Call.direction == direction)
+    if category and category.strip().upper() not in ["ALL", "*", ""]:
+        query = query.join(Customer, Call.customer_id == Customer.id).filter(Customer.category == category.strip())
 
     calls = query.order_by(desc(Call.start_time)).limit(limit).all()
     return [CallOut.model_validate(c) for c in calls]
@@ -1332,4 +1339,176 @@ async def stream_call_recording(
 
     # If unreachable and target_url is valid, redirect directly
     return Response(status_code=307, headers={"Location": target_url})
+
+@router.get("/missed-unreturned")
+def get_unreturned_missed_calls(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Find all incoming missed / unanswered calls where NO subsequent outbound call
+    was made to that caller number or customer.
+    """
+    missed_calls = (
+        db.query(Call)
+        .options(joinedload(Call.customer))
+        .filter(
+            Call.direction == "incoming",
+            Call.status.in_(["missed", "Missed", "No Answer", "cancelled", "failed", "busy", "rejected"])
+        )
+        .order_by(desc(Call.start_time))
+        .all()
+    )
+
+    unreturned_map = {}
+    for call in missed_calls:
+        phone_norm = call.phone_number_normalized or (PhoneNormalizer.normalize(call.phone_number) if call.phone_number else None)
+        if not phone_norm:
+            continue
+
+        if phone_norm in unreturned_map:
+            continue
+
+        outbound_exists = db.query(Call.id).filter(
+            Call.direction == "outgoing",
+            or_(
+                Call.phone_number_normalized == phone_norm,
+                Call.customer_id == call.customer_id if call.customer_id else False
+            ),
+            Call.start_time >= call.start_time
+        ).first()
+
+        if not outbound_exists:
+            unreturned_map[phone_norm] = {
+                "id": call.id,
+                "caller_number": call.phone_number or phone_norm,
+                "caller_number_normalized": phone_norm,
+                "missed_at": call.start_time.isoformat() if call.start_time else None,
+                "hangup_cause": call.hangup_cause or "No Answer",
+                "customer_id": call.customer_id,
+                "customer_name": call.customer.party_name if call.customer else "Unknown Caller",
+                "customer_code": call.customer.party_code if call.customer else "—",
+                "customer_category": call.customer.category if call.customer else "—",
+                "customer_city": call.customer.city if call.customer else "—",
+                "customer_state": call.customer.state if call.customer else "—",
+                "assigned_employee": call.customer.assigned_employee.full_name if (call.customer and call.customer.assigned_employee) else "Unassigned"
+            }
+
+    all_unreturned = list(unreturned_map.values())
+    total = len(all_unreturned)
+    start_idx = (page - 1) * limit
+    paginated = all_unreturned[start_idx:start_idx + limit]
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "unreturned_missed_calls": paginated
+    }
+
+@router.get("/missed-unreturned/export")
+def export_unreturned_missed_calls(
+    format: str = Query("xlsx", pattern="^(xlsx|csv)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export all unresolved missed calls (no call-back returned) into styled Excel (.xlsx) or CSV (.csv).
+    """
+    data = get_unreturned_missed_calls(page=1, limit=50000, db=db, current_user=current_user)
+    rows = data.get("unreturned_missed_calls", [])
+
+    import io, openpyxl, csv
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from datetime import datetime
+
+    headers = [
+        "Customer Code", "Customer Name", "Category", "Caller Number",
+        "Missed Call Timestamp", "Hangup Reason", "City", "State", "Assigned Employee"
+    ]
+
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M")
+    filename = f"Unresolved_Missed_Calls_{timestamp_str}"
+
+    if format == "csv":
+        out = io.StringIO()
+        out.write('\ufeff')
+        writer = csv.writer(out)
+        writer.writerow(headers)
+        for r in rows:
+            writer.writerow([
+                r.get("customer_code", "—"),
+                r.get("customer_name", "Unknown Caller"),
+                r.get("customer_category", "—"),
+                r.get("caller_number", ""),
+                r.get("missed_at", ""),
+                r.get("hangup_cause", ""),
+                r.get("customer_city", ""),
+                r.get("customer_state", ""),
+                r.get("assigned_employee", "Unassigned")
+            ])
+        return Response(
+            content=out.getvalue().encode("utf-8"),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}.csv"'}
+        )
+    else:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Unresolved Missed Calls"
+        ws.views.sheetView[0].showGridLines = True
+
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        thin_border = Border(
+            left=Side(style="thin", color="CBD5E1"),
+            right=Side(style="thin", color="CBD5E1"),
+            top=Side(style="thin", color="CBD5E1"),
+            bottom=Side(style="thin", color="CBD5E1")
+        )
+
+        ws.append(headers)
+        for col_idx in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col_idx)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
+        ws.row_dimensions[1].height = 28
+
+        for r in rows:
+            ws.append([
+                r.get("customer_code", "—"),
+                r.get("customer_name", "Unknown Caller"),
+                r.get("customer_category", "—"),
+                r.get("caller_number", ""),
+                r.get("missed_at", ""),
+                r.get("hangup_cause", ""),
+                r.get("customer_city", ""),
+                r.get("customer_state", ""),
+                r.get("assigned_employee", "Unassigned")
+            ])
+
+        for row_idx in range(2, ws.max_row + 1):
+            for col_idx in range(1, len(headers) + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical="center")
+
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or "")) for cell in col)
+            col_letter = openpyxl.utils.get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = max(max_len + 4, 14)
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        return Response(
+            content=buf.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}.xlsx"'}
+        )
 

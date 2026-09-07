@@ -18,6 +18,7 @@ const app = {
         excelImport.init();
         followups.init();
         admin.init();
+        if (typeof permissionsManager !== 'undefined') permissionsManager.init();
         if (typeof intelligence !== 'undefined') intelligence.init();
 
         // 3. Bind Global Navigation & Actions
@@ -37,7 +38,13 @@ const app = {
                 this._hideRestoringSession();
                 this.hideLoginView();
                 this.updateUserVisuals(user);
-                this.switchView('dashboard');
+
+                // Restore tab from URL hash if present
+                const hashView = (window.location.hash || '').replace('#', '').trim();
+                const validViews = ['dashboard', 'customers', 'intelligence', 'calls', 'followups', 'import', 'permissions', 'admin'];
+                const targetView = (validViews.includes(hashView) && (hashView !== 'admin' && hashView !== 'permissions' || user.role === 'admin')) ? hashView : 'dashboard';
+                this.switchView(targetView);
+
                 if (typeof customer !== 'undefined' && typeof customer.loadCustomers === 'function') {
                     customer.currentPage = 1;
                     customer.loadCustomers();
@@ -359,6 +366,15 @@ const app = {
             });
         });
 
+        // Hash change listener for browser back/forward buttons
+        window.addEventListener('hashchange', () => {
+            const hashView = (window.location.hash || '').replace('#', '').trim();
+            const validViews = ['dashboard', 'customers', 'intelligence', 'calls', 'followups', 'import', 'permissions', 'admin'];
+            if (validViews.includes(hashView) && hashView !== this.currentView) {
+                this.switchView(hashView);
+            }
+        });
+
         // Add Customer top button
         document.getElementById('btn-open-add-customer')?.addEventListener('click', () => {
             customer.openAddModal();
@@ -425,18 +441,33 @@ const app = {
         if (name) name.textContent = user.full_name;
         if (role) role.textContent = user.role.toUpperCase();
 
-        const isAdmin = user.role === 'admin';
+        const isAdmin = user.role === 'admin' || user.role === 'ADMIN';
 
-        // Set switcher visibility and dynamic population
+        // Keep switcher dropdown visible so admin/staff can test & switch accounts smoothly
         const switcherDropdown = document.getElementById('user-switcher-dropdown');
         if (switcherDropdown) {
-            switcherDropdown.style.display = isAdmin ? 'inline-block' : 'none';
-            if (isAdmin) {
-                await this.populateUserQuickSwitcher();
-            }
+            switcherDropdown.style.display = 'inline-block';
+            await this.populateUserQuickSwitcher();
         }
 
-        // Toggle Admin-only Navigation & UI Buttons
+        // Dynamically apply full RBAC and granular employee permissions across all views & controls
+        this.applyUserPermissions(user);
+
+        // Dynamically update TCS iON credentials display for the logged-in user
+        if (typeof customer !== 'undefined' && customer.updateTcsCredentialsUI) {
+            customer.updateTcsCredentialsUI();
+        }
+    },
+
+    /**
+     * Centralized Permission Enforcement Engine
+     * Dynamically scopes navigation, action buttons, modals, and tabs according to the active account's role & permissions.
+     */
+    applyUserPermissions(user) {
+        if (!user) return;
+        const isAdmin = user.role === 'admin' || user.role === 'ADMIN';
+
+        // 1. Admin navigation & settings
         document.querySelectorAll('.admin-only').forEach(el => {
             el.style.display = isAdmin ? '' : 'none';
         });
@@ -446,9 +477,111 @@ const app = {
             adminNav.style.display = isAdmin ? 'block' : 'none';
         }
 
-        // Dynamically update TCS iON credentials display for the logged-in user
-        if (typeof customer !== 'undefined' && customer.updateTcsCredentialsUI) {
-            customer.updateTcsCredentialsUI();
+        const permNav = document.getElementById('nav-item-permissions');
+        if (permNav) {
+            permNav.style.display = isAdmin ? 'block' : 'none';
+        }
+
+        const adminPopupWrap = document.getElementById('admin-popup-filter-wrapper');
+        if (adminPopupWrap) {
+            adminPopupWrap.style.display = isAdmin ? 'inline-flex' : 'none';
+        }
+
+        // If current view is admin or permissions and switched user is non-admin, redirect to dashboard
+        if (!isAdmin && (this.currentView === 'admin' || this.currentView === 'permissions')) {
+            this.switchView('dashboard');
+        }
+
+        // 2. Add Customer Permission (can_add_customer)
+        const canAdd = isAdmin || user.can_add_customer !== false;
+        const addCustomerTopBtn = document.getElementById('btn-open-add-customer');
+        if (addCustomerTopBtn) {
+            addCustomerTopBtn.style.display = canAdd ? 'inline-flex' : 'none';
+        }
+        document.querySelectorAll('.perm-add-customer').forEach(el => {
+            el.style.display = canAdd ? '' : 'none';
+        });
+
+        // 3. Export Data Permission (can_export_data)
+        const canExport = isAdmin || user.can_export_data !== false;
+        const exportBtn = document.getElementById('btn-export-customers');
+        if (exportBtn) {
+            exportBtn.style.display = canExport ? 'inline-flex' : 'none';
+        }
+        document.querySelectorAll('.perm-export').forEach(el => {
+            el.style.display = canExport ? '' : 'none';
+        });
+
+        // 4. Delete Customer Permission (can_delete_customer)
+        const canDelete = isAdmin || Boolean(user.can_delete_customer);
+        const delDrawerBtn = document.getElementById('btn-drawer-delete-customer');
+        if (delDrawerBtn) {
+            delDrawerBtn.style.display = canDelete ? 'inline-flex' : 'none';
+        }
+        document.querySelectorAll('.perm-delete-customer').forEach(el => {
+            el.style.display = canDelete ? '' : 'none';
+        });
+
+        // 5. Edit Customer Permission (can_edit_customer)
+        const canEdit = isAdmin || user.can_edit_customer !== false;
+        const editTabBtn = document.querySelector('[data-drawer-tab="edit"]');
+        if (editTabBtn) {
+            editTabBtn.style.display = canEdit ? 'inline-flex' : 'none';
+        }
+        document.querySelectorAll('.perm-edit-customer').forEach(el => {
+            el.style.display = canEdit ? '' : 'none';
+        });
+
+        // 6. 1-5 Star Rating Permission (can_rate_customer)
+        const canRate = isAdmin || user.can_rate_customer !== false;
+        document.querySelectorAll('.perm-rate-customer').forEach(el => {
+            if (!canRate) {
+                el.style.pointerEvents = 'none';
+                el.style.opacity = '0.65';
+                el.setAttribute('title', 'Rating locked - Admin permission required');
+            } else {
+                el.style.pointerEvents = '';
+                el.style.opacity = '';
+                el.removeAttribute('title');
+            }
+        });
+
+        // 7. Outbound Calls Permission (can_make_calls)
+        const canCall = isAdmin || user.can_make_calls !== false;
+        document.querySelectorAll('.perm-call-customer').forEach(el => {
+            if (!canCall) {
+                el.style.pointerEvents = 'none';
+                el.style.opacity = '0.5';
+                el.setAttribute('title', 'Outbound calling is restricted for your employee account');
+            } else {
+                el.style.pointerEvents = '';
+                el.style.opacity = '';
+                el.removeAttribute('title');
+            }
+        });
+
+        // 8. Call Audio Recordings Permission (can_listen_recordings)
+        const canAudio = isAdmin || user.can_listen_recordings !== false;
+        document.querySelectorAll('.perm-audio-recording').forEach(el => {
+            el.style.display = canAudio ? '' : 'none';
+        });
+
+        // 9. View Unassigned Customers Permission (can_view_unassigned)
+        const canUnassigned = isAdmin || user.can_view_unassigned !== false;
+        const unassignedTab = document.querySelector('[data-customer-tab="unassigned"]');
+        if (unassignedTab) {
+            unassignedTab.style.display = canUnassigned ? '' : 'none';
+        }
+
+        // 10. Sync modules
+        if (typeof customer !== 'undefined' && typeof customer.applyUserPermissions === 'function') {
+            customer.applyUserPermissions(user);
+        }
+        if (typeof intelligence !== 'undefined' && typeof intelligence.applyUserPermissions === 'function') {
+            intelligence.applyUserPermissions(user);
+        }
+        if (typeof excelImport !== 'undefined' && typeof excelImport.applyUserUploadScoping === 'function') {
+            excelImport.applyUserUploadScoping(user);
         }
     },
 
@@ -621,13 +754,20 @@ const app = {
 
     switchView(viewName) {
         const user = api.getCurrentUser();
-        if (viewName === 'admin' && user && user.role !== 'admin') {
-            api.toast("Access Restricted: Team & System settings require Administrator privileges.", "warning");
+        if ((viewName === 'admin' || viewName === 'permissions') && user && user.role !== 'admin') {
+            api.toast("Access Restricted: Administrator privileges required.", "warning");
             this.switchView('dashboard');
             return;
         }
 
         this.currentView = viewName;
+
+        // Dynamically update browser URL hash without full page reload
+        try {
+            if (window.location.hash !== `#${viewName}`) {
+                history.replaceState(null, '', `#${viewName}`);
+            }
+        } catch (e) {}
 
         // Auto-close sidebar on mobile/tablet when switching views
         const sidebar = document.getElementById('app-sidebar');
@@ -667,6 +807,9 @@ const app = {
             this.loadCallsView();
         } else if (viewName === 'import') {
             excelImport.loadHistory();
+            if (excelImport.populateQuickPermEmployees) excelImport.populateQuickPermEmployees();
+        } else if (viewName === 'permissions') {
+            if (typeof permissionsManager !== 'undefined') permissionsManager.loadPermissionsView();
         } else if (viewName === 'admin') {
             admin.loadAdminData();
         }
@@ -929,6 +1072,9 @@ const app = {
             // 2.1 Render Today's Calling Performance (Admin Dashboard Overview)
             this.renderCallingPerformance(stats);
 
+            // 2.2 Render Business Category Call Distribution & Analytics
+            this.renderCategoryCallDistribution(stats.category_call_distribution || []);
+
             // Render Today's Priority Followups
             const fuList = document.getElementById('dashboard-followups-list');
             if (fuList) {
@@ -956,7 +1102,7 @@ const app = {
                 try {
                     const recentCalls = await api.get('/calls?limit=8');
                     if (!recentCalls || recentCalls.length === 0) {
-                        telBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No recent telephony calls recorded.</td></tr>`;
+                        telBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No recent telephony calls recorded.</td></tr>`;
                     } else {
                         telBody.innerHTML = recentCalls.map(c => {
                             const isIncoming = c.direction === 'incoming';
@@ -969,6 +1115,11 @@ const app = {
                             const durationFormatted = `${Math.floor(c.duration_seconds / 60).toString().padStart(2, '0')}:${(c.duration_seconds % 60).toString().padStart(2, '0')}`;
                             const custName = c.customer?.party_name || c.customer?.name || null;
                             const custId = c.customer?.id || c.customer_id;
+                            const custCat = c.customer?.category || c.customer_category || (custId ? 'General' : null);
+                            const catBadge = custCat && typeof customer !== 'undefined' && typeof customer.getCategoryBadgeHtml === 'function'
+                                ? customer.getCategoryBadgeHtml(custCat)
+                                : (custCat ? `<span class="badge badge-standard">${this.escapeHtml(custCat)}</span>` : '<span class="text-muted">—</span>');
+
                             const vid = !isIncoming 
                                 ? (c.agent_number || c.user?.vid || c.user?.allowed_caller_id || (c.call_to_number && c.call_to_number !== c.phone_number ? c.call_to_number : '918065908540'))
                                 : (c.call_to_number || c.agent_number || 'Smartflo DID');
@@ -985,6 +1136,7 @@ const app = {
                                             <a href="#" onclick="customer.openDrawer(${custId}); return false;" style="color: var(--text-primary); font-weight: 600;">${custName}</a>
                                         ` : `<span class="text-muted">Unregistered Caller</span>`}
                                     </td>
+                                    <td>${catBadge}</td>
                                     <td>${statusBadge}</td>
                                     <td><span style="font-variant-numeric: tabular-nums;">${durationFormatted}</span></td>
                                     <td><span class="text-muted" style="font-size: 0.8125rem;">${this.formatDateTime(c.start_time)}</span></td>
@@ -1102,6 +1254,7 @@ const app = {
     },
 
     callsStatusFilter: 'all',
+    callsCategoryFilter: '',
 
     handleCallsSearch(val) {
         this.callsSearchQuery = (val || '').toLowerCase().trim();
@@ -1132,10 +1285,17 @@ const app = {
         this.renderCallsTable();
     },
 
+    handleCallsCategoryFilter(category) {
+        this.callsCategoryFilter = (category || '').trim();
+        this.callsCurrentPage = 1;
+        this.renderCallsTable();
+    },
+
     clearAllCallFilters() {
         this.callsSearchQuery = '';
         this.currentCallFilter = 'all';
         this.callsStatusFilter = 'all';
+        this.callsCategoryFilter = '';
         this.callsCurrentPage = 1;
 
         const input = document.getElementById('call-logs-search-input');
@@ -1146,6 +1306,9 @@ const app = {
 
         const statusSelect = document.getElementById('call-logs-status-filter');
         if (statusSelect) statusSelect.value = 'all';
+
+        const catSelect = document.getElementById('call-logs-category-filter');
+        if (catSelect) catSelect.value = '';
 
         document.querySelectorAll('[data-call-filter]').forEach(b => {
             b.classList.toggle('active', b.dataset.callFilter === 'all');
@@ -1196,7 +1359,16 @@ const app = {
             calls = calls.filter(c => (c.status || '').toLowerCase() === this.callsStatusFilter);
         }
 
-        // 3. Filter by search query (User/Agent, Phone, Customer ID, Call ID, Party Name, VID)
+        // 3. Filter by Business Category dropdown
+        if (this.callsCategoryFilter && this.callsCategoryFilter.toUpperCase() !== 'ALL') {
+            const targetCat = this.callsCategoryFilter.toLowerCase();
+            calls = calls.filter(c => {
+                const custCat = (c.customer?.category || c.customer_category || '').toLowerCase();
+                return custCat === targetCat;
+            });
+        }
+
+        // 4. Filter by search query (User/Agent, Phone, Customer ID, Call ID, Party Name, VID)
         if (this.callsSearchQuery) {
             const q = this.callsSearchQuery;
             const qClean = q.replace(/[^0-9a-zA-Z]/g, '');
@@ -1214,6 +1386,7 @@ const app = {
                 const uuid = (c.uuid || '').toLowerCase();
                 const contactPerson = (c.customer?.contact_person_1 || '').toLowerCase();
                 const city = (c.customer?.city || '').toLowerCase();
+                const cat = (c.customer?.category || c.customer_category || '').toLowerCase();
 
                 return phone.includes(q) ||
                     (qClean.length >= 3 && phoneClean.includes(qClean)) ||
@@ -1227,7 +1400,8 @@ const app = {
                     callId.includes(q) ||
                     uuid.includes(q) ||
                     contactPerson.includes(q) ||
-                    city.includes(q);
+                    city.includes(q) ||
+                    cat.includes(q);
             });
         }
 
@@ -1298,17 +1472,17 @@ const app = {
 
         // Empty state: proper "No calls found" message with clear filter action
         if (pageCalls.length === 0) {
-            const hasFilter = this.callsSearchQuery || this.currentCallFilter !== 'all' || (this.callsStatusFilter && this.callsStatusFilter !== 'all');
+            const hasFilter = this.callsSearchQuery || this.currentCallFilter !== 'all' || (this.callsStatusFilter && this.callsStatusFilter !== 'all') || this.callsCategoryFilter;
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 3.5rem 1rem;">
+                    <td colspan="11" style="text-align: center; color: var(--text-muted); padding: 3.5rem 1rem;">
                         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;">
                             <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-surface-elevated); display: flex; align-items: center; justify-content: center; color: var(--text-muted); border: 1px solid var(--border-color);">
                                 ${Icons.get('phone-off', { size: 22 })}
                             </div>
                             <div style="font-weight: 600; font-size: 0.9375rem; color: var(--text-primary);">No calls found</div>
                             <div style="font-size: 0.8125rem; color: var(--text-muted); max-width: 420px; line-height: 1.4;">
-                                ${this.callsSearchQuery ? `No call logs match "<strong>${this.escapeHtml(this.callsSearchQuery)}</strong>". Try searching with a different Phone, Customer Name, User/Agent, or Call ID.` : 'No telephony records recorded for the selected filter.'}
+                                ${this.callsSearchQuery ? `No call logs match "<strong>${this.escapeHtml(this.callsSearchQuery)}</strong>". Try searching with a different Phone, Customer Name, User/Agent, or Call ID.` : (this.callsCategoryFilter ? `No call logs found for Business Category <strong>${this.escapeHtml(this.callsCategoryFilter)}</strong>.` : 'No telephony records recorded for the selected filter.')}
                             </div>
                             ${hasFilter ? `
                                 <button class="btn btn-secondary btn-xs" onclick="app.clearAllCallFilters()" style="margin-top: 0.25rem; display: inline-flex; align-items: center; gap: 4px;">
@@ -1346,6 +1520,11 @@ const app = {
             const durationFormatted = `${Math.floor((c.duration_seconds || 0) / 60).toString().padStart(2, '0')}:${((c.duration_seconds || 0) % 60).toString().padStart(2, '0')}`;
             const custName = c.customer?.party_name || c.customer?.name || null;
             const custId = c.customer_id || c.customer?.id || null;
+            const custCat = c.customer?.category || c.customer_category || (custId ? 'General' : null);
+            const catBadge = custCat && typeof customer !== 'undefined' && typeof customer.getCategoryBadgeHtml === 'function'
+                ? customer.getCategoryBadgeHtml(custCat)
+                : (custCat ? `<span class="badge badge-standard">${this.escapeHtml(custCat)}</span>` : '<span class="text-muted">—</span>');
+
             const vid = !isIncoming 
                 ? (c.agent_number || c.user?.vid || c.user?.allowed_caller_id || (c.call_to_number && c.call_to_number !== c.phone_number ? c.call_to_number : '918065908540'))
                 : (c.call_to_number || c.agent_number || 'Smartflo DID');
@@ -1363,6 +1542,7 @@ const app = {
                             <div style="font-size: 0.75rem; color: var(--text-muted);">${c.customer?.city || ''}</div>
                         ` : `<span class="text-muted">Unlinked Contact</span>`}
                     </td>
+                    <td>${catBadge}</td>
                     <td>${statusBadge}</td>
                     <td><span style="font-variant-numeric: tabular-nums;">${durationFormatted}</span></td>
                     <td><span class="text-muted" style="font-size: 0.8125rem;">${this.formatDateTime(c.start_time)}</span></td>
@@ -1389,6 +1569,79 @@ const app = {
                 </tr>
             `;
         }).join('');
+    },
+
+    renderCategoryCallDistribution(distribution) {
+        const container = document.getElementById('dashboard-category-calls-grid');
+        if (!container) return;
+
+        if (!Array.isArray(distribution) || distribution.length === 0) {
+            container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1.5rem;">No business category call logs recorded.</div>`;
+            return;
+        }
+
+        const totalAll = distribution.reduce((sum, d) => sum + (d.total_calls || 0), 0);
+
+        container.innerHTML = distribution.map(item => {
+            const code = item.category || 'General';
+            const name = item.category_name || code;
+            const total = item.total_calls || 0;
+            const inbound = item.inbound_calls || 0;
+            const outbound = item.outbound_calls || 0;
+            const connectRate = item.connect_rate_percent !== undefined ? item.connect_rate_percent : 100;
+            const pct = item.percentage !== undefined ? item.percentage : (totalAll > 0 ? ((total / totalAll) * 100).toFixed(1) : 0);
+
+            const iconSvg = (typeof customer !== 'undefined' && typeof customer.getCategoryIconSvg === 'function')
+                ? customer.getCategoryIconSvg(code)
+                : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
+
+            const isZero = total === 0;
+
+            return `
+                <div class="card" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.15s ease, box-shadow 0.15s ease; cursor: pointer;"
+                    onclick="app.filterCallsByCategory('${this.escapeHtml(code)}')"
+                    title="Click to view all '${code}' call logs in Telephony View">
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="display: inline-flex; align-items: center;">${iconSvg}</span>
+                                <strong style="font-size: 0.875rem; color: var(--text-primary);">${this.escapeHtml(code)}</strong>
+                            </div>
+                            <span class="badge ${isZero ? 'badge-standard' : 'badge-active'}" style="font-size: 0.72rem; font-weight: 700;">${pct}%</span>
+                        </div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 0.65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${this.escapeHtml(name)}
+                        </div>
+                        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <div style="font-size: 1.35rem; font-weight: 800; color: ${isZero ? 'var(--text-muted)' : 'var(--primary)'}; font-variant-numeric: tabular-nums;">
+                                ${this.formatNumberDisplay(total)}
+                            </div>
+                            <div style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600;">
+                                ${this.formatFullNumber(total)} calls
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <!-- Progress bar -->
+                        <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 0.5rem;">
+                            <div style="width: ${Math.min(100, Math.max(isZero ? 0 : 4, pct))}%; height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.3s ease;"></div>
+                        </div>
+                        <!-- Mini Breakdown Stats -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 0.4rem;">
+                            <span title="Inbound vs Outbound">In: <strong style="color: var(--text-primary);">${inbound}</strong> | Out: <strong style="color: var(--text-primary);">${outbound}</strong></span>
+                            <span title="Connected Call Rate" style="color: ${connectRate >= 80 ? 'var(--success)' : 'var(--warning)'}; font-weight: 600;">${connectRate}% Conn</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    filterCallsByCategory(catCode) {
+        this.switchView('calls');
+        const catSelect = document.getElementById('call-logs-category-filter');
+        if (catSelect) catSelect.value = catCode;
+        this.handleCallsCategoryFilter(catCode);
     },
 
     openExportCallsModal() {
@@ -1514,6 +1767,53 @@ const app = {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             }
+        }
+    },
+
+    openExportMissedCallsModal() {
+        this.openModal('modal-export-missed-calls');
+    },
+
+    async downloadUnresolvedMissedCalls(format = 'xlsx') {
+        try {
+            const token = api.getToken();
+            const response = await fetch(`/api/calls/missed-unreturned/export?format=${format}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || `Export failed (HTTP ${response.status})`);
+            }
+
+            const isCsv = format.toLowerCase() === 'csv';
+            const mimeType = isCsv ? 'text/csv;charset=utf-8;' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            const rawBlob = await response.blob();
+            const downloadBlob = new Blob([rawBlob], { type: mimeType });
+
+            const contentDisposition = response.headers.get('Content-Disposition') || '';
+            let filename = `Unresolved_Missed_Calls_${new Date().toISOString().slice(0, 10)}.${format}`;
+            const match = contentDisposition.match(/filename=["']?([^;"']+)["']?/);
+            if (match && match[1]) {
+                filename = match[1].trim();
+            }
+
+            const downloadUrl = window.URL.createObjectURL(downloadBlob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            this.closeModal('modal-export-missed-calls');
+            api.toast(`Unresolved Missed Calls (${filename}) downloaded successfully!`, 'success');
+        } catch (err) {
+            console.error('Missed calls export error:', err);
+            api.toast(`Export Error: ${err.message}`, 'error');
         }
     },
 

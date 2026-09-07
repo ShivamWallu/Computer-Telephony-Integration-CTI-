@@ -137,14 +137,35 @@ class CallBroadcastManager:
         self,
         allowed_caller_id: Optional[str] = None,
         user_id: Optional[int] = None,
+        allowed_categories: Optional[Any] = None,
         is_admin: bool = False,
+        admin_category_filter: Optional[str] = None,
         max_age_seconds: int = 180
     ) -> List[Dict[str, Any]]:
-        """Return active calls filtered by user role, allowed caller ID, and fresh age (< 180s)."""
+        """Return active calls filtered by user role, allowed caller ID, business category scoping, and fresh age (< 180s)."""
         now = datetime.now(timezone.utc).timestamp()
         clean_cid = str(allowed_caller_id).strip() if allowed_caller_id else None
         results = []
         seen_keys = set()
+
+        # Parse employee allowed categories
+        parsed_allowed_cats = []
+        if allowed_categories:
+            if isinstance(allowed_categories, list):
+                parsed_allowed_cats = [str(c).strip().upper() for c in allowed_categories if c and str(c).strip() != "***"]
+            elif isinstance(allowed_categories, str):
+                s = allowed_categories.replace("[", "").replace("]", "").replace("'", "").replace('"', "").strip()
+                if s and s != "***":
+                    parsed_allowed_cats = [c.strip().upper() for c in s.split(",") if c.strip() and c.strip() != "***"]
+
+        has_all_categories = (
+            is_admin or
+            len(parsed_allowed_cats) == 0 or
+            "*" in parsed_allowed_cats or
+            "ALL" in parsed_allowed_cats or
+            len(parsed_allowed_cats) >= 10
+        )
+
         for call_key, call in list(self._active_calls.items()):
             c_key = call.get("uuid") or call.get("call_id") or call_key
             if c_key in seen_keys:
@@ -155,13 +176,26 @@ class CallBroadcastManager:
             if (now - call_ts) > max_age_seconds:
                 continue
 
+            # Determine call business category
+            cust_dict = call.get("customer") or {}
+            call_category = (
+                cust_dict.get("category") or
+                call.get("customer_category") or
+                call.get("category") or
+                "General"
+            ).strip().upper()
+
             if is_admin:
+                if admin_category_filter and admin_category_filter.upper() not in ["ALL", ""]:
+                    if call_category != admin_category_filter.upper():
+                        continue
                 results.append(call)
             else:
+                # 1. Telephony routing match
                 call_agent_id = call.get("agent_user_id") or call.get("user_id")
                 call_did = str(call.get("call_to_number") or "")
                 call_vid = str(call.get("vid") or call.get("caller_phone") or call.get("caller_id") or call.get("agent_number") or "")
-                
+
                 matches_agent = (user_id is not None and call_agent_id == user_id)
                 matches_cid = False
                 if clean_cid:
@@ -171,8 +205,16 @@ class CallBroadcastManager:
                     elif call_vid and (call_vid.endswith(cid_10) or clean_cid in call_vid):
                         matches_cid = True
 
-                if matches_agent or matches_cid:
-                    results.append(call)
+                if not (matches_agent or matches_cid):
+                    continue
+
+                # 2. Strict Business Category Scoping Match for Employee
+                if not has_all_categories:
+                    if call_category not in parsed_allowed_cats:
+                        # Employee does not have permission to receive call popups for this category!
+                        continue
+
+                results.append(call)
 
         return results
 
@@ -756,6 +798,8 @@ class CTIService:
         broadcast_payload["caller_phone"] = incoming.call_to_number if incoming.direction == "outgoing" else raw_phone
         broadcast_payload["caller_id"] = incoming.call_to_number if incoming.direction == "outgoing" else raw_phone
         broadcast_payload["vid"] = incoming.call_to_number
+        broadcast_payload["customer_category"] = customer.category if customer else "General"
+        broadcast_payload["category"] = customer.category if customer else "General"
         broadcast_payload["created_timestamp"] = datetime.now(timezone.utc).timestamp()
         broadcast_payload["timestamp"] = call_start_dt.isoformat()
         broadcast_payload["start_time"] = call_start_dt.isoformat()

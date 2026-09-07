@@ -4,14 +4,46 @@
 const customer = {
     currentPage: 1,
     limit: 15,
+    currentCustomerTab: 'all',
+    assignedFocusPage: 1,
+    assignedFocusLimit: 15,
+    assignedFocusTotal: 0,
+    assignedFocusTotalPages: 1,
+    assignedSearchTimer: null,
     currentCustomerId: null,
     editingCustomerId: null,
-    currentTimelineFilter: 'all',
+    selectedCategory: 'ALL',
+    businessCategories: [
+        { code: 'ALL', name: 'All Categories' },
+        { code: 'By Product', name: 'By Product' },
+        { code: 'HUSK', name: 'HUSK' },
+        { code: 'SAS', name: 'SAS' },
+        { code: 'MRO', name: 'MRO' },
+        { code: 'MCK', name: 'MCK' },
+        { code: 'DOC', name: 'DOC' },
+        { code: 'MSD', name: 'MSD' },
+        { code: 'MOL', name: 'MOL' },
+        { code: 'MOMT', name: 'MOMT' },
+        { code: 'General', name: 'General' }
+    ],
+
+    escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
 
     init() {
-        // Customer Filter inputs
+        this.initCategoryTabs();
+
         const searchInput = document.getElementById('customers-filter-search');
         const statusSelect = document.getElementById('customers-filter-status');
+        const categorySelect = document.getElementById('customers-filter-category');
+        const agentSelect = document.getElementById('customers-filter-agent');
 
         if (searchInput) {
             let timer;
@@ -24,6 +56,8 @@ const customer = {
             });
         }
         if (statusSelect) statusSelect.addEventListener('change', () => { this.currentPage = 1; this.loadCustomers(); });
+        if (categorySelect) categorySelect.addEventListener('change', () => { this.currentPage = 1; this.loadCustomers(); });
+        if (agentSelect) agentSelect.addEventListener('change', () => { this.currentPage = 1; this.loadCustomers(); });
 
         // Pagination buttons
         document.getElementById('btn-cust-prev')?.addEventListener('click', () => {
@@ -36,6 +70,7 @@ const customer = {
             this.currentPage++;
             this.loadCustomers();
         });
+
 
         // Drawer Sub-Tabs switching
         document.querySelectorAll('[data-drawer-tab]').forEach(btn => {
@@ -111,18 +146,54 @@ const customer = {
             const c = this.currentCustomerData;
             document.getElementById('dinp-party-code').value = c.party_code || c.customer_id || '';
             document.getElementById('dinp-party-name').value = c.party_name || c.name || '';
+            if (document.getElementById('dinp-category')) {
+                document.getElementById('dinp-category').value = c.category || 'General';
+            }
             document.getElementById('dinp-address-date').value = c.address_date || '';
             document.getElementById('dinp-addr1').value = c.address_line_1 || c.address || '';
             document.getElementById('dinp-addr2').value = c.address_line_2 || '';
             document.getElementById('dinp-addr3').value = c.address_line_3 || '';
-            document.getElementById('dinp-contact-person').value = c.contact_person_1 || '';
-            document.getElementById('dinp-email').value = c.email_id_1 || c.email || '';
             document.getElementById('dinp-country').value = c.country || 'India';
             document.getElementById('dinp-state').value = c.state || '';
+            if (document.getElementById('dinp-district')) {
+                document.getElementById('dinp-district').value = c.district || '';
+            }
             document.getElementById('dinp-city').value = c.city || '';
             document.getElementById('dinp-pincode').value = c.pincode || '';
+            if (document.getElementById('dinp-zone')) {
+                document.getElementById('dinp-zone').value = c.zone || '';
+            }
+            if (document.getElementById('dinp-website')) {
+                document.getElementById('dinp-website').value = c.company_website || '';
+            }
+            if (document.getElementById('dinp-sales-region')) {
+                document.getElementById('dinp-sales-region').value = c.sales_region_code || '';
+            }
+            document.getElementById('dinp-contact-person').value = c.contact_person_1 || '';
+            document.getElementById('dinp-email').value = c.email_id_1 || c.email || '';
             document.getElementById('dinp-phone-type').value = c.phone_type_1 || 'Mobile';
             document.getElementById('dinp-phone1').value = c.phone_1 || c.mobile || '';
+            if (document.getElementById('dinp-contact-person-2')) {
+                document.getElementById('dinp-contact-person-2').value = c.contact_person_2 || '';
+            }
+            if (document.getElementById('dinp-email-2')) {
+                document.getElementById('dinp-email-2').value = c.email_id_2 || '';
+            }
+            if (document.getElementById('dinp-phone-2')) {
+                document.getElementById('dinp-phone-2').value = c.phone_2 || '';
+            }
+            if (document.getElementById('dinp-contact-person-3')) {
+                document.getElementById('dinp-contact-person-3').value = c.contact_person_3 || '';
+            }
+            if (document.getElementById('dinp-email-3')) {
+                document.getElementById('dinp-email-3').value = c.email_id_3 || '';
+            }
+            if (document.getElementById('dinp-phone-3')) {
+                document.getElementById('dinp-phone-3').value = c.phone_3 || '';
+            }
+            if (document.getElementById('dinp-notes')) {
+                document.getElementById('dinp-notes').value = c.notes || '';
+            }
             document.getElementById('dinp-status').value = c.status || 'Active';
             if (c.assigned_employee_id) {
                 document.getElementById('dinp-assigned-agent').value = c.assigned_employee_id;
@@ -373,18 +444,30 @@ const customer = {
         const payload = {
             party_code: document.getElementById('dinp-party-code').value.trim() || null,
             party_name: document.getElementById('dinp-party-name').value.trim(),
+            category: document.getElementById('dinp-category') ? document.getElementById('dinp-category').value.trim() : 'General',
             address_date: document.getElementById('dinp-address-date').value.trim() || null,
             address_line_1: document.getElementById('dinp-addr1').value.trim() || null,
             address_line_2: document.getElementById('dinp-addr2').value.trim() || null,
             address_line_3: document.getElementById('dinp-addr3').value.trim() || null,
-            contact_person_1: document.getElementById('dinp-contact-person').value.trim() || null,
-            email_id_1: document.getElementById('dinp-email').value.trim() || null,
             country: document.getElementById('dinp-country').value.trim() || 'India',
             state: document.getElementById('dinp-state').value.trim() || null,
+            district: document.getElementById('dinp-district') ? document.getElementById('dinp-district').value.trim() || null : null,
             city: document.getElementById('dinp-city').value.trim() || null,
             pincode: document.getElementById('dinp-pincode').value.trim() || null,
+            zone: document.getElementById('dinp-zone') ? document.getElementById('dinp-zone').value.trim() || null : null,
+            company_website: document.getElementById('dinp-website') ? document.getElementById('dinp-website').value.trim() || null : null,
+            sales_region_code: document.getElementById('dinp-sales-region') ? document.getElementById('dinp-sales-region').value.trim() || null : null,
+            contact_person_1: document.getElementById('dinp-contact-person').value.trim() || null,
+            email_id_1: document.getElementById('dinp-email').value.trim() || null,
             phone_type_1: document.getElementById('dinp-phone-type').value,
             phone_1: document.getElementById('dinp-phone1').value.trim(),
+            contact_person_2: document.getElementById('dinp-contact-person-2') ? document.getElementById('dinp-contact-person-2').value.trim() || null : null,
+            email_id_2: document.getElementById('dinp-email-2') ? document.getElementById('dinp-email-2').value.trim() || null : null,
+            phone_2: document.getElementById('dinp-phone-2') ? document.getElementById('dinp-phone-2').value.trim() || null : null,
+            contact_person_3: document.getElementById('dinp-contact-person-3') ? document.getElementById('dinp-contact-person-3').value.trim() || null : null,
+            email_id_3: document.getElementById('dinp-email-3') ? document.getElementById('dinp-email-3').value.trim() || null : null,
+            phone_3: document.getElementById('dinp-phone-3') ? document.getElementById('dinp-phone-3').value.trim() || null : null,
+            notes: document.getElementById('dinp-notes') ? document.getElementById('dinp-notes').value.trim() || null : null,
             status: document.getElementById('dinp-status').value,
             assigned_employee_id: parseInt(document.getElementById('dinp-assigned-agent').value) || null
         };
@@ -535,17 +618,468 @@ const customer = {
         }
     },
 
-    escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    switchCustomerViewTab(tabName) {
+        this.currentCustomerTab = tabName;
+        const btnAll = document.getElementById('tab-cust-all');
+        const btnAssigned = document.getElementById('tab-cust-assigned');
+        const paneAll = document.getElementById('pane-cust-all');
+        const paneAssigned = document.getElementById('pane-cust-assigned');
+
+        if (tabName === 'assigned') {
+            btnAll?.classList.remove('active');
+            btnAssigned?.classList.add('active');
+            if (paneAll) paneAll.style.display = 'none';
+            if (paneAssigned) paneAssigned.style.display = 'block';
+            this.assignedFocusPage = 1;
+            this.loadAssignedFocusCustomers();
+        } else {
+            btnAssigned?.classList.remove('active');
+            btnAll?.classList.add('active');
+            if (paneAssigned) paneAssigned.style.display = 'none';
+            if (paneAll) paneAll.style.display = 'block';
+            this.currentPage = 1;
+            this.loadCustomers();
+        }
+    },
+
+    debounceAssignedSearch() {
+        clearTimeout(this.assignedSearchTimer);
+        this.assignedSearchTimer = setTimeout(() => {
+            this.assignedFocusPage = 1;
+            this.loadAssignedFocusCustomers();
+        }, 200);
+    },
+
+    assignedPrevPage() {
+        if (this.assignedFocusPage > 1) {
+            this.assignedFocusPage--;
+            this.loadAssignedFocusCustomers();
+        }
+    },
+
+    assignedNextPage() {
+        if (this.assignedFocusPage < this.assignedFocusTotalPages) {
+            this.assignedFocusPage++;
+            this.loadAssignedFocusCustomers();
+        }
+    },
+
+    async loadAssignedFocusCustomers() {
+        const tbody = document.getElementById('assigned-focus-table-body');
+        if (!tbody) return;
+
+        // Render skeleton rows
+        tbody.innerHTML = Array.from({ length: 6 }).map(() => `
+            <tr class="skeleton-row">
+                <td><div class="skeleton" style="width: 85px; height: 18px; border-radius: 12px;"></div></td>
+                <td><div class="skeleton" style="width: 70px; height: 14px;"></div></td>
+                <td><div class="skeleton" style="width: 140px; height: 14px;"></div></td>
+                <td><div class="skeleton" style="width: 100px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 110px; height: 14px;"></div></td>
+                <td><div class="skeleton" style="width: 90px; height: 16px;"></div></td>
+                <td><div class="skeleton" style="width: 90px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 180px; height: 13px;"></div></td>
+                <td><div class="skeleton" style="width: 120px; height: 26px; border-radius: 4px;"></div></td>
+            </tr>
+        `).join('');
+
+        const currentUser = api.getCurrentUser();
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.email === 'infotech@khandelia.com' || currentUser.email === 'itchd.kogm@gmail.com');
+        const adminFilterBox = document.getElementById('assigned-focus-admin-filter');
+        const employeeSelect = document.getElementById('assigned-focus-employee-select');
+        const agentLabel = document.getElementById('assigned-focus-agent-label');
+
+        let targetEmployeeId = null;
+
+        if (isAdmin) {
+            if (adminFilterBox) adminFilterBox.style.display = 'flex';
+            if (agentLabel) agentLabel.textContent = 'Team Priority Focus Accounts';
+
+            // Populate employee select if empty
+            if (employeeSelect && employeeSelect.options.length === 0) {
+                try {
+                    const employees = await api.get('/employees');
+                    const teamEmployees = employees.filter(e => e.role !== 'admin');
+                    employeeSelect.innerHTML = `
+                        <option value="all">Entire Team (All Assigned Employees)</option>
+                        ${teamEmployees.map(e => `<option value="${e.id}">${this.escapeHtml(e.full_name)} (${(e.designation || e.role).toUpperCase()})</option>`).join('')}
+                    `;
+                    employeeSelect.value = "all";
+                } catch (e) {
+                    console.error("Error populating assigned focus employee select:", e);
+                }
+            }
+
+            if (employeeSelect && employeeSelect.value && employeeSelect.value !== 'all') {
+                targetEmployeeId = parseInt(employeeSelect.value, 10);
+            }
+        } else {
+            if (adminFilterBox) adminFilterBox.style.display = 'none';
+            if (agentLabel) agentLabel.textContent = `My Assigned Accounts (${currentUser?.full_name || 'My Focus'})`;
+            targetEmployeeId = currentUser?.id || null;
+        }
+
+        const search = document.getElementById('assigned-focus-filter-search')?.value.trim() || '';
+
+        try {
+            let url = `/customers?page=${this.assignedFocusPage}&limit=${this.assignedFocusLimit}`;
+            if (targetEmployeeId) {
+                url += `&assigned_employee_id=${targetEmployeeId}`;
+            } else if (isAdmin) {
+                url += `&assigned_role=employee`;
+            }
+            if (search) {
+                url += `&search=${encodeURIComponent(search)}`;
+            }
+
+            const data = await api.get(url);
+            this.assignedFocusTotal = data.total;
+            this.assignedFocusTotalPages = data.total_pages;
+
+            const totalFormatted = (window.app && typeof app.formatFullNumber === 'function') ? app.formatFullNumber(data.total) : data.total;
+            const startNum = data.items.length > 0 ? ((data.page - 1) * this.assignedFocusLimit + 1) : 0;
+            const endNum = Math.min(data.page * this.assignedFocusLimit, data.total);
+            
+            const pageInfo = document.getElementById('assigned-focus-pagination-info');
+            if (pageInfo) {
+                pageInfo.textContent = `Showing ${startNum} to ${endNum} of ${totalFormatted} assigned focus accounts (Page ${data.page} of ${data.total_pages})`;
+            }
+
+            const badge = document.getElementById('nav-badge-assigned-focus');
+            if (badge) {
+                badge.textContent = (window.app && typeof app.formatNumberDisplay === 'function') ? app.formatNumberDisplay(data.total) : data.total;
+            }
+
+            if (data.items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2.5rem 1rem;">
+                            <div style="margin-bottom: 0.5rem; color: var(--primary);">${Icons.get('user-check', { size: 28 })}</div>
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">No assigned focus customers found</div>
+                            <div style="font-size: 0.8125rem;">Customers assigned to team members by admin will appear here for high-priority handling.</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = data.items.map(c => {
+                const partyCode = c.party_code || c.customer_id || '—';
+                const partyName = c.party_name || c.name || '—';
+                const phone1 = c.phone_1 || c.mobile || '—';
+                const contactPerson = c.contact_person_1 || '—';
+                const assignedEmpName = c.assigned_employee?.full_name || 'Unassigned';
+
+                // Rating & Tier
+                const r = Math.max(0, Math.min(5, parseInt(c.rating, 10) || 0));
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= r) {
+                        starsHtml += `<svg width="12" height="12" viewBox="0 0 24 24" style="fill: #F59E0B; stroke: #F59E0B; stroke-width: 1px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                    } else {
+                        starsHtml += `<svg width="12" height="12" viewBox="0 0 24 24" style="fill: rgba(245, 158, 11, 0.04); stroke: #F59E0B; stroke-width: 1.5px; opacity: 0.85;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                    }
+                }
+
+                // Determine priority from notes
+                let priorityLabel = "High Attention";
+                let priorityClass = "badge-warning";
+                if (c.notes && c.notes.includes("[Urgent Priority]")) {
+                    priorityLabel = "Urgent Priority";
+                    priorityClass = "badge-danger";
+                } else if (c.notes && c.notes.includes("[VIP Client]")) {
+                    priorityLabel = "VIP Account";
+                    priorityClass = "badge-vip";
+                } else if (c.notes && c.notes.includes("[Standard Follow-up]")) {
+                    priorityLabel = "Special Focus";
+                    priorityClass = "badge-standard";
+                }
+
+                // Clean display note
+                let cleanNote = c.notes || 'Special priority account assigned for proactive follow-up.';
+                if (cleanNote.length > 90) cleanNote = cleanNote.substring(0, 87) + '...';
+
+                return `
+                    <tr style="cursor: pointer; background: rgba(245, 158, 11, 0.02);" onclick="customer.openDrawer(${c.id})">
+                        <td>
+                            <span class="badge ${priorityClass}" style="font-size: 0.72rem; font-weight: 700;">${priorityLabel}</span>
+                        </td>
+                        <td><span class="badge badge-standard">${partyCode}</span></td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.875rem;">${this.escapeHtml(partyName)}</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">${c.city || ''} ${c.state ? '• ' + c.state : ''}</div>
+                        </td>
+                        <td><div style="font-weight: 600; color: var(--text-secondary);">${this.escapeHtml(contactPerson)}</div></td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums;">${this.escapeHtml(phone1)}</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <div style="display: flex; gap: 1px;">${starsHtml}</div>
+                                <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">${r > 0 ? r + '.0' : '—'}</span>
+                            </div>
+                            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 1px;">${this.escapeHtml(c.category || 'Regular')}</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="width: 22px; height: 22px; border-radius: 50%; background: var(--primary-subtle); color: var(--primary); font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center;">
+                                    ${assignedEmpName.substring(0, 2).toUpperCase()}
+                                </div>
+                                <span style="font-weight: 600; font-size: 0.78rem;">${this.escapeHtml(assignedEmpName)}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); max-width: 260px; line-height: 1.35;" title="${this.escapeHtml(c.notes || '')}">
+                                ${this.escapeHtml(cleanNote)}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.25rem; align-items: center;" onclick="event.stopPropagation();">
+                                <button class="btn btn-success btn-xs" onclick="cti.makeOutgoingCall('${this.escapeHtml(phone1)}', ${c.id})" title="Direct Call" style="font-weight: 700; height: 26px; padding: 0 7px;">
+                                    ${Icons.get('phone', { size: 12 })}
+                                    <span>Call</span>
+                                </button>
+                                <button class="btn btn-warning btn-xs" onclick="customer.openAssignModal(${c.id})" title="Re-Assign / Update Priority" style="height: 26px; padding: 0 7px; background: rgba(245,158,11,0.15); color: #D97706; border: 1px solid rgba(245,158,11,0.35);">
+                                    ${Icons.get('user-plus', { size: 12 })} <span>Assign</span>
+                                </button>
+                                <button class="btn btn-secondary btn-xs" onclick="customer.openDrawer(${c.id})" title="View 360° Profile" style="height: 26px; padding: 0 7px;">
+                                    ${Icons.get('eye', { size: 12 })}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (err) {
+            console.error("Error loading assigned focus customers:", err);
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">Failed to load assigned focus customers</td></tr>`;
+        }
+    },
+
+    async openAssignModal(customerId) {
+        if (!customerId) return;
+        try {
+            const cust = await api.get(`/customers/${customerId}`);
+            document.getElementById('inp-assign-cust-id').value = cust.id;
+            document.getElementById('modal-assign-cust-name').textContent = cust.party_name || cust.name || 'Customer';
+            document.getElementById('modal-assign-cust-phone').textContent = cust.phone_1 || cust.mobile || '—';
+            
+            const currentAgentBadge = document.getElementById('modal-assign-current-agent');
+            if (currentAgentBadge) {
+                currentAgentBadge.textContent = cust.assigned_employee ? `Currently: ${cust.assigned_employee.full_name}` : 'Currently: Unassigned';
+            }
+
+            const employeeSelect = document.getElementById('inp-assign-employee-select');
+            if (employeeSelect) {
+                const employees = await api.get('/employees');
+                employeeSelect.innerHTML = employees.map(e => `
+                    <option value="${e.id}">${this.escapeHtml(e.full_name)} (${e.role.toUpperCase()}) — ${this.escapeHtml(e.email)}</option>
+                `).join('');
+
+                if (cust.assigned_employee_id) {
+                    employeeSelect.value = cust.assigned_employee_id;
+                }
+            }
+
+            document.getElementById('inp-assign-instructions').value = '';
+            document.getElementById('inp-assign-priority').value = 'High Attention';
+
+            app.openModal('modal-assign-customer');
+        } catch (err) {
+            api.toast(`Error preparing assignment modal: ${err.message}`, "error");
+        }
+    },
+
+    async submitAssignCustomer() {
+        const custId = document.getElementById('inp-assign-cust-id')?.value;
+        const employeeId = document.getElementById('inp-assign-employee-select')?.value;
+        const priority = document.getElementById('inp-assign-priority')?.value || 'High Attention';
+        const instructions = document.getElementById('inp-assign-instructions')?.value.trim() || '';
+        const btn = document.getElementById('btn-submit-assign-customer');
+
+        if (!custId || !employeeId) {
+            api.toast("Please select an employee to assign this customer", "error");
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Assigning & Dispatching Email...";
+        }
+
+        try {
+            const updated = await api.post(`/customers/${custId}/assign`, {
+                employee_id: parseInt(employeeId, 10),
+                priority_level: priority,
+                instruction_notes: instructions
+            });
+
+            api.toast(`Assigned to ${updated.assigned_employee?.full_name || 'Employee'}! Priority notification email sent.`, "success");
+            app.closeModal('modal-assign-customer');
+
+            // Refresh UI tables
+            this.loadAssignedFocusCustomers();
+            this.loadCustomers();
+            if (this.currentCustomerId === parseInt(custId, 10)) {
+                this.populateDrawerFields(updated);
+                this.loadTimeline(custId, this.currentTimelineFilter);
+            }
+            app.refreshDashboard();
+        } catch (err) {
+            api.toast(`Assignment failed: ${err.message}`, "error");
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Assign &amp; Send Email</span>`;
+            }
+        }
+    },
+
+    getCategoryIconSvg(code) {
+        const icons = {
+            'ALL': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+            'By Product': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`,
+            'HUSK': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 20h10"/><path d="M10 20c0-4.5 3-7 5-11"/><path d="M15 9c2 0 4-1 4-4-3 0-5 2-5 4z"/><path d="M13 13c-2 0-4-1-4-4 3 0 5 2 5 4z"/></svg>`,
+            'SAS': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+            'MRO': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+            'MCK': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+            'DOC': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+            'MSD': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+            'MOL': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`,
+            'MOMT': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12l-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 4.36a9 9 0 0 0-1.92-1.28L14 4.5l3.5 3.5 1.42-1.72c-.4-.7-.84-1.35-1.28-1.92z"/></svg>`,
+            'General': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="22.01"/><line x1="15" y1="22" x2="15" y2="22.01"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/></svg>`
+        };
+        return icons[code] || icons['General'];
+    },
+
+    getCategoryStyle(code) {
+        const styles = {
+            'DOC': { bg: 'rgba(59, 130, 246, 0.12)', color: '#2563EB', border: 'rgba(59, 130, 246, 0.35)' },
+            'HUSK': { bg: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: 'rgba(16, 185, 129, 0.35)' },
+            'SAS': { bg: 'rgba(139, 92, 246, 0.12)', color: '#7C3AED', border: 'rgba(139, 92, 246, 0.35)' },
+            'MRO': { bg: 'rgba(6, 182, 212, 0.12)', color: '#0891B2', border: 'rgba(6, 182, 212, 0.35)' },
+            'MCK': { bg: 'rgba(249, 115, 22, 0.12)', color: '#EA580C', border: 'rgba(249, 115, 22, 0.35)' },
+            'MSD': { bg: 'rgba(100, 116, 139, 0.12)', color: '#475569', border: 'rgba(100, 116, 139, 0.35)' },
+            'MOL': { bg: 'rgba(234, 179, 8, 0.15)', color: '#CA8A04', border: 'rgba(234, 179, 8, 0.35)' },
+            'MOMT': { bg: 'rgba(225, 29, 72, 0.12)', color: '#E11D48', border: 'rgba(225, 29, 72, 0.35)' },
+            'General': { bg: 'rgba(99, 102, 241, 0.12)', color: '#4F46E5', border: 'rgba(99, 102, 241, 0.35)' },
+            'By Product': { bg: 'rgba(20, 184, 166, 0.12)', color: '#0D9488', border: 'rgba(20, 184, 166, 0.35)' }
+        };
+        return styles[code] || styles['General'];
+    },
+
+    getCategoryBadgeHtml(catCode) {
+        return this.renderCategoryBadgeHtml(catCode);
+    },
+
+    renderCategoryBadgeHtml(catCode) {
+        if (!catCode) return '';
+        const style = this.getCategoryStyle(catCode);
+        const iconSvg = this.getCategoryIconSvg(catCode);
+        return `
+            <span class="badge" style="background: ${style.bg}; color: ${style.color}; border: 1px solid ${style.border}; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; letter-spacing: 0.02em;">
+                <span style="display: inline-flex; align-items: center;">${iconSvg}</span>
+                <span>${this.escapeHtml(catCode)}</span>
+            </span>
+        `;
+    },
+
+    initCategoryTabs() {
+        const bar = document.getElementById('customer-category-tabs-bar');
+        if (!bar) return;
+
+        const user = (typeof api !== 'undefined' && api.getCurrentUser) ? api.getCurrentUser() : null;
+        let allowedCats = [];
+        if (user) {
+            let raw = user.allowed_categories;
+            if (Array.isArray(raw)) {
+                allowedCats = raw.map(c => String(c).trim().toUpperCase());
+            } else if (typeof raw === 'string') {
+                let s = raw.replace(/[\[\]\'\"]/g, '').trim();
+                if (s) allowedCats = s.split(',').map(c => c.trim().toUpperCase());
+            }
+        }
+        const hasAllAccess = !user || user.role === 'admin' || user.role === 'ADMIN' || allowedCats.length === 0 || allowedCats.includes('*') || allowedCats.includes('ALL') || allowedCats.length >= 10;
+
+        const visibleCategories = this.businessCategories.filter(cat => {
+            if (cat.code === 'ALL') return true;
+            if (hasAllAccess) return true;
+            return allowedCats.includes(cat.code.toUpperCase());
+        });
+
+        bar.innerHTML = visibleCategories.map(cat => {
+            const isActive = this.selectedCategory === cat.code;
+            const svgIcon = this.getCategoryIconSvg(cat.code);
+            return `
+                <button type="button" class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}" 
+                    id="btn-cust-cat-${cat.code.replace(/\s+/g, '-')}"
+                    onclick="customer.switchCategoryTab('${cat.code}')"
+                    style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.78rem; padding: 0.35rem 0.8rem; border-radius: 20px; white-space: nowrap; flex-shrink: 0;">
+                    <span style="display: inline-flex; align-items: center;">${svgIcon}</span>
+                    <span>${cat.name}</span>
+                </button>
+            `;
+        }).join('');
+
+        this.updateCategoryIndicator();
+    },
+
+    switchCategoryTab(catCode) {
+        this.selectedCategory = catCode;
+        this.currentPage = 1;
+
+        // Update active tab buttons
+        const bar = document.getElementById('customer-category-tabs-bar');
+        if (bar) {
+            bar.querySelectorAll('button').forEach(btn => {
+                btn.className = 'btn btn-sm btn-secondary';
+            });
+            const activeBtn = document.getElementById(`btn-cust-cat-${catCode.replace(/\s+/g, '-')}`);
+            if (activeBtn) {
+                activeBtn.className = 'btn btn-sm btn-primary';
+            }
+        }
+
+        this.updateCategoryIndicator();
+        this.loadCustomers();
+    },
+
+    updateCategoryIndicator() {
+        const indicator = document.getElementById('cust-active-category-indicator');
+        const purgeBtn = document.getElementById('btn-purge-active-cat');
+        const purgeLabel = document.getElementById('btn-purge-active-cat-label');
+        const user = (typeof api !== 'undefined' && api.getCurrentUser) ? api.getCurrentUser() : null;
+        const isAdmin = user && (user.role === 'admin' || user.role === 'ADMIN');
+
+        if (indicator) {
+            if (this.selectedCategory === 'ALL') {
+                indicator.textContent = 'Showing All Categories';
+                indicator.className = 'badge badge-standard';
+            } else {
+                indicator.textContent = `Showing: ${this.selectedCategory}`;
+                indicator.className = 'badge badge-active';
+            }
+        }
+
+        if (purgeBtn) {
+            if (isAdmin && this.selectedCategory && this.selectedCategory !== 'ALL') {
+                purgeBtn.style.display = 'inline-flex';
+                if (purgeLabel) purgeLabel.textContent = `Reset ${this.selectedCategory} Data`;
+            } else {
+                purgeBtn.style.display = 'none';
+            }
+        }
+    },
+
+    openPurgeForActiveCategory() {
+        if (typeof admin !== 'undefined' && admin.openPurgeCustomersModal) {
+            admin.openPurgeCustomersModal(this.selectedCategory || 'ALL');
+        }
     },
 
     async loadCustomers() {
+
         const tbody = document.getElementById('customers-table-body');
         if (!tbody) return;
 
@@ -574,11 +1108,18 @@ const customer = {
 
         const search = document.getElementById('customers-filter-search')?.value.trim() || '';
         const status = document.getElementById('customers-filter-status')?.value || '';
+        const categorySelectVal = document.getElementById('customers-filter-category')?.value || '';
+        const category = (this.selectedCategory && this.selectedCategory !== 'ALL') ? this.selectedCategory : categorySelectVal;
+        const agentId = document.getElementById('customers-filter-agent')?.value;
 
         try {
             let url = `/customers?page=${this.currentPage}&limit=${this.limit}`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
             if (status) url += `&status=${encodeURIComponent(status)}`;
+            if (category) url += `&category=${encodeURIComponent(category)}`;
+            if (agentId !== undefined && agentId !== null && agentId !== '') {
+                url += `&assigned_employee_id=${encodeURIComponent(agentId)}`;
+            }
 
             const data = await api.get(url);
 
@@ -608,6 +1149,8 @@ const customer = {
                 const emailId = c.email_id_1 || c.email || '—';
                 const contactPerson = c.contact_person_1 || '—';
 
+                const isStaff = c.assigned_employee && (c.assigned_employee.role || '').toLowerCase() === 'employee';
+                const assignedName = isStaff ? c.assigned_employee.full_name : 'Unassigned';
                 return `
                     <tr style="cursor: pointer;" onclick="customer.openDrawer(${c.id})">
                         <td><span class="badge badge-standard">${partyCode}</span></td>
@@ -623,12 +1166,15 @@ const customer = {
                         <td><span style="font-size: 0.75rem; color: var(--text-muted);">${emailId}</span></td>
                         <td><span style="font-size: 0.75rem;">${location}</span></td>
                         <td><span class="badge ${statusClass}">${c.status}</span></td>
-                        <td><span style="font-size: 0.75rem;">${c.assigned_employee?.full_name || 'Unassigned'}</span></td>
+                        <td><span style="font-size: 0.75rem;">${assignedName}</span></td>
                         <td>
-                            <div style="display: flex; gap: 0.25rem;" onclick="event.stopPropagation();">
+                            <div style="display: flex; gap: 0.25rem; align-items: center;" onclick="event.stopPropagation();">
                                 <button class="btn btn-secondary btn-xs" onclick="cti.makeOutgoingCall('${this.escapeHtml(phone1)}', ${c.id})" title="Initiate Outgoing Call" style="color: var(--primary); font-weight: 600;">
                                     ${Icons.get('phone', { size: 12 })}
                                     <span>Call</span>
+                                </button>
+                                <button class="btn btn-warning btn-xs" onclick="customer.openAssignModal(${c.id})" title="Assign to Employee / Priority Focus" style="height: 24px; padding: 0 5px; background: rgba(245,158,11,0.15); color: #D97706; border: 1px solid rgba(245,158,11,0.35); display: inline-flex; align-items: center; justify-content: center;">
+                                    ${Icons.get('user-plus', { size: 12 })}
                                 </button>
                                 <button class="btn btn-secondary btn-xs" onclick="customer.openDrawer(${c.id})" title="View Profile">
                                     ${Icons.get('eye', { size: 12 })}
@@ -644,11 +1190,23 @@ const customer = {
                 `;
             }).join('');
 
+            // Background refresh assigned badge
+            const curUser = api.getCurrentUser();
+            const isAdm = curUser && (curUser.role === 'admin' || curUser.email === 'infotech@khandelia.com' || curUser.email === 'itchd.kogm@gmail.com');
+            const empParam = isAdm ? '&assigned_role=employee' : (curUser ? `&assigned_employee_id=${curUser.id}` : '');
+            api.get(`/customers?page=1&limit=1${empParam}`).then(res => {
+                const assignedBadge = document.getElementById('nav-badge-assigned-focus');
+                if (assignedBadge) {
+                    assignedBadge.textContent = (window.app && typeof app.formatNumberDisplay === 'function') ? app.formatNumberDisplay(res.total) : res.total;
+                }
+            }).catch(() => {});
+
         } catch (err) {
             console.error("Error loading customers:", err);
             tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">Failed to load customers</td></tr>`;
         }
     },
+
 
     populateDrawerFields(cust) {
         if (!cust) return;
@@ -692,16 +1250,35 @@ const customer = {
             statusBadge.innerHTML = `<span class="badge ${cust.status === 'Active' ? 'badge-active' : 'badge-lead'}">${cust.status || 'Active'}</span>`;
         }
 
+        // Render Business Category Badges in Header & Metadata Grid
+        const bizCatBadgeEl = document.getElementById('drawer-cust-biz-cat-badge');
+        const gridCatBoxEl = document.getElementById('drawer-cust-grid-cat-box');
+        const custCat = cust.category || 'General';
+        
+        if (bizCatBadgeEl) {
+            const style = this.getCategoryStyle(custCat);
+            const iconSvg = this.getCategoryIconSvg(custCat);
+            bizCatBadgeEl.style.display = 'inline-flex';
+            bizCatBadgeEl.style.background = style.bg;
+            bizCatBadgeEl.style.color = style.color;
+            bizCatBadgeEl.style.border = `1px solid ${style.border}`;
+            bizCatBadgeEl.innerHTML = `<span style="display: inline-flex; align-items: center;">${iconSvg}</span><span>${this.escapeHtml(custCat)}</span>`;
+        }
+
+        if (gridCatBoxEl) {
+            gridCatBoxEl.innerHTML = this.renderCategoryBadgeHtml(custCat);
+        }
+
         // Render Customer Rating Badge in Drawer Header
         const ratingBadgeEl = document.getElementById('drawer-cust-rating-badge');
         if (ratingBadgeEl) {
             const r = Math.max(0, Math.min(5, parseInt(cust.rating, 10) || 0));
-            const ratingLabels = { 0: 'Not Rated', 1: 'Needs Attention', 2: 'Growth Potential', 3: 'Good', 4: 'Premium', 5: 'Top Customer' };
+            const ratingLabels = { 0: 'Unrated Account', 1: 'Needs Attention', 2: 'Growth Potential', 3: 'Good Standing', 4: 'Premium Account', 5: 'Top Tier Customer' };
             const ratingColors = { 0: '#94A3B8', 1: '#EF4444', 2: '#F97316', 3: '#EAB308', 4: '#3B82F6', 5: '#10B981' };
             const ratingBgColors = { 0: 'rgba(148,163,184,0.1)', 1: 'rgba(239,68,68,0.08)', 2: 'rgba(249,115,22,0.08)', 3: 'rgba(234,179,8,0.1)', 4: 'rgba(59,130,246,0.08)', 5: 'rgba(16,185,129,0.1)' };
             const color = ratingColors[r] || '#94A3B8';
             const bg = ratingBgColors[r] || 'rgba(148,163,184,0.1)';
-            const label = (cust.category && r > 0) ? cust.category : (ratingLabels[r] || 'Not Rated');
+            const label = ratingLabels[r] || 'Unrated';
             let starsHtml = '';
             for (let i = 1; i <= 5; i++) {
                 if (i <= r) {
@@ -734,13 +1311,19 @@ const customer = {
         }
 
         const user = api.getCurrentUser();
+        const isAdmin = user && (user.role === 'admin' || user.role === 'ADMIN');
+        const canDelete = isAdmin || (user && user.can_delete_customer === true);
         const delBtn = document.getElementById('btn-drawer-delete-customer');
         if (delBtn) {
-            delBtn.style.display = (user && user.role === 'admin') ? 'inline-flex' : 'none';
+            delBtn.style.display = canDelete ? 'inline-flex' : 'none';
         }
 
-        // Update TCS iON Sync Button State (Enabled if party_name exists, disabled if missing)
-        this.updateTcsSyncState(cust);
+        const canEdit = isAdmin || (user && user.can_edit_customer !== false);
+        const editTab = document.querySelector('[data-drawer-tab="edit"]');
+        if (editTab) {
+            editTab.style.display = canEdit ? 'inline-flex' : 'none';
+        }
+
         this.updateTcsCredentialsUI();
     },
 
@@ -1120,7 +1703,7 @@ const customer = {
         if (form) form.reset();
 
         const titleEl = document.getElementById('modal-cust-title');
-        if (titleEl) titleEl.textContent = "Create New Customer (15 Columns Schema)";
+        if (titleEl) titleEl.textContent = "Create New Customer (25 Master Columns Schema)";
 
         const submitBtn = document.getElementById('btn-submit-add-customer');
         if (submitBtn) {
@@ -1139,12 +1722,24 @@ const customer = {
         const ptypeEl = document.getElementById('inp-cust-phone-type');
         if (ptypeEl) ptypeEl.value = "Mobile";
 
+        const ccSelect = document.getElementById('inp-cust-country-code');
+        if (ccSelect) ccSelect.value = "+91";
+
         const statusEl = document.getElementById('inp-cust-status');
         if (statusEl) statusEl.value = "Active";
 
         if (prefilledPhone) {
             const phoneInput = document.getElementById('inp-cust-phone1');
             if (phoneInput) phoneInput.value = prefilledPhone;
+        }
+
+        const catSelect = document.getElementById('inp-cust-category');
+        if (catSelect) {
+            if (this.selectedCategory && this.selectedCategory !== 'ALL') {
+                catSelect.value = this.selectedCategory;
+            } else {
+                catSelect.value = 'General';
+            }
         }
 
         // Close right-side drawer if open so modal is 100% unobstructed
@@ -1164,7 +1759,7 @@ const customer = {
         const form = document.getElementById('form-add-customer');
         if (form) form.reset();
 
-        document.getElementById('modal-cust-title').textContent = "Edit Customer Profile (15 Columns)";
+        document.getElementById('modal-cust-title').textContent = "Edit Customer Profile (25 Master Columns)";
         document.getElementById('btn-submit-add-customer').textContent = "Update Customer";
         document.getElementById('inp-cust-edit-id').value = customerId;
 
@@ -1174,19 +1769,29 @@ const customer = {
         try {
             const cust = await api.get(`/customers/${customerId}`);
 
-            document.getElementById('inp-cust-party-code').value = cust.party_code || cust.customer_id || '';
-            document.getElementById('inp-cust-party-name').value = cust.party_name || cust.name || '';
-            document.getElementById('inp-cust-address-date').value = cust.address_date || '';
-            document.getElementById('inp-cust-addr1').value = cust.address_line_1 || cust.address || '';
-            document.getElementById('inp-cust-addr2').value = cust.address_line_2 || '';
-            document.getElementById('inp-cust-addr3').value = cust.address_line_3 || '';
-            document.getElementById('inp-cust-contact-person').value = cust.contact_person_1 || '';
-            document.getElementById('inp-cust-email-id').value = cust.email_id_1 || cust.email || '';
-            document.getElementById('inp-cust-country').value = cust.country || 'India';
-            document.getElementById('inp-cust-state').value = cust.state || '';
-            document.getElementById('inp-cust-city').value = cust.city || '';
-            document.getElementById('inp-cust-pincode').value = cust.pincode || '';
-            document.getElementById('inp-cust-phone-type').value = cust.phone_type_1 || 'Mobile';
+            const setField = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val !== null && val !== undefined ? val : '';
+            };
+
+            setField('inp-cust-party-code', cust.party_code || cust.customer_id);
+            setField('inp-cust-party-name', cust.party_name || cust.name);
+            setField('inp-cust-category', cust.category || 'General');
+            setField('inp-cust-address-date', cust.address_date);
+            setField('inp-cust-addr1', cust.address_line_1 || cust.address);
+            setField('inp-cust-addr2', cust.address_line_2);
+            setField('inp-cust-addr3', cust.address_line_3);
+            setField('inp-cust-country', cust.country || 'India');
+            setField('inp-cust-state', cust.state);
+            setField('inp-cust-district', cust.district);
+            setField('inp-cust-city', cust.city);
+            setField('inp-cust-pincode', cust.pincode);
+            setField('inp-cust-zone', cust.zone);
+            setField('inp-cust-website', cust.company_website);
+            setField('inp-cust-sales-region', cust.sales_region_code);
+            setField('inp-cust-contact-person', cust.contact_person_1);
+            setField('inp-cust-email-id', cust.email_id_1 || cust.email);
+            setField('inp-cust-phone-type', cust.phone_type_1 || 'Mobile');
 
             // Handle Phone 1 & Country Code
             let phone1 = (cust.phone_1 || cust.mobile || '').trim();
@@ -1199,18 +1804,28 @@ const customer = {
                 }
             }
             const ccSelect = document.getElementById('inp-cust-country-code');
-            if ([...ccSelect.options].some(o => o.value === cc)) {
-                ccSelect.value = cc;
-            } else {
-                ccSelect.value = "+91";
+            if (ccSelect) {
+                if ([...ccSelect.options].some(o => o.value === cc)) {
+                    ccSelect.value = cc;
+                } else {
+                    ccSelect.value = "+91";
+                }
             }
-            document.getElementById('inp-cust-phone1').value = phone1;
+            setField('inp-cust-phone1', phone1);
 
-            document.getElementById('inp-cust-status').value = cust.status || 'Active';
+            // Contact 2 & Contact 3
+            setField('inp-cust-contact-person-2', cust.contact_person_2);
+            setField('inp-cust-email-id-2', cust.email_id_2);
+            setField('inp-cust-phone-2', cust.phone_2);
+            setField('inp-cust-contact-person-3', cust.contact_person_3);
+            setField('inp-cust-email-id-3', cust.email_id_3);
+            setField('inp-cust-phone-3', cust.phone_3);
+
+            setField('inp-cust-status', cust.status || 'Active');
             if (cust.assigned_employee_id) {
-                document.getElementById('inp-cust-agent').value = cust.assigned_employee_id;
+                setField('inp-cust-agent', cust.assigned_employee_id);
             }
-            document.getElementById('inp-cust-notes').value = cust.notes || '';
+            setField('inp-cust-notes', cust.notes);
 
             app.openModal('modal-add-customer');
         } catch (err) {
@@ -1219,41 +1834,75 @@ const customer = {
     },
 
     async populateAgentDropdown() {
-        const agentSel = document.getElementById('inp-cust-agent');
-        if (!agentSel) return;
         try {
-            const employees = await api.get('/employees');
-            agentSel.innerHTML = employees.map(e => `
-                <option value="${e.id}">${e.full_name} (${e.role.toUpperCase()})</option>
-            `).join('');
+            const rawEmployees = await api.get('/employees');
+            const employees = (rawEmployees || []).filter(e => (e.role || '').toLowerCase() === 'employee');
+            const agentSel = document.getElementById('inp-cust-agent');
+            if (agentSel) {
+                agentSel.innerHTML = `
+                    <option value="">Unassigned / Shared</option>
+                    ${employees.map(e => `
+                        <option value="${e.id}">${this.escapeHtml(e.full_name)} (${(e.role || 'Staff').toUpperCase()})</option>
+                    `).join('')}
+                `;
+            }
+
+            const filterAgentSel = document.getElementById('customers-filter-agent');
+            if (filterAgentSel) {
+                const curVal = filterAgentSel.value;
+                filterAgentSel.innerHTML = `
+                    <option value="">All Assigned Agents</option>
+                    <option value="0">⚡ Unassigned Only</option>
+                    ${employees.map(e => `
+                        <option value="${e.id}">${this.escapeHtml(e.full_name)} (${(e.role || 'Staff').toUpperCase()})</option>
+                    `).join('')}
+                `;
+                if (curVal) filterAgentSel.value = curVal;
+            }
         } catch (err) {
             console.error("Error loading employees for dropdown:", err);
         }
     },
 
     async submitCustomerForm() {
-        const cc = document.getElementById('inp-cust-country-code').value.trim();
-        const rawPhone = document.getElementById('inp-cust-phone1').value.trim();
+        const cc = document.getElementById('inp-cust-country-code')?.value.trim() || '';
+        const rawPhone = document.getElementById('inp-cust-phone1')?.value.trim() || '';
         const fullPhone = cc && !rawPhone.startsWith("+") ? `${cc} ${rawPhone}` : rawPhone;
 
+        const getVal = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value.trim() || null : null;
+        };
+
         const payload = {
-            party_code: document.getElementById('inp-cust-party-code').value.trim() || null,
-            party_name: document.getElementById('inp-cust-party-name').value.trim(),
-            address_date: document.getElementById('inp-cust-address-date').value.trim() || null,
-            address_line_1: document.getElementById('inp-cust-addr1').value.trim() || null,
-            address_line_2: document.getElementById('inp-cust-addr2').value.trim() || null,
-            address_line_3: document.getElementById('inp-cust-addr3').value.trim() || null,
-            contact_person_1: document.getElementById('inp-cust-contact-person').value.trim() || null,
-            email_id_1: document.getElementById('inp-cust-email-id').value.trim() || null,
-            country: document.getElementById('inp-cust-country').value.trim() || 'India',
-            state: document.getElementById('inp-cust-state').value.trim() || null,
-            city: document.getElementById('inp-cust-city').value.trim() || null,
-            pincode: document.getElementById('inp-cust-pincode').value.trim() || null,
-            phone_type_1: document.getElementById('inp-cust-phone-type').value,
+            party_code: getVal('inp-cust-party-code'),
+            party_name: getVal('inp-cust-party-name'),
+            category: getVal('inp-cust-category') || 'General',
+            address_date: getVal('inp-cust-address-date'),
+            address_line_1: getVal('inp-cust-addr1'),
+            address_line_2: getVal('inp-cust-addr2'),
+            address_line_3: getVal('inp-cust-addr3'),
+            country: getVal('inp-cust-country') || 'India',
+            state: getVal('inp-cust-state'),
+            district: getVal('inp-cust-district'),
+            city: getVal('inp-cust-city'),
+            pincode: getVal('inp-cust-pincode'),
+            zone: getVal('inp-cust-zone'),
+            company_website: getVal('inp-cust-website'),
+            sales_region_code: getVal('inp-cust-sales-region'),
+            contact_person_1: getVal('inp-cust-contact-person'),
+            email_id_1: getVal('inp-cust-email-id'),
+            phone_type_1: document.getElementById('inp-cust-phone-type')?.value || 'Mobile',
             phone_1: fullPhone,
-            status: document.getElementById('inp-cust-status').value,
-            assigned_employee_id: parseInt(document.getElementById('inp-cust-agent').value) || null,
-            notes: document.getElementById('inp-cust-notes').value.trim() || null
+            contact_person_2: getVal('inp-cust-contact-person-2'),
+            email_id_2: getVal('inp-cust-email-id-2'),
+            phone_2: getVal('inp-cust-phone-2'),
+            contact_person_3: getVal('inp-cust-contact-person-3'),
+            email_id_3: getVal('inp-cust-email-id-3'),
+            phone_3: getVal('inp-cust-phone-3'),
+            status: document.getElementById('inp-cust-status')?.value || 'Active',
+            assigned_employee_id: parseInt(document.getElementById('inp-cust-agent')?.value) || null,
+            notes: getVal('inp-cust-notes')
         };
 
         if (!payload.party_name || !rawPhone) {
@@ -1443,75 +2092,111 @@ const customer = {
         }
     },
 
-    updateTcsSyncState(cust) {
-        this.currentCustomerData = cust;
-        const partyName = (cust?.party_name || cust?.name || '').trim();
-        const visualBtn = document.getElementById('btn-drawer-launch-visual');
-
-        if (!partyName || partyName === '—') {
-            // Disabled state when Party Name is missing
-            if (visualBtn) {
-                visualBtn.disabled = true;
-                visualBtn.style.opacity = '0.55';
-                visualBtn.style.cursor = 'not-allowed';
-                visualBtn.title = "⚠️ Party Name is missing. Please edit customer profile to add a Party Name.";
-            }
-        } else {
-            // Enabled state
-            if (visualBtn) {
-                visualBtn.disabled = false;
-                visualBtn.style.opacity = '1';
-                visualBtn.style.cursor = 'pointer';
-                visualBtn.title = `Auto-Open TCS iON Party Ledger for "${partyName}"`;
-            }
+    toggleExportMenu(event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        const dropdown = document.getElementById('cust-export-dropdown');
+        if (dropdown) {
+            const isShown = dropdown.style.display === 'block';
+            dropdown.style.display = isShown ? 'none' : 'block';
         }
     },
 
-    async launchVisualTcsLedger() {
-        const cust = this.currentCustomerData;
-        const partyName = (cust?.party_name || cust?.name || document.getElementById('drawer-cust-party-name')?.textContent || '').trim();
+    async downloadExport(format = 'xlsx') {
+        const dropdown = document.getElementById('cust-export-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
 
-        if (!partyName || partyName === '—') {
-            api.toast("Party Name is required to open TCS iON Party Ledger screen.", "warning");
-            return;
-        }
+        const search = document.getElementById('customers-filter-search')?.value.trim() || '';
+        const status = document.getElementById('customers-filter-status')?.value || '';
+        const category = document.getElementById('customers-filter-category')?.value || '';
+        const agentId = document.getElementById('customers-filter-agent')?.value || '';
 
-        const launchBtn = document.getElementById('btn-drawer-launch-visual');
-        const textSpan = document.getElementById('text-launch-visual-btn');
+        let url = `${api.baseUrl || '/api'}/customers/export?format=${encodeURIComponent(format)}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (agentId) url += `&assigned_employee_id=${encodeURIComponent(agentId)}`;
 
-        if (launchBtn) {
-            launchBtn.disabled = true;
-            launchBtn.style.opacity = '0.75';
-        }
-        if (textSpan) textSpan.textContent = "Launching Screen...";
-
-        api.toast(`🖥️ Opening real Chrome browser to navigate to Party Ledger for "${partyName}"...`, "info", 6000);
+        api.toast(`Preparing ${format.toUpperCase()} export...`, "info");
 
         try {
-            const res = await api.post('/integrations/tcsion/launch-visual', {
-                customer_id: this.currentCustomerId || null,
-                party_name: partyName,
-                months_back: 3
-            });
+            const token = api.getToken();
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
-            if (res.cooldown) {
-                api.toast("⏳ TCS iON Active Session Cooldown: Another session is active. Please wait 2 minutes.", "warning", 8000);
-            } else if (res.success) {
-                api.toast(`🚀 Live Party Ledger Detail Report screen opened on your desktop!`, "success", 7000);
-            } else {
-                api.toast(res.message || "Visual Launcher completed.", "info");
+            const res = await fetch(url, { headers });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({ detail: 'Failed to download file' }));
+                throw new Error(errData.detail || 'Download failed');
             }
+
+            const blob = await res.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.download = `customers_export_${dateStr}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
+            api.toast(`✅ Successfully downloaded ${format.toUpperCase()} export!`, "success");
         } catch (err) {
-            console.error("Visual Launcher Error:", err);
-            api.toast(`Visual Launcher Error: ${err.message}`, "error");
-        } finally {
-            if (launchBtn) {
-                launchBtn.disabled = false;
-                launchBtn.style.opacity = '1';
-            }
-            if (textSpan) textSpan.textContent = "Auto-Open TCS Screen";
+            api.toast(`Export error: ${err.message}`, "error");
         }
+    },
+
+    /**
+     * Apply active employee permissions to customer UI elements
+     */
+    applyUserPermissions(user) {
+        if (!user) return;
+        const isAdmin = user.role === 'admin' || user.role === 'ADMIN';
+
+        // Re-initialize category tabs according to employee's allowed categories
+        this.initCategoryTabs();
+
+        // Add Customer Permission
+        const canAdd = isAdmin || user.can_add_customer !== false;
+        const quickRegBtn = document.getElementById('btn-drawer-quick-register');
+        if (quickRegBtn) quickRegBtn.style.display = canAdd ? 'inline-flex' : 'none';
+
+        // Delete Customer Permission
+        const canDelete = isAdmin || Boolean(user.can_delete_customer);
+        const delBtn = document.getElementById('btn-drawer-delete-customer');
+        if (delBtn) delBtn.style.display = canDelete ? 'inline-flex' : 'none';
+
+        // Edit Customer Permission
+        const canEdit = isAdmin || user.can_edit_customer !== false;
+        const editTab = document.querySelector('[data-drawer-tab="edit"]');
+        if (editTab) editTab.style.display = canEdit ? 'inline-flex' : 'none';
+
+        // Export Customers Permission
+        const canExport = isAdmin || user.can_export_data !== false;
+        const exportBtn = document.getElementById('btn-export-customers');
+        if (exportBtn) exportBtn.style.display = canExport ? 'inline-flex' : 'none';
+
+        // Unassigned Tab Visibility
+        const canUnassigned = isAdmin || user.can_view_unassigned !== false;
+        const unassignedTab = document.querySelector('[data-customer-tab="unassigned"]');
+        if (unassignedTab) unassignedTab.style.display = canUnassigned ? 'inline-flex' : 'none';
     }
 };
 
+// Global click listener to close export dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('cust-export-dropdown');
+    const toggleBtn = document.getElementById('btn-export-dropdown-toggle');
+    if (dropdown && dropdown.style.display === 'block') {
+        if (!dropdown.contains(e.target) && !toggleBtn?.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    }
+});
+
 window.customer = customer;
+
