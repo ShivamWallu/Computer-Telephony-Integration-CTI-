@@ -77,7 +77,7 @@ const app = {
             'font-family:Inter,sans-serif'
         ].join(';');
         el.innerHTML = `
-            <img src="/images/KOGM_LOgo.jpg" alt="KOGM" style="max-height:52px;border-radius:6px;background:#fff;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,.12);">
+            <img src="/images/KOGM_LOgo.jpg" alt="KOGM" style="max-height:85px;border-radius:8px;background:#fff;padding:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);">
             <div style="display:flex;align-items:center;gap:.6rem;color:var(--text-secondary);font-size:.875rem;font-weight:500;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" style="animation:spin 1s linear infinite;">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>

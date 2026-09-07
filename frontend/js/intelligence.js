@@ -473,15 +473,15 @@ const intelligence = {
         `;
     },
 
-    renderStarsSvg(rating, size = 12, gap = 1.5) {
+    renderStarsSvg(rating, size = 16, gap = 2.5) {
         const r = Math.max(0, Math.min(5, parseInt(rating, 10) || 0));
         let html = `<span class="stars-svg-inline" style="display: inline-flex; align-items: center; gap: ${gap}px; vertical-align: middle;">`;
         for (let i = 1; i <= 5; i++) {
             const filled = i <= r;
             if (filled) {
-                html += `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="fill: #F59E0B; stroke: #F59E0B; stroke-width: 1px; flex-shrink: 0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                html += `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="fill: #F59E0B; stroke: #D97706; stroke-width: 0.8px; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(245, 158, 11, 0.3));"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
             } else {
-                html += `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="fill: rgba(245, 158, 11, 0.04); stroke: #F59E0B; stroke-width: 1.8px; opacity: 0.85; flex-shrink: 0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                html += `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="fill: rgba(245, 158, 11, 0.05); stroke: #F59E0B; stroke-width: 1.6px; opacity: 0.85; flex-shrink: 0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
             }
         }
         html += '</span>';
@@ -658,7 +658,7 @@ const intelligence = {
             const color = ratingColors[r] || '#94A3B8';
             const bg = ratingBgColors[r] || 'rgba(148,163,184,0.1)';
             const label = ratingLabels[r] || `${r} Stars`;
-            const starsHtml = this.renderStarsSvg(r, 15, 3);
+            const starsHtml = this.renderStarsSvg(r, 18, 3.5);
             latestRatingEl.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 0.5rem; background: ${bg}; border: 1.5px solid ${color}22; border-radius: 8px; padding: 5px 10px; margin-top: 4px;">
                     <div>${starsHtml}</div>
@@ -838,7 +838,7 @@ const intelligence = {
         const container = document.getElementById('intel-drawer-success-banner');
         if (!container) return;
 
-        const starsHtml = this.renderStarsSvg(ratingVal, 13, 2);
+        const starsHtml = this.renderStarsSvg(ratingVal, 16, 3);
 
         let deltaHtml = '';
         if (prevRating !== null && prevRating !== undefined && prevRating > 0 && prevRating !== ratingVal) {
@@ -1006,9 +1006,9 @@ const intelligence = {
         const ratingDelta = newRating - prevRating;
 
         const prevStars = prevRating > 0
-            ? this.renderStarsSvg(prevRating, 11, 1)
+            ? this.renderStarsSvg(prevRating, 14, 2)
             : '<span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">Unrated</span>';
-        const newStars = this.renderStarsSvg(newRating, 11, 1);
+        const newStars = this.renderStarsSvg(newRating, 14, 2);
 
         const deltaHtml = ratingDelta !== 0 ? `
             <span class="${ratingDelta > 0 ? 'badge-diff-zyada' : 'badge-diff-kam'}">
@@ -1502,7 +1502,7 @@ const intelligence = {
             const newR = item.new_rating || 0;
             const delta = newR - prevR;
 
-            const newStars = this.renderStarsSvg(newR, 13, 2);
+            const newStars = this.renderStarsSvg(newR, 16, 3);
 
             let deltaHtml = '';
             if (prevR === 0) {
