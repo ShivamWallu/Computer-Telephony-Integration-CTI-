@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, desc, asc
 from backend.app.database import get_db
-from backend.app.models.customer import Customer
+from backend.app.models.customer import Customer, CustomerPhoneNumber, CustomerRatingHistory
 from backend.app.models.user import User
 from backend.app.models.interaction import CustomerInteraction
 from backend.app.models.call import Call
 from backend.app.models.follow_up import FollowUp
+from backend.app.models.customer_document import CustomerDocument
 from backend.app.schemas.customer import (
     CustomerCreate, CustomerUpdate, CustomerOut, CustomerSearchOut, CustomerListResponse, AssignCustomerRequest
 )
@@ -193,13 +194,39 @@ def purge_all_customers(
     if not is_all:
         query = query.filter(Customer.category == cat_clean)
 
-    customers_to_delete = query.all()
-    deleted_count = len(customers_to_delete)
-    
-    for cust in customers_to_delete:
-        db.delete(cust)
+    cust_ids = [c[0] for c in query.with_entities(Customer.id).all()]
+    deleted_count = len(cust_ids)
 
-    db.commit()
+    if cust_ids:
+        chunk_size = 500
+        for i in range(0, len(cust_ids), chunk_size):
+            chunk = cust_ids[i:i + chunk_size]
+            try:
+                db.query(CustomerPhoneNumber).filter(CustomerPhoneNumber.customer_id.in_(chunk)).delete(synchronize_session=False)
+            except Exception:
+                pass
+            try:
+                db.query(CustomerRatingHistory).filter(CustomerRatingHistory.customer_id.in_(chunk)).delete(synchronize_session=False)
+            except Exception:
+                pass
+            try:
+                db.query(CustomerInteraction).filter(CustomerInteraction.customer_id.in_(chunk)).delete(synchronize_session=False)
+            except Exception:
+                pass
+            try:
+                db.query(FollowUp).filter(FollowUp.customer_id.in_(chunk)).delete(synchronize_session=False)
+            except Exception:
+                pass
+            try:
+                db.query(CustomerDocument).filter(CustomerDocument.customer_id.in_(chunk)).delete(synchronize_session=False)
+            except Exception:
+                pass
+            try:
+                db.query(Call).filter(Call.customer_id.in_(chunk)).update({Call.customer_id: None}, synchronize_session=False)
+            except Exception:
+                pass
+            db.query(Customer).filter(Customer.id.in_(chunk)).delete(synchronize_session=False)
+            db.commit()
 
     action_label = f"CATEGORY_{norm_tag}_PURGED" if not is_all else "ALL_CUSTOMERS_PURGED"
     AuditService.log(
