@@ -72,12 +72,22 @@ def list_customers(
         if not getattr(current_user, "can_view_unassigned", True) and assigned_employee_id in (-1, 0):
             raise HTTPException(status_code=403, detail="You do not have permission to view the unassigned customer pool.")
 
-        if current_user.allowed_categories:
+        if current_user.allowed_categories is not None:
             import json
             try:
                 allowed = json.loads(current_user.allowed_categories) if isinstance(current_user.allowed_categories, str) else current_user.allowed_categories
-                if allowed and "*" not in allowed:
-                    query = query.filter(Customer.category.in_(allowed))
+                if isinstance(allowed, list):
+                    if "*" not in allowed and "ALL" not in [str(c).upper() for c in allowed]:
+                        if len(allowed) == 0:
+                            query = query.filter(Customer.id == -1)
+                        else:
+                            allowed_lower = [str(c).lower().strip() for c in allowed if str(c).strip()]
+                            query = query.filter(
+                                or_(
+                                    Customer.category.in_(allowed),
+                                    func.lower(Customer.category).in_(allowed_lower)
+                                )
+                            )
             except Exception:
                 pass
 

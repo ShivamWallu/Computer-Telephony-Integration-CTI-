@@ -75,30 +75,6 @@ const permissionsManager = {
                 }
             });
         });
-
-        // Allow clicking anywhere on category view cards to toggle smoothly
-        document.querySelectorAll('.perm-cat-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (e.target.tagName === 'INPUT') return;
-                const chk = card.querySelector('input[type="checkbox"]');
-                if (chk) {
-                    chk.checked = !chk.checked;
-                    this.syncCategoryCardUI(chk);
-                }
-            });
-        });
-
-        // Allow clicking anywhere on upload cards to toggle smoothly
-        document.querySelectorAll('.perm-upload-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (e.target.tagName === 'INPUT') return;
-                const chk = card.querySelector('input[type="checkbox"]');
-                if (chk) {
-                    chk.checked = !chk.checked;
-                    this.syncUploadCategoryCardUI(chk);
-                }
-            });
-        });
     },
 
     async loadPermissionsView() {
@@ -539,48 +515,98 @@ const permissionsManager = {
         }
     },
 
+    toggleCategoryCard(cardEl, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const card = (typeof cardEl === 'string') ? document.getElementById(cardEl) : (cardEl && cardEl.closest ? cardEl.closest('.perm-cat-card') : cardEl);
+        if (!card) return;
+        const chk = card.querySelector('.chk-modal-cat');
+        if (chk) {
+            chk.checked = !chk.checked;
+            this.syncCategoryCardUI(chk);
+        }
+    },
+
+    toggleUploadCategoryCard(cardEl, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const card = (typeof cardEl === 'string') ? document.getElementById(cardEl) : (cardEl && cardEl.closest ? cardEl.closest('.perm-upload-card') : cardEl);
+        if (!card) return;
+        const chk = card.querySelector('.chk-modal-upload-cat');
+        if (chk) {
+            chk.checked = !chk.checked;
+            this.syncUploadCategoryCardUI(chk);
+        }
+    },
+
     syncCategoryCardUI(chk) {
         if (!chk) return;
-        const safeVal = String(chk.value || '').replace(/\s+/g, '-');
-        const card = document.getElementById(`card-cat-${safeVal}`) || document.getElementById(`card-cat-${chk.value}`) || chk.closest('.perm-cat-card');
+        const card = chk.closest('.perm-cat-card') || document.getElementById(`card-cat-${String(chk.value || '').replace(/\s+/g, '-')}`);
         if (!card) return;
         const checkIcon = card.querySelector('.perm-cat-check');
 
         if (chk.checked) {
             card.classList.add('active');
-            if (checkIcon) checkIcon.style.opacity = '1';
+            if (checkIcon) {
+                checkIcon.style.opacity = '1';
+                checkIcon.style.background = '#4f46e5';
+                checkIcon.style.borderColor = '#4f46e5';
+                checkIcon.style.color = '#ffffff';
+                checkIcon.textContent = '✓';
+            }
         } else {
             card.classList.remove('active');
-            if (checkIcon) checkIcon.style.opacity = '0';
+            if (checkIcon) {
+                checkIcon.style.opacity = '0.2';
+                checkIcon.style.background = 'transparent';
+                checkIcon.style.borderColor = 'var(--border-color)';
+                checkIcon.style.color = 'transparent';
+                checkIcon.textContent = '';
+            }
         }
     },
 
     setModalCategories(isSelectAll) {
         document.querySelectorAll('.chk-modal-cat').forEach(chk => {
-            chk.checked = isSelectAll;
+            chk.checked = Boolean(isSelectAll);
             this.syncCategoryCardUI(chk);
         });
     },
 
     syncUploadCategoryCardUI(chk) {
         if (!chk) return;
-        const safeVal = String(chk.value || '').replace(/\s+/g, '-');
-        const card = document.getElementById(`card-upload-cat-${safeVal}`) || document.getElementById(`card-upload-cat-${chk.value}`) || chk.closest('.perm-upload-card') || chk.closest('.perm-cat-card');
+        const card = chk.closest('.perm-upload-card') || document.getElementById(`card-upload-cat-${String(chk.value || '').replace(/\s+/g, '-')}`);
         if (!card) return;
         const checkIcon = card.querySelector('.perm-upload-check') || card.querySelector('.perm-cat-check');
 
         if (chk.checked) {
             card.classList.add('active');
-            if (checkIcon) checkIcon.style.opacity = '1';
+            if (checkIcon) {
+                checkIcon.style.opacity = '1';
+                checkIcon.style.background = '#4f46e5';
+                checkIcon.style.borderColor = '#4f46e5';
+                checkIcon.style.color = '#ffffff';
+                checkIcon.textContent = '✓';
+            }
         } else {
             card.classList.remove('active');
-            if (checkIcon) checkIcon.style.opacity = '0';
+            if (checkIcon) {
+                checkIcon.style.opacity = '0.2';
+                checkIcon.style.background = 'transparent';
+                checkIcon.style.borderColor = 'var(--border-color)';
+                checkIcon.style.color = 'transparent';
+                checkIcon.textContent = '';
+            }
         }
     },
 
     setModalUploadCategories(isSelectAll) {
         document.querySelectorAll('.chk-modal-upload-cat').forEach(chk => {
-            chk.checked = isSelectAll;
+            chk.checked = Boolean(isSelectAll);
             this.syncUploadCategoryCardUI(chk);
         });
     },
@@ -642,8 +668,8 @@ const permissionsManager = {
         };
 
         const payload = {
-            allowed_categories: checkedViewCats.length > 0 ? checkedViewCats : ['*'],
-            allowed_upload_categories: checkedUploadCats,
+            allowed_categories: checkedViewCats.length === 10 ? ['*'] : (checkedViewCats.length === 0 ? [] : checkedViewCats),
+            allowed_upload_categories: checkedUploadCats.length === 10 ? ['*'] : (checkedUploadCats.length === 0 ? [] : checkedUploadCats),
             can_add_customer: getCheck('chk-modal-perm-add'),
             can_edit_customer: getCheck('chk-modal-perm-edit'),
             can_delete_customer: getCheck('chk-modal-perm-delete'),
@@ -699,6 +725,12 @@ const permissionsManager = {
 
             this.applyFilters();
             this.renderKPIs(this.cachedEmployees);
+            if (typeof customer !== 'undefined' && typeof customer.loadCustomers === 'function') {
+                customer.loadCustomers();
+            }
+            if (typeof app !== 'undefined' && typeof app.refreshDashboard === 'function') {
+                app.refreshDashboard();
+            }
             api.toast(`Permissions successfully updated for ${updated.full_name || 'Employee'}!`, "success");
         } catch (err) {
             console.error("Failed to save permissions:", err);

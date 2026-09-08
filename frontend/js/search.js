@@ -131,8 +131,7 @@ const search = {
                 const partyName = c.party_name || c.name;
                 const partyCode = c.party_code || c.customer_id;
                 const phone1 = c.phone_1 || c.mobile;
-                const contactPerson = c.contact_person_1 || '';
-                const matchTag = c.match_type === 'exact_phone' ? 'Exact Phone' : (c.match_type === 'exact_code' ? 'Code Match' : 'Match');
+                const matchTag = c.match_type === 'exact_phone' ? 'Exact Phone' : ((c.match_type === 'exact_code' || c.match_type === 'code_match') ? 'Address Code' : (c.match_type === 'exact_email' ? 'Email' : 'Matched'));
                 return `
                     <div class="search-result-item" data-index="${idx}" onclick="search.selectCustomer(${c.id})">
                         <div class="search-item-info">

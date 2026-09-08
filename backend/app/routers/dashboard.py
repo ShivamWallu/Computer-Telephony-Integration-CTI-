@@ -47,8 +47,26 @@ def get_dashboard_stats(
     fu_query = db.query(FollowUp)
 
     if not is_admin:
-        # Employee view: personalize stats (calls, interactions, follow-ups)
-        # Note: All customers are visible to both admin and employees across the platform.
+        # Employee view: personalize stats (calls, interactions, follow-ups, scoped category count)
+        if current_user.allowed_categories is not None:
+            import json
+            try:
+                allowed = json.loads(current_user.allowed_categories) if isinstance(current_user.allowed_categories, str) else current_user.allowed_categories
+                if isinstance(allowed, list):
+                    if "*" not in allowed and "ALL" not in [str(c).upper() for c in allowed]:
+                        if len(allowed) == 0:
+                            cust_query = cust_query.filter(Customer.id == -1)
+                        else:
+                            allowed_lower = [str(c).lower().strip() for c in allowed if str(c).strip()]
+                            cust_query = cust_query.filter(
+                                or_(
+                                    Customer.category.in_(allowed),
+                                    func.lower(Customer.category).in_(allowed_lower)
+                                )
+                            )
+            except Exception:
+                pass
+
         user_cid = current_user.allowed_caller_id or current_user.vid
         if user_cid:
             norm_cid = user_cid.replace("+", "").lstrip("0")

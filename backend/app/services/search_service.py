@@ -41,6 +41,25 @@ class SearchService:
         # Base filter: not archived
         base_filters = [Customer.is_archived == False]
 
+        if user and user.role == "employee" and user.allowed_categories is not None:
+            import json
+            try:
+                allowed = json.loads(user.allowed_categories) if isinstance(user.allowed_categories, str) else user.allowed_categories
+                if isinstance(allowed, list):
+                    if "*" not in allowed and "ALL" not in [str(c).upper() for c in allowed]:
+                        if len(allowed) == 0:
+                            base_filters.append(Customer.id == -1)
+                        else:
+                            allowed_lower = [str(c).lower().strip() for c in allowed if str(c).strip()]
+                            base_filters.append(
+                                or_(
+                                    Customer.category.in_(allowed),
+                                    func.lower(Customer.category).in_(allowed_lower)
+                                )
+                            )
+            except Exception:
+                pass
+
         # -------------------------------------------------------------
         # TIER 1: Exact Phone Lookup (Primary phone + Additional phones)
         # -------------------------------------------------------------
@@ -106,7 +125,7 @@ class SearchService:
                         ))
 
         # -------------------------------------------------------------
-        # TIER 2: Exact Party Code Lookup (Direct Unique Index Hit)
+        # TIER 2: Exact & Prefix Party Code (Address Code) Lookup
         # -------------------------------------------------------------
         if len(results) < limit:
             exact_id_matches = (
@@ -136,6 +155,36 @@ class SearchService:
                         assigned_employee_name=c.assigned_employee.full_name if c.assigned_employee else None,
                         match_type="exact_code"
                     ))
+
+            # Tier 2.5: Party Code (Address Code) Prefix Match (e.g. "HUSK-", "DOC-", "SAS-", etc.)
+            if len(results) < limit:
+                code_prefix_matches = (
+                    db.query(Customer)
+                    .options(joinedload(Customer.assigned_employee))
+                    .filter(
+                        *base_filters,
+                        Customer.party_code.ilike(f"{q}%")
+                    )
+                    .limit(limit - len(results))
+                    .all()
+                )
+                for c in code_prefix_matches:
+                    if c.id not in seen_ids:
+                        seen_ids.add(c.id)
+                        results.append(CustomerSearchOut(
+                            id=c.id,
+                            party_code=c.party_code,
+                            party_name=c.party_name,
+                            contact_person_1=c.contact_person_1,
+                            email_id_1=c.email_id_1,
+                            city=c.city,
+                            state=c.state,
+                            phone_1=c.phone_1,
+                            phone_1_normalized=c.phone_1_normalized,
+                            status=c.status,
+                            assigned_employee_name=c.assigned_employee.full_name if c.assigned_employee else None,
+                            match_type="code_match"
+                        ))
 
         # -------------------------------------------------------------
         # TIER 3: Exact Email Lookup (Direct Index Hit)

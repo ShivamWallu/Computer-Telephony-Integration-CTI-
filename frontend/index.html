@@ -295,7 +295,7 @@
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
                         <input type="text" id="global-search-input" class="global-search-input"
-                            placeholder="Quick Search: Phone, Name, Email, or Customer ID... (Press /)"
+                            placeholder="Quick Search: Party Code (Address Code), Phone, Name, Email... (Press /)"
                             autocomplete="off" />
                         <button id="btn-clear-global-search" onclick="search.clearSearch()"
                             style="display: none; position: absolute; right: 2.2rem; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 0.85rem;"
@@ -753,7 +753,7 @@
                                         </path>
                                     </svg>
                                     <span>All Directory Customers</span>
-                                    <span class="badge" id="nav-badge-customers" style="margin-left: 4px;">0</span>
+                                    <span class="badge badge-all-directory-customers" id="tab-badge-all-customers" style="margin-left: 4px;">0</span>
                                 </button>
                                 <button type="button" class="cust-subtab-btn" id="tab-cust-assigned"
                                     onclick="customer.switchCustomerViewTab('assigned')">
@@ -4846,9 +4846,8 @@
                         <div
                             style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;">
                             <!-- By Product -->
-                            <label class="perm-cat-card" id="card-cat-By-Product">
-                                <input type="checkbox" class="chk-modal-cat" value="By Product" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-By-Product" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="By Product" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
@@ -4861,12 +4860,11 @@
                                     <div class="perm-cat-desc">By Product &amp; Feed</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- HUSK -->
-                            <label class="perm-cat-card" id="card-cat-HUSK">
-                                <input type="checkbox" class="chk-modal-cat" value="HUSK" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-HUSK" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="HUSK" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M7 20h10"/>
@@ -4880,12 +4878,11 @@
                                     <div class="perm-cat-desc">Rice Husk &amp; Biomass</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- SAS -->
-                            <label class="perm-cat-card" id="card-cat-SAS">
-                                <input type="checkbox" class="chk-modal-cat" value="SAS" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-SAS" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="SAS" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -4896,12 +4893,11 @@
                                     <div class="perm-cat-desc">Automation &amp; Power</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MRO -->
-                            <label class="perm-cat-card" id="card-cat-MRO">
-                                <input type="checkbox" class="chk-modal-cat" value="MRO" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-MRO" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="MRO" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
@@ -4912,12 +4908,11 @@
                                     <div class="perm-cat-desc">Industrial Supplies</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MCK -->
-                            <label class="perm-cat-card" id="card-cat-MCK">
-                                <input type="checkbox" class="chk-modal-cat" value="MCK" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-MCK" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="MCK" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="3"/>
@@ -4929,12 +4924,11 @@
                                     <div class="perm-cat-desc">Precision Machinery</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- DOC -->
-                            <label class="perm-cat-card" id="card-cat-DOC">
-                                <input type="checkbox" class="chk-modal-cat" value="DOC" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-DOC" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="DOC" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="1" y="3" width="15" height="13"/>
@@ -4948,12 +4942,11 @@
                                     <div class="perm-cat-desc">Global Logistics</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MSD -->
-                            <label class="perm-cat-card" id="card-cat-MSD">
-                                <input type="checkbox" class="chk-modal-cat" value="MSD" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-MSD" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="MSD" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polygon points="12 2 2 7 12 12 22 7 12 2"/>
@@ -4966,12 +4959,11 @@
                                     <div class="perm-cat-desc">Steels &amp; Fasteners</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MOL -->
-                            <label class="perm-cat-card" id="card-cat-MOL">
-                                <input type="checkbox" class="chk-modal-cat" value="MOL" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-MOL" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="MOL" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
@@ -4982,12 +4974,11 @@
                                     <div class="perm-cat-desc">Oils &amp; Agro Extracts</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MOMT -->
-                            <label class="perm-cat-card" id="card-cat-MOMT">
-                                <input type="checkbox" class="chk-modal-cat" value="MOMT" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-MOMT" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="MOMT" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M15 12l-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/>
@@ -4999,12 +4990,11 @@
                                     <div class="perm-cat-desc">Heavy Tools &amp; Dies</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- General -->
-                            <label class="perm-cat-card" id="card-cat-General">
-                                <input type="checkbox" class="chk-modal-cat" value="General" style="display: none;"
-                                    onchange="permissionsManager.syncCategoryCardUI(this)" />
+                            <div class="perm-cat-card" id="card-cat-General" onclick="permissionsManager.toggleCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-cat" value="General" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-cat-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
@@ -5023,7 +5013,7 @@
                                     <div class="perm-cat-desc">General Accounts</div>
                                 </div>
                                 <div class="perm-cat-check">✓</div>
-                            </label>
+                            </div>
                         </div>
                     </div>
 
@@ -5060,9 +5050,8 @@
                         <div
                             style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;">
                             <!-- By Product Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-By-Product">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="By Product" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-By-Product" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="By Product" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
@@ -5078,12 +5067,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- HUSK Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-HUSK">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="HUSK" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-HUSK" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="HUSK" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M7 20h10"/>
@@ -5100,12 +5088,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- SAS Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-SAS">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="SAS" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-SAS" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="SAS" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -5119,12 +5106,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MRO Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-MRO">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="MRO" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-MRO" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="MRO" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
@@ -5138,12 +5124,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MCK Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-MCK">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="MCK" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-MCK" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="MCK" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="3"/>
@@ -5158,16 +5143,15 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- DOC Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-DOC">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="DOC" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-DOC" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="DOC" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="1" y="3" width="15" height="13"/>
-                                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                                        <polygon points="16 8 20 8 23 11 23 16 16 16 8"/>
                                         <circle cx="5.5" cy="18.5" r="2.5"/>
                                         <circle cx="18.5" cy="18.5" r="2.5"/>
                                     </svg>
@@ -5180,12 +5164,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MSD Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-MSD">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="MSD" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-MSD" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="MSD" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polygon points="12 2 2 7 12 12 22 7 12 2"/>
@@ -5201,12 +5184,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MOL Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-MOL">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="MOL" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-MOL" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="MOL" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
@@ -5220,12 +5202,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- MOMT Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-MOMT">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="MOMT" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-MOMT" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="MOMT" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M15 12l-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/>
@@ -5240,12 +5221,11 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
 
                             <!-- General Upload -->
-                            <label class="perm-upload-card" id="card-upload-cat-General">
-                                <input type="checkbox" class="chk-modal-upload-cat" value="General" style="display: none;"
-                                    onchange="permissionsManager.syncUploadCategoryCardUI(this)" />
+                            <div class="perm-upload-card" id="card-upload-cat-General" onclick="permissionsManager.toggleUploadCategoryCard(this, event)">
+                                <input type="checkbox" class="chk-modal-upload-cat" value="General" style="position: absolute; opacity: 0; pointer-events: none;" />
                                 <div class="perm-upload-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
@@ -5267,7 +5247,7 @@
                                     <div class="perm-upload-desc">Direct Excel / CSV Upload</div>
                                 </div>
                                 <div class="perm-upload-check">✓</div>
-                            </label>
+                            </div>
                         </div>
                     </div>
 
@@ -5863,17 +5843,17 @@
     </div>
 
     <!-- Application JavaScript Modules -->
-    <script src="/static/js/api.js?v=3.2"></script>
-    <script src="/static/js/search.js?v=3.2"></script>
-    <script src="/static/js/cti.js?v=3.2"></script>
-    <script src="/static/js/customer.js?v=3.2"></script>
-    <script src="/static/js/interactions.js?v=3.2"></script>
-    <script src="/static/js/excel_import.js?v=3.2"></script>
-    <script src="/static/js/followups.js?v=3.2"></script>
-    <script src="/static/js/admin.js?v=3.2"></script>
-    <script src="/static/js/permissions.js?v=3.2"></script>
-    <script src="/static/js/intelligence.js?v=3.4"></script>
-    <script src="/static/js/app.js?v=3.4"></script>
+    <script src="/static/js/api.js?v=7.0"></script>
+    <script src="/static/js/search.js?v=7.0"></script>
+    <script src="/static/js/cti.js?v=7.0"></script>
+    <script src="/static/js/customer.js?v=7.0"></script>
+    <script src="/static/js/interactions.js?v=7.0"></script>
+    <script src="/static/js/excel_import.js?v=7.0"></script>
+    <script src="/static/js/followups.js?v=7.0"></script>
+    <script src="/static/js/admin.js?v=7.0"></script>
+    <script src="/static/js/permissions.js?v=7.0"></script>
+    <script src="/static/js/intelligence.js?v=7.0"></script>
+    <script src="/static/js/app.js?v=7.0"></script>
 </body>
 
 </html>

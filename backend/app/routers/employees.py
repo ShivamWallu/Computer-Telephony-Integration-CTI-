@@ -23,7 +23,9 @@ def _normalize_allowed_categories(cats) -> str:
         return '["*"]'
     if isinstance(cats, list):
         cleaned = [str(c).strip() for c in cats if str(c).strip() and str(c).strip() not in ('***', "['***']")]
-        if not cleaned or "ALL" in [c.upper() for c in cleaned] or "*" in cleaned or len(cleaned) >= 10:
+        if len(cleaned) == 0:
+            return '[]'
+        if "ALL" in [c.upper() for c in cleaned] or "*" in cleaned or len(cleaned) >= 10:
             return '["*"]'
         return json.dumps(cleaned)
     if isinstance(cats, str):
@@ -36,7 +38,9 @@ def _normalize_allowed_categories(cats) -> str:
             except Exception:
                 pass
         parts = [p.strip() for p in cats_str.split(',') if p.strip() and p.strip() not in ('***', "['***']")]
-        if not parts or "ALL" in [p.upper() for p in parts] or "*" in parts or len(parts) >= 10:
+        if len(parts) == 0:
+            return '[]'
+        if "ALL" in [p.upper() for p in parts] or "*" in parts or len(parts) >= 10:
             return '["*"]'
         return json.dumps(parts)
     return '["*"]'

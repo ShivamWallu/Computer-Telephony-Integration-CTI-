@@ -1162,11 +1162,11 @@ const customer = {
             pageInfo.textContent = `Showing ${startNum} to ${endNum} of ${totalFormatted} customers (Page ${data.page} of ${data.total_pages})`;
         }
 
-        const badge = document.getElementById('nav-badge-customers');
-        if (badge) {
-            badge.textContent = (window.app && typeof app.formatNumberDisplay === 'function') ? app.formatNumberDisplay(data.total) : data.total;
-            badge.title = `${totalFormatted} Total Customers`;
-        }
+        const displayCount = (window.app && typeof app.formatNumberDisplay === 'function') ? app.formatNumberDisplay(data.total) : data.total;
+        document.querySelectorAll('#nav-badge-customers, #tab-badge-all-customers, .badge-all-directory-customers').forEach(el => {
+            el.textContent = displayCount;
+            el.title = `${totalFormatted} Total Customers`;
+        });
 
         if (data.items.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No customers match current filter.</td></tr>`;
