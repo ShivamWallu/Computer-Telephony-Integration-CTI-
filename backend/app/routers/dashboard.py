@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc, and_, or_
 from datetime import datetime, timezone, timedelta
 from backend.app.database import get_db
 from backend.app.models.user import User
-from backend.app.models.customer import Customer
+from backend.app.models.customer import Customer, CustomerPhoneNumber
 from backend.app.models.call import Call
 from backend.app.models.interaction import CustomerInteraction
 from backend.app.models.follow_up import FollowUp
@@ -144,25 +144,32 @@ def get_dashboard_stats(
         missed_calls_today=missed_calls_today
     )
 
-    # 2. Recent Calls (fast single query)
-    recent_calls_db = call_query.order_by(desc(Call.start_time)).limit(6).all()
+    # 2. Recent Calls (fast single query with eager customer load)
+    recent_calls_db = call_query.options(joinedload(Call.customer)).order_by(desc(Call.start_time)).limit(8).all()
     recent_calls = []
     for c in recent_calls_db:
         recent_calls.append({
             "id": c.id,
             "call_id": c.call_id,
+            "uuid": c.uuid,
             "phone_number": c.phone_number,
+            "call_to_number": c.call_to_number,
+            "agent_number": c.agent_number,
+            "agent_name": c.agent_name,
             "customer_name": c.customer.party_name if (c.customer and hasattr(c.customer, 'party_name')) else "Unknown Caller",
             "customer_id": c.customer.id if c.customer else None,
             "customer_category": c.customer.category if (c.customer and hasattr(c.customer, 'category')) else None,
             "direction": c.direction,
             "status": c.status,
+            "duration_seconds": c.duration_seconds or 0,
             "duration": f"{(c.duration_seconds or 0) // 60:02d}:{(c.duration_seconds or 0) % 60:02d}",
-            "time": c.start_time.isoformat() if c.start_time else None
+            "recording_url": c.recording_url,
+            "time": c.start_time.isoformat() if c.start_time else None,
+            "start_time": c.start_time.isoformat() if c.start_time else None
         })
 
-    # 3. Recent Interactions
-    recent_inters_db = inter_query.order_by(desc(CustomerInteraction.interaction_time)).limit(6).all()
+    # 3. Recent Interactions (with eager load)
+    recent_inters_db = inter_query.options(joinedload(CustomerInteraction.customer), joinedload(CustomerInteraction.user)).order_by(desc(CustomerInteraction.interaction_time)).limit(6).all()
     recent_interactions = []
     for i in recent_inters_db:
         recent_interactions.append({
@@ -175,9 +182,10 @@ def get_dashboard_stats(
             "agent": i.user.full_name if i.user else "System"
         })
 
-    # 4. Today's and Overdue Follow-ups
+    # 4. Today's and Overdue Follow-ups (with eager load)
     today_fu_db = (
-        fu_query.filter(
+        fu_query.options(joinedload(FollowUp.customer))
+        .filter(
             FollowUp.status.in_(["Pending", "In Progress"]),
             FollowUp.due_date >= today_start_utc,
             FollowUp.due_date < today_start_utc + timedelta(days=1)
@@ -201,7 +209,8 @@ def get_dashboard_stats(
     ]
 
     overdue_fu_db = (
-        fu_query.filter(
+        fu_query.options(joinedload(FollowUp.customer))
+        .filter(
             FollowUp.status.in_(["Pending", "In Progress"]),
             FollowUp.due_date < today_start_utc
         )
@@ -409,16 +418,25 @@ def get_dashboard_stats(
         top_performer=top_performer_emp
     )
 
-    # 8. Call trends (past 7 days)
+    # 8. Call trends (past 7 days) in 1 single fast query
     call_trends = []
+    past_7_days_start_utc = (today_start_ist - timedelta(days=6)).astimezone(timezone.utc)
+    trend_records = call_query.filter(Call.start_time >= past_7_days_start_utc).with_entities(Call.start_time).all()
+    
+    trend_day_counts = {}
+    for (st,) in trend_records:
+        if st:
+            if st.tzinfo is None:
+                st = st.replace(tzinfo=timezone.utc)
+            d_key = st.astimezone(ist_tz).strftime("%a %d")
+            trend_day_counts[d_key] = trend_day_counts.get(d_key, 0) + 1
+            
     for day_offset in range(6, -1, -1):
         day_ist = (today_start_ist - timedelta(days=day_offset))
-        day_utc = day_ist.astimezone(timezone.utc)
-        next_day_utc = day_utc + timedelta(days=1)
-        cnt = call_query.filter(Call.start_time >= day_utc, Call.start_time < next_day_utc).count()
+        d_str = day_ist.strftime("%a %d")
         call_trends.append({
-            "day": day_ist.strftime("%a %d"),
-            "calls": cnt
+            "day": d_str,
+            "calls": trend_day_counts.get(d_str, 0)
         })
 
     # 9. Business Category Call Distribution & Volume
@@ -437,16 +455,17 @@ def get_dashboard_stats(
     
     cat_stats_map = {k: {"total": 0, "inbound": 0, "outbound": 0, "connected": 0, "missed": 0, "talk_seconds": 0} for k in cat_meta}
     
-    # Pre-cache phone to customer category mapping for unlinked calls
+    # Pre-cache phone to customer category mapping using ultra-fast lightweight tuple projections
     phone_cat_lookup = {}
-    for cust in db.query(Customer).filter(Customer.is_archived == False).all():
-        cat = cust.category or "General"
-        if cust.phone_1_normalized:
-            phone_cat_lookup[cust.phone_1_normalized] = (cat, cust.party_name)
-        if hasattr(cust, "additional_phones") and cust.additional_phones:
-            for p in cust.additional_phones:
-                if p.phone_normalized:
-                    phone_cat_lookup[p.phone_normalized] = (cat, cust.party_name)
+    primary_tuples = db.query(Customer.phone_1_normalized, Customer.category, Customer.party_name).filter(Customer.is_archived == False).all()
+    for p_norm, cat, p_name in primary_tuples:
+        if p_norm:
+            phone_cat_lookup[p_norm] = (cat or "General", p_name)
+
+    sec_tuples = db.query(CustomerPhoneNumber.phone_normalized, Customer.category, Customer.party_name).join(Customer, CustomerPhoneNumber.customer_id == Customer.id).filter(Customer.is_archived == False).all()
+    for p_norm, cat, p_name in sec_tuples:
+        if p_norm and p_norm not in phone_cat_lookup:
+            phone_cat_lookup[p_norm] = (cat or "General", p_name)
 
     all_dashboard_calls = call_query.outerjoin(Customer, Call.customer_id == Customer.id).with_entities(
         Customer.category,

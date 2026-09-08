@@ -86,34 +86,31 @@ class ExcelService:
 
     @classmethod
     def read_file_rows(cls, file_bytes: bytes, filename: str) -> Tuple[List[str], List[Dict[str, Any]]]:
-        """Read .xlsx or .csv into header list and raw rows."""
+        """Read .xlsx, .xls, or .csv into header list and raw rows efficiently."""
         headers = []
         rows = []
 
         if filename.endswith(".xlsx") or filename.endswith(".xls"):
-            wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+            wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
             sheet = wb.active
-            iter_rows = list(sheet.iter_rows(values_only=True))
-            if not iter_rows:
-                return [], []
+            iter_rows = sheet.iter_rows(values_only=True)
             
-            # Find first non-empty header row
-            header_row_idx = 0
-            for i, row in enumerate(iter_rows):
-                if any(row):
-                    header_row_idx = i
-                    headers = [str(c).strip() if c is not None else "" for c in row]
-                    while headers and headers[-1] == "":
-                        headers.pop()
-                    break
-            
-            for row in iter_rows[header_row_idx + 1:]:
-                if any(row):
-                    row_dict = {}
-                    for idx, h in enumerate(headers):
-                        val = row[idx] if idx < len(row) else ""
-                        row_dict[h] = str(val).strip() if val is not None else ""
-                    rows.append(row_dict)
+            header_found = False
+            for row in iter_rows:
+                if not header_found:
+                    if any(row):
+                        headers = [str(c).strip() if c is not None else "" for c in row]
+                        while headers and headers[-1] == "":
+                            headers.pop()
+                        header_found = True
+                else:
+                    if any(row):
+                        row_dict = {}
+                        for idx, h in enumerate(headers):
+                            val = row[idx] if idx < len(row) else ""
+                            row_dict[h] = str(val).strip() if val is not None else ""
+                        rows.append(row_dict)
+            wb.close()
 
         elif filename.endswith(".csv"):
             decoded_content = file_bytes.decode("utf-8", errors="replace")
@@ -167,8 +164,8 @@ class ExcelService:
         target_category: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        High-performance 25-column schema import with O(1) hash indexing,
-        non-blocking batch processing, deduplication, and 3-phone support.
+        Ultra-High-Performance 25-column schema import with O(1) in-memory hash indexing,
+        chunked batch processing, zero per-row SQL roundtrips, deduplication, and 3-phone support.
         Only 'Address Code*' is strictly mandatory.
         """
         headers, rows = cls.read_file_rows(file_bytes, filename)
@@ -177,7 +174,6 @@ class ExcelService:
             raise ValueError(validation_error)
 
         # Build fuzzy column index mapping from headers
-        # Handles duplicate columns like 'State' / 'State*' or 'City' / 'City*'
         header_map: Dict[str, List[str]] = {}
         for h in headers:
             norm = cls.normalize_col_header(h)
@@ -211,9 +207,12 @@ class ExcelService:
         db.add(import_job)
         db.flush()
 
-        # Performance Optimization: Preload existing customer index into memory
+        # Performance Optimization: Preload existing customer index and secondary phones in 2 fast bulk queries
         existing_customers = db.query(Customer).all()
         by_party_code: Dict[str, Customer] = {c.party_code.strip().upper(): c for c in existing_customers if c.party_code}
+
+        existing_sec_phones = db.query(CustomerPhoneNumber.customer_id, CustomerPhoneNumber.phone_normalized).all()
+        secondary_phone_set = {(cid, p_norm) for cid, p_norm in existing_sec_phones if cid and p_norm}
 
         imported_count = 0
         updated_count = 0
@@ -222,7 +221,48 @@ class ExcelService:
         error_records = []
         duplicate_records = []
 
-        BATCH_SIZE = 500
+        pending_new_customers: List[Tuple[Customer, str, str]] = []  # (Customer, phone2_raw, phone3_raw)
+        BATCH_FLUSH_SIZE = 250
+
+        def flush_new_customers_batch():
+            nonlocal pending_new_customers
+            if not pending_new_customers:
+                return
+            db.flush()
+            # Batch insert secondary phones for newly created customers
+            new_phones_to_add = []
+            for cust_obj, p2_raw, p3_raw in pending_new_customers:
+                p_norm_primary = cust_obj.phone_1_normalized
+                if p2_raw and p2_raw.strip() and p2_raw.strip() != "—":
+                    p2_norm = PhoneNormalizer.normalize(p2_raw)
+                    if p2_norm and p2_norm != p_norm_primary:
+                        if (cust_obj.id, p2_norm) not in secondary_phone_set:
+                            new_phones_to_add.append(CustomerPhoneNumber(
+                                customer_id=cust_obj.id,
+                                phone_number=p2_raw.strip(),
+                                phone_normalized=p2_norm,
+                                phone_type="Secondary Mobile",
+                                label="Phone 2",
+                                is_primary=False
+                            ))
+                            secondary_phone_set.add((cust_obj.id, p2_norm))
+
+                if p3_raw and p3_raw.strip() and p3_raw.strip() != "—":
+                    p3_norm = PhoneNormalizer.normalize(p3_raw)
+                    if p3_norm and p3_norm != p_norm_primary:
+                        if (cust_obj.id, p3_norm) not in secondary_phone_set:
+                            new_phones_to_add.append(CustomerPhoneNumber(
+                                customer_id=cust_obj.id,
+                                phone_number=p3_raw.strip(),
+                                phone_normalized=p3_norm,
+                                phone_type="Office / Alternate",
+                                label="Phone 3",
+                                is_primary=False
+                            ))
+                            secondary_phone_set.add((cust_obj.id, p3_norm))
+            if new_phones_to_add:
+                db.add_all(new_phones_to_add)
+            pending_new_customers = []
 
         for idx, row in enumerate(rows, start=2):
             try:
@@ -276,7 +316,7 @@ class ExcelService:
                 raw_email3 = get_col_val(row, ["Email-Id 3", "Email Id 3", "Email 3"])
                 raw_phone3 = get_col_val(row, ["Phone Number 3", "Phone 3", "Mobile 3"])
 
-                # Also detect Category if present in row or default / target_category
+                # Detect Category
                 if target_category and target_category.strip() and target_category.strip().lower() not in ("auto", "all", ""):
                     raw_category = target_category.strip()
                 else:
@@ -298,12 +338,7 @@ class ExcelService:
                     phone_1_norm = "0000000000"
 
                 code_key = raw_address_code.strip().upper()
-
-                # Unique Entity Identifier: Match strictly by Address Code* (Party Code)
-                if code_key in by_party_code:
-                    existing_customer = by_party_code[code_key]
-                else:
-                    existing_customer = None
+                existing_customer = by_party_code.get(code_key)
 
                 if existing_customer:
                     prev_diff = {}
@@ -343,8 +378,38 @@ class ExcelService:
                     if raw_category and raw_category != "General":
                         track_change("Category", "category", raw_category)
 
-                    # Check secondary phones
-                    phone_changed = cls._sync_customer_secondary_phones(db, existing_customer.id, raw_phone2, raw_phone3, existing_customer.phone_1_normalized)
+                    # In-memory check secondary phones without DB queries
+                    phone_changed = False
+                    if raw_phone2 and raw_phone2.strip() and raw_phone2.strip() != "—":
+                        p2_norm = PhoneNormalizer.normalize(raw_phone2)
+                        if p2_norm and p2_norm != existing_customer.phone_1_normalized:
+                            if (existing_customer.id, p2_norm) not in secondary_phone_set:
+                                db.add(CustomerPhoneNumber(
+                                    customer_id=existing_customer.id,
+                                    phone_number=raw_phone2.strip(),
+                                    phone_normalized=p2_norm,
+                                    phone_type="Secondary Mobile",
+                                    label="Phone 2",
+                                    is_primary=False
+                                ))
+                                secondary_phone_set.add((existing_customer.id, p2_norm))
+                                phone_changed = True
+
+                    if raw_phone3 and raw_phone3.strip() and raw_phone3.strip() != "—":
+                        p3_norm = PhoneNormalizer.normalize(raw_phone3)
+                        if p3_norm and p3_norm != existing_customer.phone_1_normalized:
+                            if (existing_customer.id, p3_norm) not in secondary_phone_set:
+                                db.add(CustomerPhoneNumber(
+                                    customer_id=existing_customer.id,
+                                    phone_number=raw_phone3.strip(),
+                                    phone_normalized=p3_norm,
+                                    phone_type="Office / Alternate",
+                                    label="Phone 3",
+                                    is_primary=False
+                                ))
+                                secondary_phone_set.add((existing_customer.id, p3_norm))
+                                phone_changed = True
+
                     if phone_changed:
                         changed_cols.append("Secondary Phones")
 
@@ -361,7 +426,6 @@ class ExcelService:
                             "message": "This data already exists"
                         })
                     else:
-                        # Any column is different or has new data: Update / enrich record
                         existing_customer.party_code = raw_address_code or existing_customer.party_code
                         existing_customer.party_name = raw_desc or existing_customer.party_name
                         existing_customer.address_date = raw_address_date or existing_customer.address_date
@@ -431,16 +495,12 @@ class ExcelService:
                         is_archived=False
                     )
                     db.add(new_cust)
-                    db.flush()
-
-                    # Add Phone 2 & Phone 3
-                    cls._sync_customer_secondary_phones(db, new_cust.id, raw_phone2, raw_phone3, new_cust.phone_1_normalized)
-
+                    pending_new_customers.append((new_cust, raw_phone2, raw_phone3))
                     by_party_code[code_key] = new_cust
                     imported_count += 1
 
-                if (imported_count + updated_count) % BATCH_SIZE == 0:
-                    db.flush()
+                if len(pending_new_customers) >= BATCH_FLUSH_SIZE:
+                    flush_new_customers_batch()
 
             except Exception as e:
                 error_count += 1
@@ -458,6 +518,9 @@ class ExcelService:
                     "address_code": row.get("Address Code*", row.get("Address Code", "N/A")),
                     "error": err_msg
                 })
+
+        # Flush any remaining pending new customers
+        flush_new_customers_batch()
 
         import_job.imported_count = imported_count
         import_job.updated_count = updated_count

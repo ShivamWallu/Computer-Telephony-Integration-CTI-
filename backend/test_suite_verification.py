@@ -51,7 +51,7 @@ def run_tests():
         print(f"Total customers in DB: {len(all_custs)}")
         for c in all_custs[-10:]:
             print(f"  ID: {c.id}, Code: '{c.party_code}', Name: '{c.party_name}', Category: '{c.category}'")
-        husk_cust = db.query(Customer).filter(Customer.party_code.ilike("%HUSK%")).first()
+        husk_cust = db.query(Customer).filter(Customer.party_code == "HUSK-1001").first()
         assert husk_cust is not None, "HUSK customer was not found!"
         print(f"Customer: {husk_cust.party_name}, Category: {husk_cust.category}")
         assert husk_cust.category == "HUSK" or "HUSK" in husk_cust.party_code

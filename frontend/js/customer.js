@@ -1078,33 +1078,11 @@ const customer = {
         }
     },
 
-    async loadCustomers() {
+    _customerCache: {},
 
+    async loadCustomers() {
         const tbody = document.getElementById('customers-table-body');
         if (!tbody) return;
-
-        // Render shimmering skeleton rows while loading
-        tbody.innerHTML = Array.from({ length: 8 }).map(() => `
-            <tr class="skeleton-row">
-                <td><div class="skeleton" style="width: 75px; height: 14px;"></div></td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div class="skeleton skeleton-circle" style="width: 26px; height: 26px;"></div>
-                        <div>
-                            <div class="skeleton" style="width: 130px; height: 13px; margin-bottom: 4px;"></div>
-                            <div class="skeleton" style="width: 85px; height: 10px;"></div>
-                        </div>
-                    </div>
-                </td>
-                <td><div class="skeleton" style="width: 95px; height: 13px;"></div></td>
-                <td><div class="skeleton" style="width: 120px; height: 13px;"></div></td>
-                <td><div class="skeleton" style="width: 85px; height: 13px;"></div></td>
-                <td><div class="skeleton" style="width: 60px; height: 18px; border-radius: 10px;"></div></td>
-                <td><div class="skeleton" style="width: 80px; height: 13px;"></div></td>
-                <td><div class="skeleton" style="width: 80px; height: 13px;"></div></td>
-                <td><div class="skeleton" style="width: 70px; height: 26px; border-radius: 4px;"></div></td>
-            </tr>
-        `).join('');
 
         const search = document.getElementById('customers-filter-search')?.value.trim() || '';
         const status = document.getElementById('customers-filter-status')?.value || '';
@@ -1112,83 +1090,46 @@ const customer = {
         const category = (this.selectedCategory && this.selectedCategory !== 'ALL') ? this.selectedCategory : categorySelectVal;
         const agentId = document.getElementById('customers-filter-agent')?.value;
 
-        try {
-            let url = `/customers?page=${this.currentPage}&limit=${this.limit}`;
-            if (search) url += `&search=${encodeURIComponent(search)}`;
-            if (status) url += `&status=${encodeURIComponent(status)}`;
-            if (category) url += `&category=${encodeURIComponent(category)}`;
-            if (agentId !== undefined && agentId !== null && agentId !== '') {
-                url += `&assigned_employee_id=${encodeURIComponent(agentId)}`;
-            }
+        let url = `/customers?page=${this.currentPage}&limit=${this.limit}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (agentId !== undefined && agentId !== null && agentId !== '') {
+            url += `&assigned_employee_id=${encodeURIComponent(agentId)}`;
+        }
 
-            const data = await api.get(url);
-
-            const totalFormatted = (window.app && typeof app.formatFullNumber === 'function') ? app.formatFullNumber(data.total) : data.total;
-            const startNum = data.items.length > 0 ? ((data.page - 1) * this.limit + 1) : 0;
-            const endNum = Math.min(data.page * this.limit, data.total);
-            document.getElementById('customers-pagination-info').textContent =
-                `Showing ${startNum} to ${endNum} of ${totalFormatted} customers (Page ${data.page} of ${data.total_pages})`;
-
-            const badge = document.getElementById('nav-badge-customers');
-            if (badge) {
-                badge.textContent = (window.app && typeof app.formatNumberDisplay === 'function') ? app.formatNumberDisplay(data.total) : data.total;
-                badge.title = `${totalFormatted} Total Customers`;
-            }
-
-            if (data.items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No customers match current filter.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = data.items.map(c => {
-                const statusClass = c.status === 'Active' ? 'badge-active' : (c.status === 'Lead' ? 'badge-lead' : 'badge-standard');
-                const location = [c.city, c.state].filter(Boolean).join(', ') || '—';
-                const partyCode = c.party_code || c.customer_id;
-                const partyName = c.party_name || c.name;
-                const phone1 = c.phone_1 || c.mobile;
-                const emailId = c.email_id_1 || c.email || '—';
-                const contactPerson = c.contact_person_1 || '—';
-
-                const isStaff = c.assigned_employee && (c.assigned_employee.role || '').toLowerCase() === 'employee';
-                const assignedName = isStaff ? c.assigned_employee.full_name : 'Unassigned';
-                return `
-                    <tr style="cursor: pointer;" onclick="customer.openDrawer(${c.id})">
-                        <td><span class="badge badge-standard">${partyCode}</span></td>
-                        <td>
-                            <div style="font-weight: 600; color: var(--text-primary);">${partyName}</div>
-                        </td>
-                        <td>
-                            <div style="font-weight: 500; color: var(--text-secondary);">${contactPerson}</div>
-                        </td>
-                        <td>
-                            <div style="font-weight: 600; color: var(--primary); font-variant-numeric: tabular-nums;">${phone1}</div>
-                        </td>
-                        <td><span style="font-size: 0.75rem; color: var(--text-muted);">${emailId}</span></td>
-                        <td><span style="font-size: 0.75rem;">${location}</span></td>
-                        <td><span class="badge ${statusClass}">${c.status}</span></td>
-                        <td><span style="font-size: 0.75rem;">${assignedName}</span></td>
-                        <td>
-                            <div style="display: flex; gap: 0.25rem; align-items: center;" onclick="event.stopPropagation();">
-                                <button class="btn btn-secondary btn-xs" onclick="cti.makeOutgoingCall('${this.escapeHtml(phone1)}', ${c.id})" title="Initiate Outgoing Call" style="color: var(--primary); font-weight: 600;">
-                                    ${Icons.get('phone', { size: 12 })}
-                                    <span>Call</span>
-                                </button>
-                                <button class="btn btn-warning btn-xs" onclick="customer.openAssignModal(${c.id})" title="Assign to Employee / Priority Focus" style="height: 24px; padding: 0 5px; background: rgba(245,158,11,0.15); color: #D97706; border: 1px solid rgba(245,158,11,0.35); display: inline-flex; align-items: center; justify-content: center;">
-                                    ${Icons.get('user-plus', { size: 12 })}
-                                </button>
-                                <button class="btn btn-secondary btn-xs" onclick="customer.openDrawer(${c.id})" title="View Profile">
-                                    ${Icons.get('eye', { size: 12 })}
-                                    <span>View</span>
-                                </button>
-                                <button class="btn btn-secondary btn-xs" onclick="customer.openEditModal(${c.id})" title="Edit Details">
-                                    ${Icons.get('edit', { size: 12 })}
-                                    <span>Edit</span>
-                                </button>
+        // Instant SWR: If cached data exists for this exact filter/page, render in 0ms!
+        if (this._customerCache[url]) {
+            this.renderCustomerTable(this._customerCache[url]);
+        } else {
+            // Render shimmering skeleton rows only on initial fetch
+            tbody.innerHTML = Array.from({ length: 8 }).map(() => `
+                <tr class="skeleton-row">
+                    <td><div class="skeleton" style="width: 75px; height: 14px;"></div></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="skeleton skeleton-circle" style="width: 26px; height: 26px;"></div>
+                            <div>
+                                <div class="skeleton" style="width: 130px; height: 13px; margin-bottom: 4px;"></div>
+                                <div class="skeleton" style="width: 85px; height: 10px;"></div>
                             </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                        </div>
+                    </td>
+                    <td><div class="skeleton" style="width: 95px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 120px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 85px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 60px; height: 18px; border-radius: 10px;"></div></td>
+                    <td><div class="skeleton" style="width: 80px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 80px; height: 13px;"></div></td>
+                    <td><div class="skeleton" style="width: 70px; height: 26px; border-radius: 4px;"></div></td>
+                </tr>
+            `).join('');
+        }
+
+        try {
+            const data = await api.get(url);
+            this._customerCache[url] = data;
+            this.renderCustomerTable(data);
 
             // Background refresh assigned badge
             const curUser = api.getCurrentUser();
@@ -1203,8 +1144,84 @@ const customer = {
 
         } catch (err) {
             console.error("Error loading customers:", err);
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">Failed to load customers</td></tr>`;
+            if (!this._customerCache[url]) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">Failed to load customers</td></tr>`;
+            }
         }
+    },
+
+    renderCustomerTable(data) {
+        const tbody = document.getElementById('customers-table-body');
+        if (!tbody || !data) return;
+
+        const totalFormatted = (window.app && typeof app.formatFullNumber === 'function') ? app.formatFullNumber(data.total) : data.total;
+        const startNum = data.items.length > 0 ? ((data.page - 1) * this.limit + 1) : 0;
+        const endNum = Math.min(data.page * this.limit, data.total);
+        const pageInfo = document.getElementById('customers-pagination-info');
+        if (pageInfo) {
+            pageInfo.textContent = `Showing ${startNum} to ${endNum} of ${totalFormatted} customers (Page ${data.page} of ${data.total_pages})`;
+        }
+
+        const badge = document.getElementById('nav-badge-customers');
+        if (badge) {
+            badge.textContent = (window.app && typeof app.formatNumberDisplay === 'function') ? app.formatNumberDisplay(data.total) : data.total;
+            badge.title = `${totalFormatted} Total Customers`;
+        }
+
+        if (data.items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No customers match current filter.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.items.map(c => {
+            const statusClass = c.status === 'Active' ? 'badge-active' : (c.status === 'Lead' ? 'badge-lead' : 'badge-standard');
+            const location = [c.city, c.state].filter(Boolean).join(', ') || '—';
+            const partyCode = c.party_code || c.customer_id;
+            const partyName = c.party_name || c.name;
+            const phone1 = c.phone_1 || c.mobile;
+            const emailId = c.email_id_1 || c.email || '—';
+            const contactPerson = c.contact_person_1 || '—';
+
+            const isStaff = c.assigned_employee && (c.assigned_employee.role || '').toLowerCase() === 'employee';
+            const assignedName = isStaff ? c.assigned_employee.full_name : 'Unassigned';
+            return `
+                <tr style="cursor: pointer;" onclick="customer.openDrawer(${c.id})">
+                    <td><span class="badge badge-standard">${partyCode}</span></td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary);">${partyName}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500; color: var(--text-secondary);">${contactPerson}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--primary); font-variant-numeric: tabular-nums;">${phone1}</div>
+                    </td>
+                    <td><span style="font-size: 0.75rem; color: var(--text-muted);">${emailId}</span></td>
+                    <td><span style="font-size: 0.75rem;">${location}</span></td>
+                    <td><span class="badge ${statusClass}">${c.status}</span></td>
+                    <td><span style="font-size: 0.75rem;">${assignedName}</span></td>
+                    <td>
+                        <div style="display: flex; gap: 0.25rem; align-items: center;" onclick="event.stopPropagation();">
+                            <button class="btn btn-secondary btn-xs" onclick="cti.makeOutgoingCall('${this.escapeHtml(phone1)}', ${c.id})" title="Initiate Outgoing Call" style="color: var(--primary); font-weight: 600;">
+                                ${Icons.get('phone', { size: 12 })}
+                                <span>Call</span>
+                            </button>
+                            <button class="btn btn-warning btn-xs" onclick="customer.openAssignModal(${c.id})" title="Assign to Employee / Priority Focus" style="height: 24px; padding: 0 5px; background: rgba(245,158,11,0.15); color: #D97706; border: 1px solid rgba(245,158,11,0.35); display: inline-flex; align-items: center; justify-content: center;">
+                                ${Icons.get('user-plus', { size: 12 })}
+                            </button>
+                            <button class="btn btn-secondary btn-xs" onclick="customer.openDrawer(${c.id})" title="View Profile">
+                                ${Icons.get('eye', { size: 12 })}
+                                <span>View</span>
+                            </button>
+                            <button class="btn btn-secondary btn-xs" onclick="customer.openEditModal(${c.id})" title="Edit Details">
+                                ${Icons.get('edit', { size: 12 })}
+                                <span>Edit</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     },
 
 

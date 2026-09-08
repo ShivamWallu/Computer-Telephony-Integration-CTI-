@@ -948,259 +948,269 @@ const app = {
         }
     },
 
+    _cachedDashboardStats: null,
+
     async refreshDashboard() {
         const kpisContainer = document.getElementById('dashboard-kpis');
         if (!kpisContainer) return;
 
-        this.renderDashboardSkeletons();
+        // Instant SWR: If cached stats exist, render them instantly with 0ms delay!
+        if (this._cachedDashboardStats) {
+            this.renderDashboardData(this._cachedDashboardStats);
+        } else {
+            this.renderDashboardSkeletons();
+        }
 
         try {
             const stats = await api.get('/dashboard/stats');
-            const kpis = stats.kpis || stats;
-            const currentUser = api.getCurrentUser();
-            const isEmployee = currentUser && currentUser.role === 'employee';
-
-            // 1. Update sidebar customer and follow-up badges with scalable formatting & accurate sync
-            const badgeCust = document.getElementById('nav-badge-customers');
-            if (badgeCust) {
-                const totalCust = kpis.total_customers ?? 0;
-                badgeCust.textContent = this.formatNumberDisplay(totalCust);
-                badgeCust.title = `${this.formatFullNumber(totalCust)} Total Customers`;
-            }
-
-            const badgeOverdue = document.getElementById('nav-badge-overdue');
-            if (badgeOverdue) {
-                const pendingFu = (kpis.pending_followups !== undefined) ? kpis.pending_followups : 0;
-                const overdueFu = (kpis.overdue_followups !== undefined) ? kpis.overdue_followups : 0;
-                badgeOverdue.textContent = this.formatNumberDisplay(pendingFu);
-                badgeOverdue.title = `${this.formatFullNumber(pendingFu)} Pending Follow-up(s) (${this.formatFullNumber(overdueFu)} Overdue)`;
-                
-                if (overdueFu > 0) {
-                    badgeOverdue.className = 'nav-badge danger';
-                } else if (pendingFu > 0) {
-                    badgeOverdue.className = 'nav-badge warning';
-                } else {
-                    badgeOverdue.className = 'nav-badge';
-                }
-            }
-
-            // 2. Render KPI cards with exact real-time Month, Year, and Today counts
-            const custDisplay = this.formatNumberDisplay(kpis.total_customers ?? 0);
-            const custFull = this.formatFullNumber(kpis.total_customers ?? 0);
-
-            const callsTodayDisplay = this.formatNumberDisplay(kpis.calls_today ?? 0);
-            const callsTodayFull = this.formatFullNumber(kpis.calls_today ?? 0);
-            const callsMonthDisplay = this.formatNumberDisplay(kpis.calls_this_month ?? 0);
-            const callsMonthFull = this.formatFullNumber(kpis.calls_this_month ?? 0);
-            const callsTotalAllDisplay = this.formatNumberDisplay(kpis.total_calls_all_time ?? kpis.calls_this_month ?? 0);
-            const callsTotalAllFull = this.formatFullNumber(kpis.total_calls_all_time ?? kpis.calls_this_month ?? 0);
-
-            const currentMonthName = kpis.current_month_name || "August";
-            const currentYear = kpis.current_year || 2026;
-            const currentMonthYear = kpis.current_month_year_formatted || `${currentMonthName} ${currentYear}`;
-            const currentDateFormatted = kpis.current_date_formatted || "Today";
-
-            // Update live telephony date badge if present
-            const liveDateText = document.getElementById('telephony-live-date-text');
-            if (liveDateText) {
-                liveDateText.textContent = `Live: ${currentDateFormatted} (${currentMonthName} ${currentYear})`;
-            }
-
-            const pendingFuDisplay = this.formatNumberDisplay(kpis.pending_followups ?? 0);
-            const pendingFuFull = this.formatFullNumber(kpis.pending_followups ?? 0);
-            const overdueFuDisplay = this.formatNumberDisplay(kpis.overdue_followups ?? 0);
-            const overdueFuFull = this.formatFullNumber(kpis.overdue_followups ?? 0);
-
-            kpisContainer.innerHTML = `
-                <div class="kpi-card" style="border-top: 3px solid var(--primary);">
-                    <div class="kpi-info">
-                        <span class="kpi-title">${isEmployee ? 'My Assigned Customers' : 'Active Directory'}</span>
-                        <div class="kpi-value" title="${custFull} Total Records">${custDisplay}</div>
-                        <div class="kpi-subtitle" style="color: var(--success); font-weight: 500;">
-                            ${Icons.get('check', { size: 12 })}
-                            <span>${isEmployee ? 'Assigned accounts' : 'Verified customers'}</span>
-                        </div>
-                    </div>
-                    <div class="kpi-icon-box indigo">
-                        ${Icons.get('users', { size: 20 })}
-                    </div>
-                </div>
-
-                <div class="kpi-card" style="border-top: 3px solid var(--success);">
-                    <div class="kpi-info">
-                        <span class="kpi-title">${isEmployee ? 'My Calls Handled (Today)' : 'Calls Handled (Today)'}</span>
-                        <div class="kpi-value" title="${callsTodayFull} Calls on ${currentDateFormatted}">${callsTodayDisplay}</div>
-                        <div class="kpi-subtitle" style="color: var(--success); font-weight: 500;">
-                            ${Icons.get('calendar', { size: 12 })}
-                            <span title="${callsMonthFull} calls in ${currentMonthYear} • All-Time: ${callsTotalAllFull}">${callsMonthDisplay} in ${currentMonthName} ${currentYear}</span>
-                        </div>
-                    </div>
-                    <div class="kpi-icon-box emerald">
-                        ${Icons.get('phone-call', { size: 20 })}
-                    </div>
-                </div>
-
-                <div class="kpi-card" style="border-top: 3px solid var(--warning);">
-                    <div class="kpi-info">
-                        <span class="kpi-title">Pending Follow-ups</span>
-                        <div class="kpi-value" title="${pendingFuFull} Pending Tasks">${pendingFuDisplay}</div>
-                        <div class="kpi-subtitle" style="color: ${(kpis.overdue_followups || 0) > 0 ? 'var(--danger)' : 'var(--warning)'}; font-weight: 500;">
-                            ${Icons.get('clock', { size: 12 })}
-                            <span title="${overdueFuFull} overdue">${overdueFuDisplay} overdue tasks</span>
-                        </div>
-                    </div>
-                    <div class="kpi-icon-box amber">
-                        ${Icons.get('clock', { size: 20 })}
-                    </div>
-                </div>
-
-                <div class="kpi-card" style="border-top: 3px solid var(--purple);">
-                    <div class="kpi-info">
-                        <span class="kpi-title">Avg Talk Time</span>
-                        <div class="kpi-value" style="font-size: 1.5rem;">${kpis.avg_duration_today_formatted || '00:00 min'}</div>
-                        <div class="kpi-subtitle" style="color: var(--purple); font-weight: 500;">
-                            ${Icons.get('activity', { size: 12 })}
-                            <span>${kpis.call_connect_rate_percent ?? 100}% connect • ${kpis.total_talk_time_today_formatted || '0s'} total</span>
-                        </div>
-                    </div>
-                    <div class="kpi-icon-box purple">
-                        ${Icons.get('activity', { size: 20 })}
-                    </div>
-                </div>
-            `;
-
-            // 2.1 Render Today's Calling Performance (Admin Dashboard Overview)
-            this.renderCallingPerformance(stats);
-
-            // 2.2 Render Business Category Call Distribution & Analytics
-            this.renderCategoryCallDistribution(stats.category_call_distribution || []);
-
-            // Render Today's Priority Followups
-            const fuList = document.getElementById('dashboard-followups-list');
-            if (fuList) {
-                if (!stats.today_followups || stats.today_followups.length === 0) {
-                    fuList.innerHTML = `<p class="text-muted" style="font-size: 0.8125rem; padding: 1rem 0;">No priority follow-ups due today.</p>`;
-                } else {
-                    fuList.innerHTML = stats.today_followups.map(f => `
-                        <div class="followup-item ${f.status === 'Overdue' ? 'overdue' : ''}" style="margin-bottom: 0.4rem;">
-                            <div class="fu-priority ${f.priority.toLowerCase()}"></div>
-                            <div class="fu-info">
-                                <div class="fu-title" style="cursor: pointer;" onclick="customer.openDrawer(${f.customer_id})">${f.title}</div>
-                                <div class="fu-meta">
-                                    <strong>${f.customer_name}</strong> • Due ${f.due_date ? f.due_date.split('T')[0] : 'Today'}
-                                </div>
-                            </div>
-                            <span class="badge ${f.status === 'Overdue' ? 'badge-overdue' : 'badge-today'}">${f.status}</span>
-                        </div>
-                    `).join('');
-                }
-            }
-
-            // Render Live Telephony Table on Dashboard
-            const telBody = document.getElementById('dashboard-telephony-table-body');
-            if (telBody) {
-                try {
-                    const recentCalls = await api.get('/calls?limit=8');
-                    if (!recentCalls || recentCalls.length === 0) {
-                        telBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No recent telephony calls recorded.</td></tr>`;
-                    } else {
-                        telBody.innerHTML = recentCalls.map(c => {
-                            const isIncoming = c.direction === 'incoming';
-                            const dirBadge = isIncoming 
-                                ? `<span class="badge badge-active">${Icons.get('phone-incoming', { size: 11 })} Inbound</span>` 
-                                : `<span class="badge badge-standard">${Icons.get('phone-outgoing', { size: 11 })} Outbound</span>`;
-                            const statusBadge = c.status === 'completed' 
-                                ? '<span class="badge badge-active">Completed</span>' 
-                                : (c.status === 'missed' ? '<span class="badge badge-overdue">Missed</span>' : `<span class="badge badge-lead">${c.status}</span>`);
-                            const durationFormatted = `${Math.floor(c.duration_seconds / 60).toString().padStart(2, '0')}:${(c.duration_seconds % 60).toString().padStart(2, '0')}`;
-                            const custName = c.customer?.party_name || c.customer?.name || null;
-                            const custId = c.customer?.id || c.customer_id;
-                            const custCat = c.customer?.category || c.customer_category || (custId ? 'General' : null);
-                            const catBadge = custCat && typeof customer !== 'undefined' && typeof customer.getCategoryBadgeHtml === 'function'
-                                ? customer.getCategoryBadgeHtml(custCat)
-                                : (custCat ? `<span class="badge badge-standard">${this.escapeHtml(custCat)}</span>` : '<span class="text-muted">—</span>');
-
-                            const vid = !isIncoming 
-                                ? (c.agent_number || c.user?.vid || c.user?.allowed_caller_id || (c.call_to_number && c.call_to_number !== c.phone_number ? c.call_to_number : '918065908540'))
-                                : (c.call_to_number || c.agent_number || 'Smartflo DID');
-                            const agentName = c.agent_name || c.user?.full_name || 'System';
-
-                            return `
-                                <tr>
-                                    <td><span style="font-family: monospace; font-size: 0.75rem;" title="UUID: ${c.uuid || c.call_id}">${(c.call_id || 'CALL').substring(0, 14)}</span></td>
-                                    <td>${dirBadge}</td>
-                                    <td><strong style="color: var(--primary); font-variant-numeric: tabular-nums;">${c.phone_number}</strong></td>
-                                    <td><span class="badge badge-standard">${vid}</span></td>
-                                    <td>
-                                        ${custName && custId ? `
-                                            <a href="#" onclick="customer.openDrawer(${custId}); return false;" style="color: var(--text-primary); font-weight: 600;">${custName}</a>
-                                        ` : `<span class="text-muted">Unregistered Caller</span>`}
-                                    </td>
-                                    <td>${catBadge}</td>
-                                    <td>${statusBadge}</td>
-                                    <td><span style="font-variant-numeric: tabular-nums;">${durationFormatted}</span></td>
-                                    <td><span class="text-muted" style="font-size: 0.8125rem;">${this.formatDateTime(c.start_time)}</span></td>
-                                    <td><span style="font-size: 0.8125rem; font-weight: 500;">${agentName}</span></td>
-                                    <td>
-                                        <div style="display: flex; gap: 0.35rem; align-items: center;">
-                                            ${custId ? `
-                                                <button class="btn btn-secondary btn-xs" onclick="customer.openDrawer(${custId})">Profile</button>
-                                            ` : `
-                                                <button class="btn btn-primary btn-xs" onclick="customer.openAddModal('${c.phone_number}')">+ Quick Register</button>
-                                            `}
-                                            ${c.recording_url ? `
-                                                <button class="btn btn-primary btn-xs" onclick="cti.playRecording('${c.recording_url}', '${c.phone_number}')" title="Play Call Audio Recording" style="display: inline-flex; align-items: center; gap: 3px; font-weight: 500;">
-                                                    ${Icons.get('play', { size: 11 })}
-                                                    <span>Play Rec</span>
-                                                </button>
-                                            ` : ''}
-                                        </div>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }
-                } catch (cErr) {
-                    console.warn("Could not load dashboard telephony table:", cErr);
-                }
-            }
-
-            // Render Recent Stream (Recent activity)
-            const streamList = document.getElementById('dashboard-recent-stream');
-            if (streamList && stats.recent_activity) {
-                if (stats.recent_activity.length === 0) {
-                    streamList.innerHTML = `<p class="text-muted" style="font-size: 0.875rem; padding: 1rem 0;">No recent activity logs.</p>`;
-                } else {
-                    streamList.innerHTML = stats.recent_activity.map(a => {
-                        const iconType = a.type === 'call' ? 'phone' : (a.type === 'email' ? 'mail' : 'file-text');
-                        return `
-                            <div class="timeline-item">
-                                <div class="timeline-bullet ${a.type}">
-                                    ${Icons.get(iconType, { size: 14 })}
-                                </div>
-                                <div class="timeline-body">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <strong style="color: var(--text-primary); font-size: 0.875rem;">${a.title}</strong>
-                                        <span class="text-muted" style="font-size: 0.75rem;">${this.formatDateTime(a.time)}</span>
-                                    </div>
-                                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.15rem;">
-                                        ${a.customer_name ? `<span style="color: var(--primary); font-weight: 600;">${a.customer_name}:</span> ` : ''}${a.description}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            }
-
-            // Call API Token Alert synchronization
-            if (stats.smartflo_token) {
-                this.smartfloTokenData = stats.smartflo_token;
-                this.updateDashboardTokenAlert(stats.smartflo_token);
-            }
-
+            this._cachedDashboardStats = stats;
+            this.renderDashboardData(stats);
         } catch (err) {
             console.error("Dashboard refresh error:", err);
+        }
+    },
+
+    renderDashboardData(stats) {
+        const kpisContainer = document.getElementById('dashboard-kpis');
+        if (!kpisContainer || !stats) return;
+
+        const kpis = stats.kpis || stats;
+        const currentUser = api.getCurrentUser();
+        const isEmployee = currentUser && currentUser.role === 'employee';
+
+        // 1. Update sidebar customer and follow-up badges with scalable formatting & accurate sync
+        const badgeCust = document.getElementById('nav-badge-customers');
+        if (badgeCust) {
+            const totalCust = kpis.total_customers ?? 0;
+            badgeCust.textContent = this.formatNumberDisplay(totalCust);
+            badgeCust.title = `${this.formatFullNumber(totalCust)} Total Customers`;
+        }
+
+        const badgeOverdue = document.getElementById('nav-badge-overdue');
+        if (badgeOverdue) {
+            const pendingFu = (kpis.pending_followups !== undefined) ? kpis.pending_followups : 0;
+            const overdueFu = (kpis.overdue_followups !== undefined) ? kpis.overdue_followups : 0;
+            badgeOverdue.textContent = this.formatNumberDisplay(pendingFu);
+            badgeOverdue.title = `${this.formatFullNumber(pendingFu)} Pending Follow-up(s) (${this.formatFullNumber(overdueFu)} Overdue)`;
+            
+            if (overdueFu > 0) {
+                badgeOverdue.className = 'nav-badge danger';
+            } else if (pendingFu > 0) {
+                badgeOverdue.className = 'nav-badge warning';
+            } else {
+                badgeOverdue.className = 'nav-badge';
+            }
+        }
+
+        // 2. Render KPI cards with exact real-time Month, Year, and Today counts
+        const custDisplay = this.formatNumberDisplay(kpis.total_customers ?? 0);
+        const custFull = this.formatFullNumber(kpis.total_customers ?? 0);
+
+        const callsTodayDisplay = this.formatNumberDisplay(kpis.calls_today ?? 0);
+        const callsTodayFull = this.formatFullNumber(kpis.calls_today ?? 0);
+        const callsMonthDisplay = this.formatNumberDisplay(kpis.calls_this_month ?? 0);
+        const callsMonthFull = this.formatFullNumber(kpis.calls_this_month ?? 0);
+        const callsTotalAllDisplay = this.formatNumberDisplay(kpis.total_calls_all_time ?? kpis.calls_this_month ?? 0);
+        const callsTotalAllFull = this.formatFullNumber(kpis.total_calls_all_time ?? kpis.calls_this_month ?? 0);
+
+        const currentMonthName = kpis.current_month_name || "August";
+        const currentYear = kpis.current_year || 2026;
+        const currentMonthYear = kpis.current_month_year_formatted || `${currentMonthName} ${currentYear}`;
+        const currentDateFormatted = kpis.current_date_formatted || "Today";
+
+        // Update live telephony date badge if present
+        const liveDateText = document.getElementById('telephony-live-date-text');
+        if (liveDateText) {
+            liveDateText.textContent = `Live: ${currentDateFormatted} (${currentMonthName} ${currentYear})`;
+        }
+
+        const pendingFuDisplay = this.formatNumberDisplay(kpis.pending_followups ?? 0);
+        const pendingFuFull = this.formatFullNumber(kpis.pending_followups ?? 0);
+        const overdueFuDisplay = this.formatNumberDisplay(kpis.overdue_followups ?? 0);
+        const overdueFuFull = this.formatFullNumber(kpis.overdue_followups ?? 0);
+
+        kpisContainer.innerHTML = `
+            <div class="kpi-card" style="border-top: 3px solid var(--primary);">
+                <div class="kpi-info">
+                    <span class="kpi-title">${isEmployee ? 'My Assigned Customers' : 'Active Directory'}</span>
+                    <div class="kpi-value" title="${custFull} Total Records">${custDisplay}</div>
+                    <div class="kpi-subtitle" style="color: var(--success); font-weight: 500;">
+                        ${Icons.get('check', { size: 12 })}
+                        <span>${isEmployee ? 'Assigned accounts' : 'Verified customers'}</span>
+                    </div>
+                </div>
+                <div class="kpi-icon-box indigo">
+                    ${Icons.get('users', { size: 20 })}
+                </div>
+            </div>
+
+            <div class="kpi-card" style="border-top: 3px solid var(--success);">
+                <div class="kpi-info">
+                    <span class="kpi-title">${isEmployee ? 'My Calls Handled (Today)' : 'Calls Handled (Today)'}</span>
+                    <div class="kpi-value" title="${callsTodayFull} Calls on ${currentDateFormatted}">${callsTodayDisplay}</div>
+                    <div class="kpi-subtitle" style="color: var(--success); font-weight: 500;">
+                        ${Icons.get('calendar', { size: 12 })}
+                        <span title="${callsMonthFull} calls in ${currentMonthYear} • All-Time: ${callsTotalAllFull}">${callsMonthDisplay} in ${currentMonthName} ${currentYear}</span>
+                    </div>
+                </div>
+                <div class="kpi-icon-box emerald">
+                    ${Icons.get('phone-call', { size: 20 })}
+                </div>
+            </div>
+
+            <div class="kpi-card" style="border-top: 3px solid var(--warning);">
+                <div class="kpi-info">
+                    <span class="kpi-title">Pending Follow-ups</span>
+                    <div class="kpi-value" title="${pendingFuFull} Pending Tasks">${pendingFuDisplay}</div>
+                    <div class="kpi-subtitle" style="color: ${(kpis.overdue_followups || 0) > 0 ? 'var(--danger)' : 'var(--warning)'}; font-weight: 500;">
+                        ${Icons.get('clock', { size: 12 })}
+                        <span title="${overdueFuFull} overdue">${overdueFuDisplay} overdue tasks</span>
+                    </div>
+                </div>
+                <div class="kpi-icon-box amber">
+                    ${Icons.get('clock', { size: 20 })}
+                </div>
+            </div>
+
+            <div class="kpi-card" style="border-top: 3px solid var(--purple);">
+                <div class="kpi-info">
+                    <span class="kpi-title">Avg Talk Time</span>
+                    <div class="kpi-value" style="font-size: 1.5rem;">${kpis.avg_duration_today_formatted || '00:00 min'}</div>
+                    <div class="kpi-subtitle" style="color: var(--purple); font-weight: 500;">
+                        ${Icons.get('activity', { size: 12 })}
+                        <span>${kpis.call_connect_rate_percent ?? 100}% connect • ${kpis.total_talk_time_today_formatted || '0s'} total</span>
+                    </div>
+                </div>
+                <div class="kpi-icon-box purple">
+                    ${Icons.get('activity', { size: 20 })}
+                </div>
+            </div>
+        `;
+
+        // 2.1 Render Today's Calling Performance (Admin Dashboard Overview)
+        this.renderCallingPerformance(stats);
+
+        // 2.2 Render Business Category Call Distribution & Analytics
+        this.renderCategoryCallDistribution(stats.category_call_distribution || []);
+
+        // Render Today's Priority Followups
+        const fuList = document.getElementById('dashboard-followups-list');
+        if (fuList) {
+            if (!stats.today_followups || stats.today_followups.length === 0) {
+                fuList.innerHTML = `<p class="text-muted" style="font-size: 0.8125rem; padding: 1rem 0;">No priority follow-ups due today.</p>`;
+            } else {
+                fuList.innerHTML = stats.today_followups.map(f => `
+                    <div class="followup-item ${f.status === 'Overdue' ? 'overdue' : ''}" style="margin-bottom: 0.4rem;">
+                        <div class="fu-priority ${f.priority.toLowerCase()}"></div>
+                        <div class="fu-info">
+                            <div class="fu-title" style="cursor: pointer;" onclick="customer.openDrawer(${f.customer_id})">${f.title}</div>
+                            <div class="fu-meta">
+                                <strong>${f.customer_name}</strong> • Due ${f.due_date ? f.due_date.split('T')[0] : 'Today'}
+                            </div>
+                        </div>
+                        <span class="badge ${f.status === 'Overdue' ? 'badge-overdue' : 'badge-today'}">${f.status}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Render Live Telephony Table directly from stats.recent_calls (Zero-latency instant render!)
+        const telBody = document.getElementById('dashboard-telephony-table-body');
+        if (telBody) {
+            const recentCalls = stats.recent_calls || [];
+            if (recentCalls.length === 0) {
+                telBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No recent telephony calls recorded.</td></tr>`;
+            } else {
+                telBody.innerHTML = recentCalls.map(c => {
+                    const isIncoming = c.direction === 'incoming';
+                    const dirBadge = isIncoming 
+                        ? `<span class="badge badge-active">${Icons.get('phone-incoming', { size: 11 })} Inbound</span>` 
+                        : `<span class="badge badge-standard">${Icons.get('phone-outgoing', { size: 11 })} Outbound</span>`;
+                    const statusBadge = c.status === 'completed' 
+                        ? '<span class="badge badge-active">Completed</span>' 
+                        : (c.status === 'missed' ? '<span class="badge badge-overdue">Missed</span>' : `<span class="badge badge-lead">${c.status}</span>`);
+                    const durationFormatted = `${Math.floor((c.duration_seconds || 0) / 60).toString().padStart(2, '0')}:${((c.duration_seconds || 0) % 60).toString().padStart(2, '0')}`;
+                    const custName = c.customer?.party_name || c.customer_name || c.customer?.name || null;
+                    const custId = c.customer?.id || c.customer_id;
+                    const custCat = c.customer?.category || c.customer_category || (custId ? 'General' : null);
+                    const catBadge = custCat && typeof customer !== 'undefined' && typeof customer.getCategoryBadgeHtml === 'function'
+                        ? customer.getCategoryBadgeHtml(custCat)
+                        : (custCat ? `<span class="badge badge-standard">${this.escapeHtml(custCat)}</span>` : '<span class="text-muted">—</span>');
+
+                    const vid = !isIncoming 
+                        ? (c.agent_number || c.user?.vid || c.user?.allowed_caller_id || (c.call_to_number && c.call_to_number !== c.phone_number ? c.call_to_number : '918065908540'))
+                        : (c.call_to_number || c.agent_number || 'Smartflo DID');
+                    const agentName = c.agent_name || c.user?.full_name || 'System';
+
+                    return `
+                        <tr>
+                            <td><span style="font-family: monospace; font-size: 0.75rem;" title="UUID: ${c.uuid || c.call_id}">${(c.call_id || 'CALL').substring(0, 14)}</span></td>
+                            <td>${dirBadge}</td>
+                            <td><strong style="color: var(--primary); font-variant-numeric: tabular-nums;">${c.phone_number}</strong></td>
+                            <td><span class="badge badge-standard">${vid}</span></td>
+                            <td>
+                                ${custName && custId ? `
+                                    <a href="#" onclick="customer.openDrawer(${custId}); return false;" style="color: var(--text-primary); font-weight: 600;">${custName}</a>
+                                ` : `<span class="text-muted">Unregistered Caller</span>`}
+                            </td>
+                            <td>${catBadge}</td>
+                            <td>${statusBadge}</td>
+                            <td><span style="font-variant-numeric: tabular-nums;">${durationFormatted}</span></td>
+                            <td><span class="text-muted" style="font-size: 0.8125rem;">${this.formatDateTime(c.start_time || c.time)}</span></td>
+                            <td><span style="font-size: 0.8125rem; font-weight: 500;">${agentName}</span></td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                    ${custId ? `
+                                        <button class="btn btn-secondary btn-xs" onclick="customer.openDrawer(${custId})">Profile</button>
+                                    ` : `
+                                        <button class="btn btn-primary btn-xs" onclick="customer.openAddModal('${c.phone_number}')">+ Quick Register</button>
+                                    `}
+                                    ${c.recording_url ? `
+                                        <button class="btn btn-primary btn-xs" onclick="cti.playRecording('${c.recording_url}', '${c.phone_number}')" title="Play Call Audio Recording" style="display: inline-flex; align-items: center; gap: 3px; font-weight: 500;">
+                                            ${Icons.get('play', { size: 11 })}
+                                            <span>Play Rec</span>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Render Recent Stream (Recent activity)
+        const streamList = document.getElementById('dashboard-recent-stream');
+        if (streamList && stats.recent_activity) {
+            if (stats.recent_activity.length === 0) {
+                streamList.innerHTML = `<p class="text-muted" style="font-size: 0.875rem; padding: 1rem 0;">No recent activity logs.</p>`;
+            } else {
+                streamList.innerHTML = stats.recent_activity.map(a => {
+                    const iconType = a.type === 'call' ? 'phone' : (a.type === 'email' ? 'mail' : 'file-text');
+                    return `
+                        <div class="timeline-item">
+                            <div class="timeline-bullet ${a.type}">
+                                ${Icons.get(iconType, { size: 14 })}
+                            </div>
+                            <div class="timeline-body">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong style="color: var(--text-primary); font-size: 0.875rem;">${a.title}</strong>
+                                    <span class="text-muted" style="font-size: 0.75rem;">${this.formatDateTime(a.time)}</span>
+                                </div>
+                                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.15rem;">
+                                    ${a.customer_name ? `<span style="color: var(--primary); font-weight: 600;">${a.customer_name}:</span> ` : ''}${a.description}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Call API Token Alert synchronization
+        if (stats.smartflo_token) {
+            this.smartfloTokenData = stats.smartflo_token;
+            this.updateDashboardTokenAlert(stats.smartflo_token);
         }
     },
 

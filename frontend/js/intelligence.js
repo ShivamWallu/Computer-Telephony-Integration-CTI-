@@ -148,9 +148,31 @@ const intelligence = {
         this.loadIntelligence();
     },
 
+    _intelCache: {},
+
     async loadIntelligence() {
         const tableBody = document.getElementById('intel-table-body');
-        if (tableBody) {
+        if (!tableBody) return;
+
+        const params = new URLSearchParams();
+        params.set('page', this.currentPage);
+        params.set('limit', this.limit);
+        params.set('sort_order', this.sortOrder);
+        if (this.ratingFilter) params.set('rating', this.ratingFilter);
+        if (this.categoryFilter) params.set('category', this.categoryFilter);
+        if (this.searchQuery) params.set('search', this.searchQuery);
+        const cacheKey = params.toString();
+
+        // SWR Instant Render
+        if (this._intelCache[cacheKey]) {
+            const cached = this._intelCache[cacheKey];
+            this.currentItems = cached.items || [];
+            this.updateKPIs(cached.kpis);
+            const badgeRankings = document.getElementById('intel-tab-badge-rankings');
+            if (badgeRankings) badgeRankings.textContent = (cached.total || 0).toLocaleString();
+            this.renderTable(cached.items, cached.total, cached.page, cached.limit);
+            this.renderPagination(cached.total, cached.page, cached.limit, cached.total_pages);
+        } else {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">
@@ -164,15 +186,8 @@ const intelligence = {
         }
 
         try {
-            const params = new URLSearchParams();
-            params.set('page', this.currentPage);
-            params.set('limit', this.limit);
-            params.set('sort_order', this.sortOrder);
-            if (this.ratingFilter) params.set('rating', this.ratingFilter);
-            if (this.categoryFilter) params.set('category', this.categoryFilter);
-            if (this.searchQuery) params.set('search', this.searchQuery);
-
-            const data = await api.get(`/intelligence/customers?${params.toString()}`);
+            const data = await api.get(`/intelligence/customers?${cacheKey}`);
+            this._intelCache[cacheKey] = data;
             this.currentItems = data.items || [];
             this.updateKPIs(data.kpis);
 
@@ -187,7 +202,7 @@ const intelligence = {
             this.loadRecentChanges(true);
         } catch (err) {
             console.error("Error loading Customer Intelligence:", err);
-            if (tableBody) {
+            if (!this._intelCache[cacheKey] && tableBody) {
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="7" style="text-align: center; color: var(--danger); padding: 2rem;">

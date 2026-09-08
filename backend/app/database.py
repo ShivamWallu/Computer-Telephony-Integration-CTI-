@@ -179,6 +179,23 @@ def ensure_schema_columns(target_engine):
                 """))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS idx_cust_rating_hist_cust ON customer_rating_history(customer_id, created_at)"))
                 conn.commit()
+
+            # 5. Composite Performance Indexes for Sub-10ms Queries
+            index_statements = [
+                "CREATE INDEX IF NOT EXISTS idx_cust_cat_archived ON customers(category, is_archived)",
+                "CREATE INDEX IF NOT EXISTS idx_cust_assigned_archived ON customers(assigned_employee_id, is_archived)",
+                "CREATE INDEX IF NOT EXISTS idx_calls_start_status ON calls(start_time, status)",
+                "CREATE INDEX IF NOT EXISTS idx_calls_user_start ON calls(user_id, start_time)",
+                "CREATE INDEX IF NOT EXISTS idx_fu_due_status ON follow_ups(due_date, status)",
+                "CREATE INDEX IF NOT EXISTS idx_fu_assigned_due ON follow_ups(assigned_user_id, due_date, status)",
+                "CREATE INDEX IF NOT EXISTS idx_cpn_cust_norm ON customer_phone_numbers(customer_id, phone_normalized)"
+            ]
+            for stmt in index_statements:
+                try:
+                    conn.execute(text(stmt))
+                except Exception as idx_err:
+                    logger.debug(f"Index creation notice: {idx_err}")
+            conn.commit()
     except Exception as e:
         logger.warning(f"Schema column check: {e}")
 
