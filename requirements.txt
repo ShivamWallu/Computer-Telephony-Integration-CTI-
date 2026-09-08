@@ -23,6 +23,7 @@ packaging==26.3
 passlib==1.7.4
 playwright==1.62.0
 pluggy==1.6.0
+psycopg2-binary>=2.9.9
 pydantic==2.13.4
 pydantic-settings==2.15.0
 pydantic_core==2.46.4
