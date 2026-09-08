@@ -199,9 +199,6 @@ def ensure_schema_columns(target_engine):
     except Exception as e:
         logger.warning(f"Schema column check: {e}")
 
-# Run schema sync
-ensure_schema_columns(engine)
-
 def get_db():
     """FastAPI Dependency for obtaining transactional database session."""
     db: Session = SessionLocal()
