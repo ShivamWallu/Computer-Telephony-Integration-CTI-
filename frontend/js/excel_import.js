@@ -211,6 +211,172 @@ const excelImport = {
         api.toast(`Validated ${previewData.total_detected_rows} data rows successfully!`, "success");
     },
 
+    showProgressModal(filename, totalRows) {
+        let modal = document.getElementById('import-progress-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'import-progress-modal';
+            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 999999; opacity: 0; transition: opacity 0.25s ease;';
+            modal.innerHTML = `
+                <div class="card" style="width: 92%; max-width: 420px; text-align: center; padding: 2.25rem 1.75rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-xl); box-shadow: 0 20px 50px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.25s ease;">
+                    <div style="position: relative; width: 130px; height: 130px; margin: 0 auto 1.25rem;">
+                        <svg width="130" height="130" viewBox="0 0 130 130" style="transform: rotate(-90deg);">
+                            <circle cx="65" cy="65" r="54" fill="none" stroke="var(--border-color)" stroke-width="8" opacity="0.35" />
+                            <circle id="import-circle-bar" cx="65" cy="65" r="54" fill="none" stroke="url(#import-circle-gradient)" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="339.292" style="transition: stroke-dashoffset 0.25s ease;" />
+                            <defs>
+                                <linearGradient id="import-circle-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#3b82f6" />
+                                    <stop offset="100%" stop-color="#10b981" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <span id="import-circle-percent" style="font-size: 1.75rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">0%</span>
+                            <span id="import-circle-icon" style="display: none; color: #10b981; font-size: 2.2rem; font-weight: 700; line-height: 1;">✓</span>
+                        </div>
+                    </div>
+
+                    <h3 id="import-circle-title" style="font-size: 1.15rem; font-weight: 700; margin: 0 0 0.35rem; color: var(--text-primary);">Processing Import...</h3>
+                    <p id="import-circle-desc" style="font-size: 0.8125rem; color: var(--text-muted); margin: 0 0 1.25rem; line-height: 1.4;">Synchronizing records with database</p>
+
+                    <div style="display: flex; justify-content: center; gap: 0.4rem; margin-top: 0.5rem;">
+                        <span id="import-step-dot-1" style="width: 28px; height: 4px; border-radius: 2px; background: var(--primary); transition: background 0.2s;"></span>
+                        <span id="import-step-dot-2" style="width: 28px; height: 4px; border-radius: 2px; background: var(--border-color); transition: background 0.2s;"></span>
+                        <span id="import-step-dot-3" style="width: 28px; height: 4px; border-radius: 2px; background: var(--border-color); transition: background 0.2s;"></span>
+                        <span id="import-step-dot-4" style="width: 28px; height: 4px; border-radius: 2px; background: var(--border-color); transition: background 0.2s;"></span>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        modal.style.display = 'flex';
+        // Force reflow
+        modal.offsetHeight;
+        modal.style.opacity = '1';
+        const card = modal.querySelector('.card');
+        if (card) card.style.transform = 'scale(1)';
+
+        this.updateProgress(5, "Uploading File Buffer...", `Preparing ${totalRows || ''} rows for processing`, 1);
+    },
+
+    updateProgress(percent, title, desc, step = 1) {
+        const modal = document.getElementById('import-progress-modal');
+        if (!modal) return;
+
+        const circleBar = document.getElementById('import-circle-bar');
+        const percentText = document.getElementById('import-circle-percent');
+        const checkIcon = document.getElementById('import-circle-icon');
+        const titleEl = document.getElementById('import-circle-title');
+        const descEl = document.getElementById('import-circle-desc');
+
+        const circumference = 339.292;
+        const offset = circumference - (percent / 100) * circumference;
+
+        if (circleBar) {
+            circleBar.style.strokeDashoffset = offset;
+            if (percent >= 100) {
+                circleBar.setAttribute('stroke', '#10b981');
+            } else {
+                circleBar.setAttribute('stroke', 'url(#import-circle-gradient)');
+            }
+        }
+
+        if (percentText) {
+            if (percent >= 100) {
+                percentText.style.display = 'none';
+                if (checkIcon) checkIcon.style.display = 'block';
+            } else {
+                percentText.style.display = 'block';
+                percentText.textContent = `${Math.round(percent)}%`;
+                if (checkIcon) checkIcon.style.display = 'none';
+            }
+        }
+
+        if (titleEl && title) titleEl.textContent = title;
+        if (descEl && desc) descEl.textContent = desc;
+
+        for (let i = 1; i <= 4; i++) {
+            const dot = document.getElementById(`import-step-dot-${i}`);
+            if (dot) {
+                dot.style.background = (i <= step) ? 'var(--primary)' : 'var(--border-color)';
+                if (percent >= 100) dot.style.background = '#10b981';
+            }
+        }
+    },
+
+    hideProgressModal() {
+        const modal = document.getElementById('import-progress-modal');
+        if (!modal) return;
+        modal.style.opacity = '0';
+        const card = modal.querySelector('.card');
+        if (card) card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 260);
+    },
+
+    syncCountersInstantly(result) {
+        if (!result) return;
+
+        // Calculate accurate total customer count
+        let totalCount = result.total_customers;
+        if (totalCount === undefined || totalCount === null) {
+            const currBadge = document.getElementById('nav-badge-customers');
+            let currVal = 0;
+            if (currBadge && currBadge.textContent) {
+                let txt = currBadge.textContent.trim().toUpperCase();
+                if (txt.endsWith('K')) currVal = Math.round(parseFloat(txt) * 1000);
+                else currVal = parseInt(txt.replace(/,/g, ''), 10) || 0;
+            }
+            totalCount = currVal + (result.imported_count || 0);
+        }
+
+        const formattedDisplay = (window.app && typeof app.formatNumberDisplay === 'function') 
+            ? app.formatNumberDisplay(totalCount) 
+            : totalCount.toLocaleString();
+        const formattedFull = (window.app && typeof app.formatFullNumber === 'function')
+            ? app.formatFullNumber(totalCount)
+            : totalCount.toLocaleString();
+
+        // 1. Instantaneously update ALL sidebar customer badges (Desktop + Mobile)
+        const allBadges = document.querySelectorAll('#nav-badge-customers');
+        allBadges.forEach(b => {
+            b.textContent = formattedDisplay;
+            b.title = `${formattedFull} Total Customers`;
+            b.style.transition = 'transform 0.2s ease, background-color 0.2s ease';
+            b.style.transform = 'scale(1.25)';
+            setTimeout(() => { b.style.transform = 'scale(1)'; }, 350);
+        });
+
+        // 2. Instantaneously update Dashboard "Active Directory" KPI Card
+        const kpiCards = document.querySelectorAll('#dashboard-kpis .kpi-card');
+        if (kpiCards.length > 0) {
+            const firstCardVal = kpiCards[0].querySelector('.kpi-value');
+            if (firstCardVal) {
+                firstCardVal.textContent = formattedDisplay;
+                firstCardVal.title = `${formattedFull} Total Records`;
+                firstCardVal.style.transition = 'transform 0.2s ease, color 0.2s ease';
+                firstCardVal.style.transform = 'scale(1.08)';
+                setTimeout(() => { firstCardVal.style.transform = 'scale(1)'; }, 350);
+            }
+        }
+
+        // 3. Update cached stats in app memory so any view switch is 100% instant
+        if (window.app && window.app._cachedDashboardStats) {
+            if (window.app._cachedDashboardStats.kpis) {
+                window.app._cachedDashboardStats.kpis.total_customers = totalCount;
+            } else {
+                window.app._cachedDashboardStats.total_customers = totalCount;
+            }
+        }
+
+        // 4. Invalidate Customers table cached data
+        if (typeof customer !== 'undefined') {
+            customer.cachedData = null;
+        }
+    },
+
     async executeImport() {
         if (!this.selectedFile) {
             api.toast("No file selected for import", "error");
@@ -223,9 +389,9 @@ const excelImport = {
         }
 
         const btn = document.getElementById('btn-execute-import');
-        const origText = btn ? btn.innerHTML : "Execute Import";
+        const origText = btn ? btn.innerHTML : "Confirm & Start Import";
 
-        const importMode = document.querySelector('input[name="import-mode"]:checked')?.value || "skip_duplicates";
+        const importMode = document.querySelector('input[name="import-mode"]:checked')?.value || "skip";
         const catSelect = document.getElementById('excel-import-category-select');
 
         const formData = new FormData();
@@ -237,28 +403,65 @@ const excelImport = {
 
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 0.4rem;">Synchronizing Records...</span>`;
+            btn.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 0.4rem;">Synchronizing...</span>`;
         }
 
-        api.toast("Executing high-speed data synchronization & normalization...", "info");
+        const previewRows = this.selectedFile ? "File Stream" : "";
+        this.showProgressModal(this.selectedFile.name, previewRows);
+
+        // Smooth simulated progress while server processes
+        let currentProgress = 10;
+        const progressInterval = setInterval(() => {
+            if (currentProgress < 30) {
+                currentProgress += 4;
+                this.updateProgress(currentProgress, "Uploading File Stream...", "Reading file bytes into memory buffer", 1);
+            } else if (currentProgress < 65) {
+                currentProgress += 3;
+                this.updateProgress(currentProgress, "Validating 25 Columns & Phones...", "Normalizing primary & alternate phone numbers", 2);
+            } else if (currentProgress < 90) {
+                currentProgress += 1.5;
+                this.updateProgress(currentProgress, "O(1) Hash Deduplication...", "Matching existing records and checking diffs", 3);
+            } else if (currentProgress < 96) {
+                currentProgress += 0.5;
+                this.updateProgress(currentProgress, "Batch Flushing to Database...", "Writing optimized batch chunks to PostgreSQL", 4);
+            }
+        }, 120);
 
         const startTime = performance.now();
 
         try {
             const result = await api.post('/imports/process', formData);
+            clearInterval(progressInterval);
+
             const durationMs = Math.round(performance.now() - startTime);
             result.duration_ms = durationMs;
 
-            this.renderResultSummary(result);
-            this.loadHistory();
-            if (typeof customer !== 'undefined') {
-                customer.loadCustomers();
-            }
-            if (window.app && typeof app.refreshDashboard === 'function') {
-                app.refreshDashboard();
-            }
-            api.toast(`Synchronized ${result.total_rows} records in ${durationMs}ms!`, "success");
+            // Step 1: Instant 100% Progress Completion
+            this.updateProgress(100, "Import Completed!", `Successfully processed ${result.total_rows} rows in ${durationMs}ms`, 4);
+
+            // Step 2: Instantaneously ("Palak Jhapaktay Hi") update all counters & badges across UI in 0ms!
+            this.syncCountersInstantly(result);
+
+            // Step 3: Wait 500ms for user to admire the 100% checkmark, then hide modal & show summary
+            setTimeout(() => {
+                this.hideProgressModal();
+                this.renderResultSummary(result);
+                this.loadHistory();
+
+                // Re-hydrate full tables and lists in background
+                if (typeof customer !== 'undefined' && typeof customer.loadCustomers === 'function') {
+                    customer.loadCustomers();
+                }
+                if (window.app && typeof app.refreshDashboard === 'function') {
+                    app.refreshDashboard();
+                }
+
+                api.toast(`Synchronized ${result.total_rows} records in ${durationMs}ms!`, "success");
+            }, 600);
+
         } catch (err) {
+            clearInterval(progressInterval);
+            this.hideProgressModal();
             api.toast(`Import failed: ${err.message}`, "error");
         } finally {
             if (btn) {

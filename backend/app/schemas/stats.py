@@ -97,3 +97,4 @@ class ImportSummaryResponse(BaseModel):
     errors: List[Dict[str, Any]]
     status: str
     created_at: datetime
+    total_customers: Optional[int] = None

@@ -50,6 +50,7 @@ const app = {
                     customer.loadCustomers();
                 }
                 cti.init();
+                this.startLiveDashboardSync();
                 api.toast(`Welcome back, ${user.full_name}!`, 'success', 2500);
             } catch (authErr) {
                 console.warn('Saved session expired or invalid — showing login:', authErr);
@@ -124,6 +125,7 @@ const app = {
         if (typeof cti !== 'undefined' && typeof cti.stopAllTimers === 'function') {
             cti.stopAllTimers();
         }
+        this.stopLiveDashboardSync();
         // Reset login form fields
         const inpEmail = document.getElementById('inp-login-email');
         const inpPass = document.getElementById('inp-login-password');
@@ -188,6 +190,7 @@ const app = {
                 customer.loadCustomers();
             }
             cti.init();
+            this.startLiveDashboardSync();
         } catch (err) {
             api.toast(`Login failed: ${err.message}`, "error");
         } finally {
@@ -224,6 +227,7 @@ const app = {
             this.switchView('dashboard');
             await this.refreshDashboard();
             cti.init();
+            this.startLiveDashboardSync();
         } catch (err) {
             api.toast(`Registration failed: ${err.message}`, "error");
         } finally {
@@ -949,25 +953,84 @@ const app = {
     },
 
     _cachedDashboardStats: null,
+    _liveSyncTimer: null,
+    _isFetchingStats: false,
+    _visibilityBound: false,
 
-    async refreshDashboard() {
+    startLiveDashboardSync() {
+        if (this._liveSyncTimer) clearInterval(this._liveSyncTimer);
+
+        // Instant background polling every 2.5s for real-time live metrics sync
+        this._liveSyncTimer = setInterval(() => {
+            const token = api.getToken();
+            if (!token) return;
+            // Only sync if document is active / visible to save network & battery
+            if (document.visibilityState === 'visible') {
+                this.silentSyncDashboard();
+            }
+        }, 2500);
+
+        // Immediate sync on tab switch / window focus
+        if (!this._visibilityBound) {
+            this._visibilityBound = true;
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && api.getToken()) {
+                    this.silentSyncDashboard(true);
+                }
+            });
+            window.addEventListener('focus', () => {
+                if (api.getToken()) {
+                    this.silentSyncDashboard(true);
+                }
+            });
+        }
+    },
+
+    stopLiveDashboardSync() {
+        if (this._liveSyncTimer) {
+            clearInterval(this._liveSyncTimer);
+            this._liveSyncTimer = null;
+        }
+    },
+
+    notifyDataChanged() {
+        this.silentSyncDashboard(true);
+    },
+
+    async silentSyncDashboard(forceRender = false) {
+        if (this._isFetchingStats) return;
+        const token = api.getToken();
+        if (!token) return;
+
+        this._isFetchingStats = true;
+        try {
+            const stats = await api.get('/dashboard/stats');
+            const prevJson = this._cachedDashboardStats ? JSON.stringify(this._cachedDashboardStats) : '';
+            const newJson = JSON.stringify(stats);
+
+            if (forceRender || prevJson !== newJson) {
+                this._cachedDashboardStats = stats;
+                this.renderDashboardData(stats);
+            }
+        } catch (err) {
+            // silent catch in background
+        } finally {
+            this._isFetchingStats = false;
+        }
+    },
+
+    async refreshDashboard(silent = false) {
         const kpisContainer = document.getElementById('dashboard-kpis');
         if (!kpisContainer) return;
 
         // Instant SWR: If cached stats exist, render them instantly with 0ms delay!
         if (this._cachedDashboardStats) {
             this.renderDashboardData(this._cachedDashboardStats);
-        } else {
+        } else if (!silent) {
             this.renderDashboardSkeletons();
         }
 
-        try {
-            const stats = await api.get('/dashboard/stats');
-            this._cachedDashboardStats = stats;
-            this.renderDashboardData(stats);
-        } catch (err) {
-            console.error("Dashboard refresh error:", err);
-        }
+        await this.silentSyncDashboard(true);
     },
 
     renderDashboardData(stats) {

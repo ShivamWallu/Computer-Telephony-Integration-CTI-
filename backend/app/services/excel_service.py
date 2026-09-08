@@ -530,6 +530,8 @@ class ExcelService:
 
         db.commit()
 
+        total_active_customers = db.query(Customer).filter(Customer.is_archived == False).count()
+
         return {
             "job_id": import_job.id,
             "filename": filename,
@@ -541,7 +543,8 @@ class ExcelService:
             "error_count": error_count,
             "errors": error_records,
             "status": "completed",
-            "created_at": import_job.created_at
+            "created_at": import_job.created_at,
+            "total_customers": total_active_customers
         }
 
     @staticmethod
